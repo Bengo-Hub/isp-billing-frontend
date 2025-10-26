@@ -1,0 +1,286 @@
+import { api } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+export type PaymentItem = {
+  id: number;
+  amount: number;
+  status: string;
+  method: string;
+  invoice_id: number;
+  user_id: number;
+  transaction_id?: string;
+  created_at: string;
+};
+
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  user_id: number;
+  subscription_id?: number;
+  amount: number;
+  tax: number;
+  total: number;
+  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled';
+  due_date: string;
+  paid_at?: string;
+  created_at: string;
+  items?: InvoiceItem[];
+}
+
+export interface InvoiceItem {
+  id: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+}
+
+const paymentsFallback = {
+  items: [],
+  total: 0,
+  page: 1,
+  size: 10,
+  pages: 0,
+};
+
+const invoicesFallback = {
+  invoices: [],
+  total: 0,
+  page: 1,
+  size: 10,
+  pages: 0,
+};
+
+// Payments
+export function usePayments(params: { page?: number; size?: number; user_id?: number; invoice_id?: number; status?: string }) {
+  return useQuery({
+    queryKey: ['payments', params],
+    queryFn: async (): Promise<{ items: PaymentItem[]; total: number; page: number; size: number; pages: number }> => {
+      try {
+        const { data } = await api.get('/billing/payments', { params });
+        return data;
+      } catch {
+        return paymentsFallback;
+      }
+    },
+  });
+}
+
+export function usePayment(paymentId: number) {
+  return useQuery({
+    queryKey: ['payment', paymentId],
+    queryFn: async (): Promise<PaymentItem> => {
+      const { data } = await api.get(`/billing/payments/${paymentId}`);
+      return data;
+    },
+    enabled: !!paymentId,
+  });
+}
+
+// Invoices
+export function useInvoices(params: { page?: number; size?: number; user_id?: number; status?: string }) {
+  return useQuery({
+    queryKey: ['invoices', params],
+    queryFn: async () => {
+      try {
+        const { data } = await api.get('/billing/invoices', { params });
+        return data;
+      } catch {
+        return invoicesFallback;
+      }
+    },
+  });
+}
+
+export function useInvoice(invoiceId: number) {
+  return useQuery({
+    queryKey: ['invoice', invoiceId],
+    queryFn: async (): Promise<Invoice> => {
+      const { data } = await api.get(`/billing/invoices/${invoiceId}`);
+      return data;
+    },
+    enabled: !!invoiceId,
+  });
+}
+
+export function useOverdueInvoices(params?: { page?: number; size?: number }) {
+  return useQuery({
+    queryKey: ['invoices-overdue', params],
+    queryFn: async () => {
+      const { data } = await api.get('/billing/invoices/overdue', { params });
+      return data;
+    },
+  });
+}
+
+export function usePendingInvoices(params?: { page?: number; size?: number }) {
+  return useQuery({
+    queryKey: ['invoices-pending', params],
+    queryFn: async () => {
+      const { data } = await api.get('/billing/invoices/pending', { params });
+      return data;
+    },
+  });
+}
+
+export function usePaidInvoices(params?: { page?: number; size?: number }) {
+  return useQuery({
+    queryKey: ['invoices-paid', params],
+    queryFn: async () => {
+      const { data } = await api.get('/billing/invoices/paid', { params });
+      return data;
+    },
+  });
+}
+
+// Generate Invoices
+export function useGenerateInvoices() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/billing/invoices/generate');
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast.success(`${data.generated_count || 0} invoices generated successfully`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to generate invoices');
+    },
+  });
+}
+
+export function useGenerateSubscriptionInvoice() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (subscriptionId: number) => {
+      const response = await api.post(`/billing/invoices/generate/subscription/${subscriptionId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast.success('Invoice generated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to generate invoice');
+    },
+  });
+}
+
+// Download Invoice
+export function useDownloadInvoice() {
+  return useMutation({
+    mutationFn: async (invoiceId: number) => {
+      const response = await api.get(`/billing/invoices/${invoiceId}/download`, {
+        responseType: 'blob',
+      });
+      
+      const filename = `invoice_${invoiceId}.pdf`;
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Invoice downloaded successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to download invoice');
+    },
+  });
+}
+
+// Email Invoice
+export function useEmailInvoice() {
+  return useMutation({
+    mutationFn: async ({ invoiceId, email }: { invoiceId: number; email?: string }) => {
+      const response = await api.post(`/billing/invoices/${invoiceId}/email`, { email });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Invoice emailed successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to email invoice');
+    },
+  });
+}
+
+// Mark Invoice as Paid
+export function useMarkInvoicePaid() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (invoiceId: number) => {
+      const response = await api.patch(`/billing/invoices/${invoiceId}/mark-paid`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast.success('Invoice marked as paid');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to mark invoice as paid');
+    },
+  });
+}
+
+// Cancel Invoice
+export function useCancelInvoice() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (invoiceId: number) => {
+      const response = await api.patch(`/billing/invoices/${invoiceId}/cancel`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast.success('Invoice cancelled');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to cancel invoice');
+    },
+  });
+}
+
+// Download Receipt
+export function useDownloadReceipt() {
+  return useMutation({
+    mutationFn: async (paymentId: number) => {
+      const response = await api.get(`/billing/payments/${paymentId}/receipt`, {
+        responseType: 'blob',
+      });
+      
+      const filename = `receipt_${paymentId}.pdf`;
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Receipt downloaded successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to download receipt');
+    },
+  });
+}
