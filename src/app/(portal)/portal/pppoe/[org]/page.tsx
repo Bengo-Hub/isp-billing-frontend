@@ -1,0 +1,432 @@
+'use client';
+
+import { LoginForm } from '@/components/auth/LoginForm';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+    usePaymentStatus,
+    usePortalConfig,
+    usePPPoEDashboard,
+    usePPPoELogin,
+    usePPPoEPackages,
+    usePPPoERenew,
+} from '@/features/portal/api';
+import {
+    AlertTriangle,
+    Calendar,
+    CheckCircle,
+    Download,
+    Loader2,
+    LogOut,
+    RefreshCw,
+    Upload,
+    Wifi
+} from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+export default function PPPoEPortalPage() {
+  const params = useParams();
+  const orgSlug = params.org as string;
+
+  const [token, setToken] = useState<string | null>(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+
+  const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
+  const loginMutation = usePPPoELogin(orgSlug);
+  const { data: dashboard, isLoading: dashboardLoading, refetch: refetchDashboard } = usePPPoEDashboard(orgSlug, token || undefined);
+  const { data: packages } = usePPPoEPackages(orgSlug);
+  const renewMutation = usePPPoERenew(orgSlug);
+  const { data: paymentStatus } = usePaymentStatus(orgSlug, paymentReference || undefined);
+
+  // Load token from localStorage
+  useEffect(() => {
+    const savedToken = localStorage.getItem(`pppoe_token_${orgSlug}`);
+    if (savedToken) {
+      setToken(savedToken);
+    }
+  }, [orgSlug]);
+
+  // Save token to localStorage when login succeeds
+  useEffect(() => {
+    if (loginMutation.data?.token) {
+      localStorage.setItem(`pppoe_token_${orgSlug}`, loginMutation.data.token);
+      setToken(loginMutation.data.token);
+    }
+  }, [loginMutation.data, orgSlug]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await loginMutation.mutateAsync({ username, password });
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(`pppoe_token_${orgSlug}`);
+    setToken(null);
+    setUsername('');
+    setPassword('');
+  };
+
+  const handleRenew = async () => {
+    if (!selectedPackage || !phoneNumber) return;
+
+    try {
+      const result = await renewMutation.mutateAsync({
+        plan_id: selectedPackage,
+        phone_number: phoneNumber,
+      });
+
+      if (result.reference) {
+        setPaymentReference(result.reference);
+      }
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'KES') => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 GB';
+    const gb = bytes / (1024 * 1024 * 1024);
+    return `${gb.toFixed(2)} GB`;
+  };
+
+  const primaryColor = config?.primary_color || '#ec4899';
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: primaryColor }} />
+      </div>
+    );
+  }
+
+  // Payment success - refetch dashboard
+  useEffect(() => {
+    if (paymentStatus?.is_completed) {
+      refetchDashboard();
+      setPaymentReference(null);
+      setSelectedPackage(null);
+    }
+  }, [paymentStatus?.is_completed, refetchDashboard]);
+
+  // Payment pending screen
+  if (paymentReference && !paymentStatus?.is_completed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: `${primaryColor}10` }}>
+        <Card className="max-w-md w-full p-8 text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: primaryColor }} />
+          <h2 className="text-xl font-bold mb-2">Waiting for Payment</h2>
+          <p className="text-gray-600 mb-4">
+            Please complete the M-PESA payment on your phone.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => setPaymentReference(null)}
+          >
+            Cancel
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // Login page
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: `${primaryColor}10` }}>
+        <Card className="max-w-md w-full p-8">
+          <div className="text-center mb-8">
+            {config?.logo_url && (
+              <img src={config.logo_url} alt={config.organization_name} className="h-16 mx-auto mb-4" />
+            )}
+            <h1 className="text-2xl font-bold">{config?.organization_name || 'Customer Portal'}</h1>
+            <p className="text-gray-600 mt-2">Sign in to manage your subscription</p>
+          </div>
+
+          <div>
+            <LoginForm
+              inline
+              initialUsername={username}
+              initialPassword={password}
+              onSubmit={async (u, p) => {
+                setUsername(u);
+                setPassword(p);
+                await loginMutation.mutateAsync({ username: u, password: p });
+              }}
+            />
+
+            {loginMutation.isError && (
+              <div className="flex items-center gap-2 text-red-600 text-sm mt-3">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Invalid username or password</span>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Dashboard
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: `${primaryColor}10` }}>
+      {/* Header */}
+      <div className="text-white py-6 px-4" style={{ backgroundColor: primaryColor }}>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {config?.logo_url && (
+              <img src={config.logo_url} alt={config.organization_name} className="h-10" />
+            )}
+            <div>
+              <h1 className="text-xl font-bold">{config?.organization_name || 'Customer Portal'}</h1>
+              <p className="text-white/80 text-sm">Welcome, {loginMutation.data?.user?.username || username}</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            className="text-white hover:bg-white/10"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        {dashboardLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-32"></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Current Plan */}
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="font-semibold text-gray-900 mb-1">Current Plan</h2>
+                  {dashboard?.current_plan ? (
+                    <>
+                      <p className="text-2xl font-bold" style={{ color: primaryColor }}>
+                        {dashboard.current_plan.name}
+                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          Expires: {new Date(dashboard.current_plan.expires_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {dashboard.current_plan.is_expired && (
+                        <div className="mt-2 flex items-center gap-2 text-red-600">
+                          <AlertTriangle className="w-4 h-4" />
+                          <span>Your subscription has expired</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-gray-500">No active subscription</p>
+                  )}
+                </div>
+                <Button
+                  onClick={() => setSelectedPackage(dashboard?.current_plan ? null : packages?.[0]?.id || null)}
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Renew
+                </Button>
+              </div>
+            </Card>
+
+            {/* Usage Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: `${primaryColor}20` }}>
+                    <Download className="w-5 h-5" style={{ color: primaryColor }} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Downloaded</p>
+                    <p className="text-xl font-bold">{formatBytes((dashboard?.usage?.download_gb || 0) * 1024 * 1024 * 1024)}</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: `${primaryColor}20` }}>
+                    <Upload className="w-5 h-5" style={{ color: primaryColor }} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Uploaded</p>
+                    <p className="text-xl font-bold">{formatBytes((dashboard?.usage?.upload_gb || 0) * 1024 * 1024 * 1024)}</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: `${primaryColor}20` }}>
+                    <Wifi className="w-5 h-5" style={{ color: primaryColor }} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Total Usage</p>
+                    <p className="text-xl font-bold">{formatBytes((dashboard?.usage?.total_gb || 0) * 1024 * 1024 * 1024)}</p>
+                    {dashboard?.usage?.limit_gb && dashboard.usage.limit_gb > 0 && (
+                      <p className="text-xs text-gray-500">of {dashboard.usage.limit_gb} GB limit</p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Renewal Form */}
+            {selectedPackage !== null && (
+              <Card className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Renew Subscription</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Package</label>
+                    <select
+                      value={selectedPackage || ''}
+                      onChange={(e) => setSelectedPackage(Number(e.target.value))}
+                      className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm"
+                    >
+                      <option value="">Select a package</option>
+                      {packages?.map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.name} - {formatCurrency(pkg.price, pkg.currency)} ({pkg.validity_days} days)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">M-PESA Number</label>
+                    <Input
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="07XX XXX XXX"
+                      type="tel"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-4">
+                  <Button variant="outline" onClick={() => setSelectedPackage(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleRenew}
+                    disabled={!selectedPackage || !phoneNumber || renewMutation.isPending}
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {renewMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      `Pay ${formatCurrency(packages?.find(p => p.id === selectedPackage)?.price || 0)}`
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Recent Payments */}
+            <Card className="p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Recent Payments</h3>
+              {dashboard?.recent_payments && dashboard.recent_payments.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium text-gray-500">Date</th>
+                        <th className="text-left py-2 font-medium text-gray-500">Package</th>
+                        <th className="text-right py-2 font-medium text-gray-500">Amount</th>
+                        <th className="text-right py-2 font-medium text-gray-500">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboard.recent_payments.map((payment) => (
+                        <tr key={payment.id} className="border-b">
+                          <td className="py-3">{new Date(payment.date).toLocaleDateString()}</td>
+                          <td className="py-3">{payment.plan_name}</td>
+                          <td className="text-right py-3">{formatCurrency(payment.amount, payment.currency)}</td>
+                          <td className="text-right py-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                              payment.status === 'completed' ? 'bg-green-100 text-green-700' :
+                              payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {payment.status === 'completed' && <CheckCircle className="w-3 h-3" />}
+                              {payment.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No payment history</p>
+              )}
+            </Card>
+
+            {/* Available Packages */}
+            <Card className="p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Available Packages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {packages?.map((pkg) => (
+                  <div key={pkg.id} className="border rounded-lg p-4">
+                    <h4 className="font-medium">{pkg.name}</h4>
+                    <p className="text-2xl font-bold mt-2" style={{ color: primaryColor }}>
+                      {formatCurrency(pkg.price, pkg.currency)}
+                    </p>
+                    <p className="text-sm text-gray-500">{pkg.validity_days} days</p>
+                    <div className="text-xs text-gray-500 mt-2">
+                      <p>{pkg.download_speed} Mbps / {pkg.upload_speed} Mbps</p>
+                      {pkg.is_unlimited ? (
+                        <p>Unlimited data</p>
+                      ) : pkg.data_limit > 0 ? (
+                        <p>{pkg.data_limit} GB data</p>
+                      ) : null}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-3"
+                      onClick={() => setSelectedPackage(pkg.id)}
+                    >
+                      Select
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
