@@ -73,6 +73,7 @@ export default function ProvisionPage() {
         setFirstTimeProvisioning(false);
         
         // Check if router can use direct API (credentials stored)
+        // But keep at step 1 to show all steps
         checkDirectApiAccess(routerId);
       }
     }
@@ -86,21 +87,14 @@ export default function ProvisionPage() {
       const data = response.data;
       setCanUseDirectApi(data.can_use_direct_api || false);
       
-      // Always go to step 2, but behavior differs based on credentials
-      setStep(2);
-      
+      // Stay at step 1, just store the capability info
       if (data.can_use_direct_api) {
-        // Has credentials - show step 2 but start auto-detection immediately
-        toast.info('Detecting device connection...');
-        // Start automatic device detection via API
-        startAutoDeviceDetection(routerId);
+        toast.info('Router has saved credentials - will auto-reconnect in step 2');
       } else {
-        // No credentials - user must run bootstrap command
-        toast.info('Please run the provisioning command on your router');
+        toast.info('Reprovisioning mode - bootstrap command required');
       }
     } catch (error) {
       console.error('Failed to check direct API access:', error);
-      setStep(2); // Fallback to step 2
     } finally {
       setCheckingApiAccess(false);
     }
@@ -160,30 +154,41 @@ export default function ProvisionPage() {
   };
 
   const handleStep1Next = async () => {
-    if (isFirstTimeProvisioning) {
-      // First-time provisioning: Fetch command from backend with token
-      setGeneratingCommand(true);
-      try {
-        const response = await apiClient.get(
-          `/provisioning/bootstrap/command?identity=${encodeURIComponent(identity)}&api_port=${apiPort}&interface=${encodeURIComponent(interfaceName)}`
-        );
+    // Generate provisioning command for both first-time and reprovisioning
+    // For reprovisioning, it's shown for reference but not required to be run
+    setGeneratingCommand(true);
+    try {
+      const response = await apiClient.get(
+        `/provisioning/bootstrap/command?identity=${encodeURIComponent(identity)}&api_port=${apiPort}&interface=${encodeURIComponent(interfaceName)}`
+      );
 
-        const commandData = response.data;
-        
-        // Store the backend-generated command (includes token and correct URL)
-        setProvisioningCommand(commandData.command);
-        setBootstrapUrl(commandData.script_url);
-        setStep(2);
-        toast.success('Provisioning command generated successfully');
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to generate provisioning command');
-        return; // Don't proceed to step 2 on error
-      } finally {
-        setGeneratingCommand(false);
-      }
-    } else {
-      // Reprovisioning: Skip to step 2
+      const commandData = response.data;
+      
+      // Store the backend-generated command (includes token and correct URL)
+      setProvisioningCommand(commandData.command);
+      setBootstrapUrl(commandData.script_url);
+      
+      // Generate a temporary session ID for ping monitoring
+      // This will be replaced with the actual provisioning session ID in step 3
+      const tempSessionId = `ping-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      setSessionId(tempSessionId);
+      
       setStep(2);
+      
+      if (isFirstTimeProvisioning) {
+        toast.success('Provisioning command generated successfully');
+      } else {
+        toast.success('Ready for device detection');
+        // For reprovisioning with saved credentials, start auto-detection
+        if (reprovisionRouterId && canUseDirectApi) {
+          startAutoDeviceDetection(reprovisionRouterId);
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate provisioning command');
+      return; // Don't proceed to step 2 on error
+    } finally {
+      setGeneratingCommand(false);
     }
   };
 
@@ -285,6 +290,7 @@ export default function ProvisionPage() {
         enablePppoe: configuration.enablePppoe
       });
 
+      // Update session ID with the actual provisioning session
       setSessionId(result.id);
       toast.success('Provisioning started');
       // Step 3 will show live provisioning logs
@@ -335,12 +341,13 @@ export default function ProvisionPage() {
         />
 
         {/* Step Content */}
-        {step === 1 && isFirstTimeProvisioning && (
+        {step === 1 && (
           <ConnectionStep
             identity={identity}
             onIdentityChange={setIdentity}
             onNext={handleStep1Next}
             isGeneratingCommand={isGeneratingCommand}
+            isReprovisioning={!isFirstTimeProvisioning}
           />
         )}
 
@@ -363,6 +370,8 @@ export default function ProvisionPage() {
             isFirstTimeProvisioning={isFirstTimeProvisioning}
             isReprovisioning={!isFirstTimeProvisioning && canUseDirectApi}
             isScanningDevice={isScanningDevice}
+            sessionId={sessionId}
+            onDeviceOnline={() => setDeviceConnected(true)}
           />
         )}
 

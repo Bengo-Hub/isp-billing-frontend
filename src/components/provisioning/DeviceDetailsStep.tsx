@@ -2,9 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { apiClient } from '@/lib/api/api-client';
 import { Copy } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { RealtimeLogViewer } from './RealtimeLogViewer';
 
 interface DeviceDetailsStepProps {
   apiPort: string;
@@ -24,6 +26,8 @@ interface DeviceDetailsStepProps {
   isFirstTimeProvisioning: boolean;
   isReprovisioning?: boolean;  // Router has stored credentials
   isScanningDevice: boolean;
+  sessionId?: string | null;  // Provisioning session ID
+  onDeviceOnline?: () => void;  // Callback when device comes online
 }
 
 export function DeviceDetailsStep({
@@ -43,12 +47,54 @@ export function DeviceDetailsStep({
   provisioningCommand,
   isFirstTimeProvisioning,
   isReprovisioning = false,
-  isScanningDevice
+  isScanningDevice,
+  sessionId = null,
+  onDeviceOnline
 }: DeviceDetailsStepProps) {
-  const [logs, setLogs] = useState([
-    { timestamp: '2026-01-27 18:30:15', type: 'info', message: isReprovisioning ? 'Detecting device via stored credentials...' : 'Waiting for mikrotik to come online...' },
-    { timestamp: '2026-01-27 18:30:16', type: 'info', message: isReprovisioning ? 'No command execution needed - device will be auto-detected' : 'Please paste and execute the command in your Mikrotik terminal. The system will automatically detect when the command is executed.' },
-  ]);
+  const [pingMonitoringStarted, setPingMonitoringStarted] = useState(false);
+
+  // Start ping monitoring when sessionId and IP are available
+  useEffect(() => {
+    if (sessionId && ipAddress && !pingMonitoringStarted && !deviceConnected) {
+      startPingMonitoring();
+    }
+  }, [sessionId, ipAddress, pingMonitoringStarted, deviceConnected]);
+
+  const startPingMonitoring = async () => {
+    if (!sessionId || !ipAddress) return;
+    
+    try {
+      await apiClient.post(
+        `/provisioning/bootstrap/ping/start/${sessionId}`,
+        null,
+        {
+          params: {
+            ip_address: ipAddress,
+            interval_seconds: 2.0,
+            max_attempts: 30,
+            timeout_ms: 1000
+          }
+        }
+      );
+      setPingMonitoringStarted(true);
+      console.log(`[DeviceDetailsStep] Started ping monitoring for session ${sessionId}`);
+    } catch (error) {
+      console.error('[DeviceDetailsStep] Failed to start ping monitoring:', error);
+      toast.error('Failed to start device monitoring');
+    }
+  };
+
+  const handleDeviceOnline = () => {
+    if (onDeviceOnline) {
+      onDeviceOnline();
+    }
+    
+    // Stop ping monitoring when device is online
+    if (sessionId) {
+      apiClient.post(`/provisioning/bootstrap/ping/stop/${sessionId}`)
+        .catch(err => console.error('Failed to stop ping monitoring:', err));
+    }
+  };
 
   const copyCommand = async () => {
     if (!provisioningCommand) {
@@ -139,45 +185,17 @@ export function DeviceDetailsStep({
         )}
       </Card>
 
-      {/* Live Log Stream */}
-      <Card className="p-0 overflow-hidden">
-        <div className="bg-gray-900 p-4 border-b border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-              {deviceConnected ? (
-                <svg className="h-4 w-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4 animate-pulse text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                  <circle cx="10" cy="10" r="8" />
-                </svg>
-              )}
-              {deviceConnected ? 'Device Connected Successfully' : isReprovisioning ? 'Auto-detecting device...' : 'Waiting for mikrotik to come online...'}
-            </h3>
-          </div>
-        </div>
-
-        <div className="bg-black p-4 font-mono text-xs h-64 overflow-y-auto">
-          {logs.map((log, index) => (
-            <div key={index} className="mb-1">
-              <span className="text-gray-500">[{log.timestamp}]</span>{' '}
-              <span className={log.type === 'error' ? 'text-red-400' : 'text-green-400'}>
-                {log.message}
-              </span>
-            </div>
-          ))}
-          {logs.length < 10 && (
-            <div className="mt-2">
-              <span className="text-yellow-400">⚠ ICMP Ping (failed)</span>
-              <br />
-              <span className="text-red-400">Ping failed: Device not responding</span>
-              <br />
-              <span className="text-gray-500">Attempt 10 of 300</span>
-            </div>
-          )}
-        </div>
-      </Card>
+      {/* Live Log Stream - Reusable Component */}
+      <RealtimeLogViewer
+        sessionId={sessionId}
+        title={deviceConnected ? 'Device Connected Successfully' : isReprovisioning ? 'Auto-detecting device...' : 'Waiting for mikrotik to come online...'}
+        subtitle={isReprovisioning ? 'Device will be detected automatically using stored credentials' : 'Real-time ping monitoring active'}
+        isConnected={deviceConnected}
+        autoConnect={!!sessionId}
+        showConnectionStatus={true}
+        height="h-64"
+        onDeviceOnline={handleDeviceOnline}
+      />
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-4">
