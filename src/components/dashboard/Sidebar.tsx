@@ -2,19 +2,20 @@
 
 import { useSettings } from '@/features/settings/api';
 import {
-  BarChart3,
-  Calendar,
-  ChevronDown,
-  CreditCard,
-  LayoutDashboard,
-  Mail,
-  Menu,
-  MessageSquare,
-  Package,
-  Settings,
-  Users,
-  Wifi,
-  X
+    BarChart3,
+    Calendar,
+    ChevronDown,
+    CreditCard,
+    LayoutDashboard,
+    Mail,
+    Menu,
+    MessageSquare,
+    Package,
+    Settings,
+    Ticket,
+    Users,
+    Wifi,
+    X
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,9 +32,9 @@ const navigation = [
       { name: 'Active Users', href: '/users', icon: BarChart3, count: 5 },
       { name: 'Users', href: '/users/all', icon: Users, count: 179 },
       { name: 'Expiry Dates', href: '/users/expiry', icon: Calendar, count: 4 },
-      { name: 'IP Bindings', href: '/users/ip-bindings', icon: Wifi, count: 0 },
-      { name: 'Tickets', href: '/users/tickets', icon: BarChart3, count: 0 },
-      { name: 'Leads', href: '/users/leads', icon: Users, count: 0 },
+      { name: 'IP Bindings', href: '/ip-bindings', icon: Wifi, count: 0 },
+      { name: 'Tickets', href: '/tickets', icon: Ticket, count: 0 },
+      { name: 'Leads', href: '/leads', icon: Users, count: 0 },
     ]
   },
   
@@ -52,14 +53,21 @@ const navigation = [
   {
     section: 'Communication',
     items: [
-      { name: 'SMS', href: '/sms', icon: MessageSquare },
+      { name: 'Messages', href: '/messages', icon: MessageSquare },
       { name: 'Emails', href: '/emails', icon: Mail },
       { name: 'Campaigns', href: '/campaigns', icon: MessageSquare, count: 0 },
     ]
   },
   
+  // Devices
+  {
+    section: 'Devices',
+    items: [
+      { name: 'MikroTik', href: '/routers', icon: Wifi },
+    ]
+  },
+  
   // Other
-  { name: 'Routers', href: '/routers', icon: Wifi },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];

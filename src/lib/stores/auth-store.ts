@@ -155,14 +155,29 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             },
           });
 
-          const { access_token, refresh_token } = response.data;
-          const backendUser = response.data?.user ?? null;
+          console.log('[Auth Store] Login response structure:', {
+            hasData: !!response.data,
+            dataKeys: response.data ? Object.keys(response.data) : [],
+            hasUser: !!(response.data as any)?.user,
+            hasAccessToken: !!(response.data as any)?.access_token,
+          });
+
+          // API response is wrapped: { data: { access_token, user, ... } }
+          const responseData = (response.data as any).data || response.data;
+          const { access_token, refresh_token, user: backendUser } = responseData;
 
           // Store tokens in localStorage for API client
           localStorage.setItem("auth-token", access_token);
           if (refresh_token) {
             localStorage.setItem("refresh-token", refresh_token);
           }
+
+          console.log('[Auth Store] Extracted from response:', {
+            hasBackendUser: !!backendUser,
+            backendUserRole: backendUser?.role,
+            backendUserEmail: backendUser?.email,
+            hasAccessToken: !!access_token,
+          });
 
           // If backend didn't return a user payload, avoid accessing its properties
           const normalizedUser = backendUser
@@ -192,6 +207,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             isLoading: false,
             error: null,
           });
+
+          console.log('[Auth Store] Login successful, state updated:', {
+            hasUser: !!normalizedUser,
+            userRole: normalizedUser?.role,
+            isAuthenticated: true,
+            hasAccessToken: !!access_token,
+          });
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Login failed";
@@ -209,7 +231,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
         try {
           const response = await api.post("/auth/register", data);
-          const { access_token, refresh_token, user } = response.data;
+          
+          // API response is wrapped: { data: { access_token, user, ... } }
+          const responseData = (response.data as any).data || response.data;
+          const { access_token, refresh_token, user } = responseData;
 
           localStorage.setItem("auth-token", access_token);
           if (refresh_token) {
@@ -422,12 +447,21 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => getStorage()),
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated,
-      }),
+      partialize: (state) => {
+        const partialState = {
+          user: state.user,
+          accessToken: state.accessToken,
+          refreshToken: state.refreshToken,
+          isAuthenticated: state.isAuthenticated,
+        };
+        console.log('[Auth Store] Partializing state for persist:', {
+          hasUser: !!partialState.user,
+          userRole: partialState.user?.role,
+          isAuthenticated: partialState.isAuthenticated,
+          hasAccessToken: !!partialState.accessToken,
+        });
+        return partialState;
+      },
       onRehydrateStorage: () => {
         console.log('[Auth Store] Starting rehydration from localStorage...');
         return (state, error) => {

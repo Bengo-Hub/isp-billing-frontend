@@ -7,6 +7,7 @@ import { ProvisioningStepper } from '@/components/provisioning/ProvisioningStepp
 import { ServiceSetupStep } from '@/components/provisioning/ServiceSetupStep';
 import { Card } from '@/components/ui/card';
 import { useCreateRouter, useRouter } from '@/features/routers/api';
+import { apiClient } from '@/lib/api/api-client';
 import { useProvisioningStore } from '@/lib/store/provisioning';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -23,6 +24,10 @@ export default function ProvisionPage() {
   const [routerUsername, setRouterUsername] = useState('admin');
   const [routerPassword, setRouterPassword] = useState('');
   const [reprovisionRouterId, setReprovisionRouterId] = useState<number | null>(null);
+  const [provisioningCommand, setProvisioningCommand] = useState('');
+  const [bootstrapUrl, setBootstrapUrl] = useState('');
+  const [canUseDirectApi, setCanUseDirectApi] = useState(false);
+  const [checkingApiAccess, setCheckingApiAccess] = useState(false);
 
   // Use centralized provisioning store
   const {
@@ -66,10 +71,75 @@ export default function ProvisionPage() {
       if (!isNaN(routerId)) {
         setReprovisionRouterId(routerId);
         setFirstTimeProvisioning(false);
-        setStep(2); // Start at step 2 (Device Details) for reprovisioning - skip first-time setup
+        
+        // Check if router can use direct API (credentials stored)
+        checkDirectApiAccess(routerId);
       }
     }
   }, [searchParams, setFirstTimeProvisioning]);
+
+  // Check if router has stored credentials for direct API access
+  const checkDirectApiAccess = async (routerId: number) => {
+    setCheckingApiAccess(true);
+    try {
+      const response = await apiClient.get(`/provisioning/can-use-direct-api/${routerId}`);
+      const data = response.data;
+      setCanUseDirectApi(data.can_use_direct_api || false);
+      
+      // Always go to step 2, but behavior differs based on credentials
+      setStep(2);
+      
+      if (data.can_use_direct_api) {
+        // Has credentials - show step 2 but start auto-detection immediately
+        toast.info('Detecting device connection...');
+        // Start automatic device detection via API
+        startAutoDeviceDetection(routerId);
+      } else {
+        // No credentials - user must run bootstrap command
+        toast.info('Please run the provisioning command on your router');
+      }
+    } catch (error) {
+      console.error('Failed to check direct API access:', error);
+      setStep(2); // Fallback to step 2
+    } finally {
+      setCheckingApiAccess(false);
+    }
+  };
+
+  // Auto-detect device online status using stored API credentials
+  const startAutoDeviceDetection = async (routerId: number) => {
+    let attempts = 0;
+    const maxAttempts = 30; // 30 attempts * 2 seconds = 1 minute
+    
+    const checkInterval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        // Check device status via backend API (using stored credentials)
+        const response = await apiClient.get(`/provisioning/device-status/${routerId}`);
+        const { online, details } = response.data;
+        
+        if (online) {
+          clearInterval(checkInterval);
+          setDeviceConnected(true);
+          toast.success('Device detected online - ready for configuration!');
+          // Auto-advance to step 3 after brief delay
+          setTimeout(() => {
+            setStep(3);
+          }, 1500);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          toast.error('Device not detected. Please check router is powered on and connected.');
+        }
+      } catch (error) {
+        console.error('Device detection error:', error);
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          toast.error('Failed to detect device. Please proceed manually.');
+        }
+      }
+    }, 2000); // Check every 2 seconds
+  };
 
   // Load existing router data when reprovisioning
   useEffect(() => {
@@ -89,17 +159,25 @@ export default function ProvisionPage() {
     dhcpPool: `${configuration.subnetAddress.split('.').slice(0, 3).join('.')}.2 - ${configuration.subnetAddress.split('.').slice(0, 3).join('.')}.254`
   };
 
-  // Bootstrap URL from API
-  const bootstrapUrl = `/api/v1/provisioning/bootstrap/command?identity=${encodeURIComponent(identity)}&api_port=${apiPort}&interface=${encodeURIComponent(interfaceName)}`;
-
   const handleStep1Next = async () => {
     if (isFirstTimeProvisioning) {
-      // First-time provisioning: Generate command
+      // First-time provisioning: Fetch command from backend with token
       setGeneratingCommand(true);
       try {
-        // Simulate command generation
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const response = await apiClient.get(
+          `/provisioning/bootstrap/command?identity=${encodeURIComponent(identity)}&api_port=${apiPort}&interface=${encodeURIComponent(interfaceName)}`
+        );
+
+        const commandData = response.data;
+        
+        // Store the backend-generated command (includes token and correct URL)
+        setProvisioningCommand(commandData.command);
+        setBootstrapUrl(commandData.script_url);
         setStep(2);
+        toast.success('Provisioning command generated successfully');
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to generate provisioning command');
+        return; // Don't proceed to step 2 on error
       } finally {
         setGeneratingCommand(false);
       }
@@ -281,8 +359,9 @@ export default function ProvisionPage() {
             onPrevious={() => setStep(isFirstTimeProvisioning ? 1 : 1)}
             onNext={handleStep2Next}
             deviceConnected={deviceConnected}
-            bootstrapUrl={bootstrapUrl}
+            provisioningCommand={provisioningCommand}
             isFirstTimeProvisioning={isFirstTimeProvisioning}
+            isReprovisioning={!isFirstTimeProvisioning && canUseDirectApi}
             isScanningDevice={isScanningDevice}
           />
         )}

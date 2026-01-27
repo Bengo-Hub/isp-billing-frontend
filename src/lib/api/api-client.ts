@@ -3,10 +3,10 @@
  */
 
 import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosRequestConfig,
-  InternalAxiosRequestConfig,
+    AxiosError,
+    AxiosInstance,
+    AxiosRequestConfig,
+    InternalAxiosRequestConfig,
 } from "axios";
 
 // API configuration
@@ -135,10 +135,12 @@ function createApiClient(): AxiosInstance {
             return client(originalRequest);
           }
         } catch {
-          // Refresh failed - clear auth and redirect to login
+          // Refresh failed - clear auth but don't redirect
+          // Let AuthGuard handle the redirect logic
           localStorage.removeItem("auth-token");
           localStorage.removeItem("refresh-token");
-          window.location.href = "/login";
+          localStorage.removeItem("auth-storage");
+          // Don't auto-redirect - let the auth guard detect the missing token
         }
       }
 

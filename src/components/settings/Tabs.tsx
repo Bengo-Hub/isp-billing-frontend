@@ -5,24 +5,23 @@ import { Card } from '@/components/ui/card';
 import { Editor } from '@/components/ui/editor';
 import FileUpload from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
-import { useSaveSetting, useSettings, useUploadLogo, useDeleteLogo } from '@/features/settings/api';
-import { 
-  useGatewayConfig, 
-  useSaveGatewayConfig, 
-  useTestGateway,
-  usePayoutConfig,
-  usePayoutScheduleTypes,
-  usePayoutRecipientTypes,
-  useSavePayoutConfig,
-  useUpdatePayoutConfig,
-  useIntegrationUrls,
-  PayoutScheduleType,
-  PayoutRecipientType
+import { useDeleteLogo, useSaveSetting, useSettings, useUploadLogo } from '@/features/settings/api';
+import {
+    PayoutRecipientType,
+    PayoutScheduleType,
+    useGatewayConfig,
+    usePayoutConfig,
+    usePayoutRecipientTypes,
+    usePayoutScheduleTypes,
+    useSaveGatewayConfig,
+    useSavePayoutConfig,
+    useTestGateway,
+    useUpdatePayoutConfig
 } from '@/features/settings/gateways';
 import { usePermissions } from '@/lib/stores/rbac';
-import { useState, useEffect } from 'react';
+import { AlertCircle, CheckCircle2, Loader2, Lock, Shield } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle, CheckCircle2, Copy, ExternalLink, RefreshCw, Lock, Shield } from 'lucide-react';
 
 const tabs = [
   { id: 'general', label: 'General Settings' },
@@ -181,29 +180,6 @@ function GeneralTab() {
 function PaymentsTab() {
   const { data = {} as any } = useSettings('payments');
   const save = useSaveSetting('payments');
-  
-  // Permission checks for platform vs tenant access
-  const { 
-    canAccessPlatformIntegrations, 
-    canManagePlatformSecrets, 
-    canViewIntegrationUrls,
-    canConfigureTenantPayout,
-    isSuperuser,
-    isAdmin 
-  } = usePermissions();
-  
-  const isPlatformUser = canAccessPlatformIntegrations() || isSuperuser();
-  const canViewSecrets = canManagePlatformSecrets() || isSuperuser();
-  const canViewUrls = canViewIntegrationUrls() || isSuperuser();
-  const canConfigurePayout = canConfigureTenantPayout() || isAdmin();
-
-  // Provider-specific (M-Pesa) - only load if platform user
-  const { data: mpesa } = useGatewayConfig('payment', 'mpesa');
-  const saveMpesa = useSaveGatewayConfig('payment', 'mpesa');
-  const testMpesa = useTestGateway('payment', 'mpesa');
-
-  // Auto-configured integration URLs - only for platform users
-  const { data: integrationUrls, isLoading: urlsLoading, refetch: refetchUrls } = useIntegrationUrls();
 
   // Payout configuration
   const { data: payoutConfig, isLoading: payoutLoading } = usePayoutConfig();
@@ -279,202 +255,19 @@ function PaymentsTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <form id="form-payments" onSubmit={(e) => { e.preventDefault(); save.mutate({
-          'payments.default_gateway': (e.currentTarget.elements.namedItem('gateway') as HTMLInputElement).value,
-          'payments.bank_paybill': (e.currentTarget.elements.namedItem('paybill') as HTMLInputElement).value,
-          'payments.bank_account_number': (e.currentTarget.elements.namedItem('account') as HTMLInputElement).value,
-        }); }} className="space-y-4">
+      {/* Notice about platform integrations */}
+      <Card className="p-6 bg-blue-50 border-l-4 border-l-blue-500">
+        <div className="flex items-center gap-3">
+          <Shield className="h-5 w-5 text-blue-600 flex-shrink-0" />
           <div>
-            <label className="text-sm text-gray-700">Payment Gateway</label>
-            <Input name="gateway" defaultValue={data['payments.default_gateway'] ?? 'bank'} />
+            <p className="text-sm font-medium text-blue-900">Payment Gateway Configuration</p>
+            <p className="text-xs text-blue-700 mt-1">
+              Payment gateway credentials (M-Pesa, SMS providers) are managed by your platform administrator. 
+              Contact support if you need changes to the gateway configuration.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-700">Bank Paybill Number</label>
-              <Input name="paybill" defaultValue={data['payments.bank_paybill'] ?? ''} />
-            </div>
-            <div>
-              <label className="text-sm text-gray-700">Bank Account Number</label>
-              <Input name="account" defaultValue={data['payments.bank_account_number'] ?? ''} />
-            </div>
-          </div>
-          <div className="flex gap-3 justify-end">
-            <Button type="submit">Save changes</Button>
-          </div>
-        </form>
+        </div>
       </Card>
-
-      {/* M-PESA Configuration - Platform Owner Only */}
-      {isPlatformUser && canViewSecrets ? (
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="h-4 w-4 text-amber-600" />
-            <div className="text-sm font-semibold">M-Pesa Daraja</div>
-            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Platform Only</span>
-          </div>
-          <form onSubmit={(e) => { e.preventDefault();
-            const payload: Record<string, string> = {
-              consumer_key: (e.currentTarget.elements.namedItem('mpesa_ck') as HTMLInputElement).value || '',
-              consumer_secret: (e.currentTarget.elements.namedItem('mpesa_cs') as HTMLInputElement).value || '',
-              passkey: (e.currentTarget.elements.namedItem('mpesa_pk') as HTMLInputElement).value || '',
-              shortcode: (e.currentTarget.elements.namedItem('mpesa_sc') as HTMLInputElement).value || '',
-            };
-            saveMpesa.mutate(payload);
-          }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input name="mpesa_ck" placeholder="Consumer Key" defaultValue={mpesa?.configuration?.consumer_key ?? ''} />
-            <Input name="mpesa_cs" placeholder="Consumer Secret" type="password" defaultValue={mpesa?.configuration?.consumer_secret ?? ''} />
-            <Input name="mpesa_pk" placeholder="Passkey" type="password" defaultValue={mpesa?.configuration?.passkey ?? ''} />
-            <Input name="mpesa_sc" placeholder="Shortcode" defaultValue={mpesa?.configuration?.shortcode ?? ''} />
-            <div className="col-span-full flex flex-col sm:flex-row gap-3 sm:justify-end">
-              <Button type="submit" className="w-full sm:w-auto">Save</Button>
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => testMpesa.mutate({})}>Test</Button>
-            </div>
-          </form>
-        </Card>
-      ) : (
-        <Card className="p-6 bg-gray-50">
-          <div className="flex items-center gap-3 text-gray-500">
-            <Lock className="h-5 w-5" />
-            <div>
-              <p className="text-sm font-medium">Gateway API Configuration</p>
-              <p className="text-xs">Contact your platform administrator to configure payment gateway credentials.</p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Auto-Configured Integration URLs - Platform Owner Only */}
-      {canViewUrls ? (
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-semibold">Callback & Webhook URLs</div>
-                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Platform Only</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Use these URLs when configuring webhooks in external payment providers
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => refetchUrls()}
-              disabled={urlsLoading}
-            >
-              <RefreshCw className={`h-4 w-4 ${urlsLoading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-
-          {urlsLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-            </div>
-          ) : integrationUrls ? (
-            <div className="space-y-4">
-              {/* Base URLs */}
-              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">Auto-configured URLs detected</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                  <div className="truncate">
-                    <span className="text-gray-600">Backend Base:</span>
-                    <code className="ml-2 text-green-700">{integrationUrls.backend_base}</code>
-                  </div>
-                  <div className="truncate">
-                    <span className="text-gray-600">Frontend Base:</span>
-                    <code className="ml-2 text-green-700">{integrationUrls.frontend_base}</code>
-                  </div>
-                </div>
-              </div>
-
-              {/* M-PESA URLs */}
-              {integrationUrls.urls?.mpesa && (
-                <div className="border rounded-lg p-4">
-                  <div className="text-sm font-medium text-gray-800 mb-3 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-green-600 text-xs font-bold">M</span>
-                    </span>
-                    M-PESA Callback URLs
-                  </div>
-                  <div className="space-y-2">
-                    {Object.entries(integrationUrls.urls.mpesa).map(([key, url]) => (
-                      <div key={key} className="flex items-center justify-between text-xs bg-gray-50 p-2 rounded gap-2">
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                          <span className="text-gray-500 capitalize">{key.replace(/_/g, ' ')}:</span>
-                          <code className="ml-2 text-gray-700 truncate block text-[10px] sm:text-xs">{url}</code>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="flex-shrink-0"
-                          onClick={() => copyUrl(url)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Paystack URLs */}
-              {integrationUrls.urls?.paystack && (
-                <div className="border rounded-lg p-4">
-                  <div className="text-sm font-medium text-gray-800 mb-3 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-teal-600 text-xs font-bold">P</span>
-                    </span>
-                    Paystack URLs
-                  </div>
-                  <div className="space-y-2">
-                    {Object.entries(integrationUrls.urls.paystack).map(([key, url]) => (
-                      <div key={key} className="flex items-center justify-between text-xs bg-gray-50 p-2 rounded gap-2">
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                          <span className="text-gray-500 capitalize">{key.replace(/_/g, ' ')}:</span>
-                          <code className="ml-2 text-gray-700 truncate block text-[10px] sm:text-xs">{url}</code>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="flex-shrink-0"
-                          onClick={() => copyUrl(url)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Info box */}
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex gap-2">
-                  <ExternalLink className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-blue-700">
-                    <p className="font-medium">Register these URLs in your payment provider dashboard:</p>
-                    <ul className="mt-1 list-disc ml-4">
-                      <li>M-PESA: Go to Safaricom Daraja portal and register callback URLs</li>
-                      <li>Paystack: Configure webhook URL in your Paystack dashboard</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-4 text-gray-500 text-sm">
-              Unable to load integration URLs. Check your backend configuration.
-            </div>
-          )}
-        </Card>
-      ) : null}
 
       {/* Payout Configuration */}
       <Card className="p-6">

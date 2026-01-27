@@ -34,6 +34,30 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
       } else {
         await login(username, password);
         
+        console.log('[LoginForm] Login successful, waiting for persist...');
+        
+        // Wait for Zustand persist to save to localStorage before navigating
+        // This prevents race condition where navigation happens before state is saved
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Verify localStorage has the data
+        const authStorage = localStorage.getItem('auth-storage');
+        const authToken = localStorage.getItem('auth-token');
+        
+        console.log('[LoginForm] Pre-navigation localStorage check:', {
+          hasAuthStorage: !!authStorage,
+          hasAuthToken: !!authToken,
+          authStoragePreview: authStorage?.substring(0, 100),
+        });
+        
+        if (!authStorage || !authToken) {
+          console.error('[LoginForm] WARNING: localStorage not populated after login!');
+          setError('Login state not saved. Please try again.');
+          return;
+        }
+        
+        console.log('[LoginForm] Navigating to dashboard...');
+        
         // Use window.location for immediate navigation after login
         // This forces a full page reload with the new auth state
         window.location.href = '/dashboard';

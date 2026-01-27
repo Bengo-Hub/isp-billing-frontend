@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, Copy, ExternalLink } from 'lucide-react';
+import { AlertCircle, Copy } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProvisioningCommandProps {
@@ -61,8 +61,8 @@ export function ProvisioningCommand({
         </div>
       </div>
 
-      <div className="bg-gray-900 text-green-400 p-4 rounded-md overflow-x-auto text-xs font-mono relative">
-        <pre className="whitespace-pre-wrap break-all">{command}</pre>
+      <div className="bg-gray-900 text-green-400 p-4 rounded-md text-xs font-mono relative">
+        <pre className="whitespace-pre-wrap break-all overflow-wrap-anywhere">{command}</pre>
       </div>
 
       {notes.length > 0 && (

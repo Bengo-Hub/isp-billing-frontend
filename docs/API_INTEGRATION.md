@@ -156,6 +156,9 @@ This document tracks the integration status of all frontend API calls to backend
 | `/provisioning/workflow` | POST | `useProvisioningStore.startProvisioning` | ✅ Complete |
 | `/provisioning/sessions/{id}/status` | GET | `useProvisioningStore.getProvisioningStatus` | ✅ Complete |
 | `/provisioning/ws/{session_id}` | WebSocket | `LiveProvisioningLog` | ✅ Complete |
+| `/provisioning/sessions/{id}/logs` | GET | Session log retrieval | ✅ Complete |
+| `/provisioning/sessions/{id}/cancel` | POST | Cancel provisioning | ✅ Complete |
+| `/provisioning/sessions/{id}/retry` | POST | Retry failed session | ✅ Complete |
 
 ### Features
 - ✅ Token-based bootstrap command generation
