@@ -247,3 +247,61 @@ export function useIntegrationUrlsForProvider(provider: string) {
     enabled: !!provider,
   });
 }
+
+// =========================================================================
+// Bank and Account Resolution
+// =========================================================================
+
+export interface Bank {
+  id: number;
+  name: string;
+  slug: string;
+  code: string;
+  longcode: string;
+  gateway: string | null;
+  pay_with_bank: boolean;
+  active: boolean;
+  is_deleted: boolean;
+  country: string;
+  currency: string;
+  type: string;
+}
+
+export interface BankListResponse {
+  status: boolean;
+  message: string;
+  data: Bank[];
+}
+
+export interface ResolvedAccount {
+  account_number: string;
+  account_name: string;
+  bank_id: number;
+}
+
+export interface ResolveAccountResponse {
+  status: boolean;
+  message: string;
+  data: ResolvedAccount;
+}
+
+export function useBanks(country: string = 'kenya') {
+  return useQuery({
+    queryKey: ['banks', country],
+    queryFn: async (): Promise<Bank[]> => {
+      const { data } = await api.get<BankListResponse>(`/payments/paystack/banks/${country}`);
+      return data.data || [];
+    },
+    staleTime: 300_000, // Cache for 5 minutes
+    enabled: !!country,
+  });
+}
+
+export function useResolveAccount() {
+  return useMutation({
+    mutationFn: async ({ accountNumber, bankCode }: { accountNumber: string; bankCode: string }): Promise<ResolvedAccount> => {
+      const { data } = await api.get<ResolveAccountResponse>(`/payments/paystack/resolve-account?account_number=${accountNumber}&bank_code=${bankCode}`);
+      return data.data;
+    },
+  });
+}
