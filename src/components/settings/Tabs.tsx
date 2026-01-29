@@ -16,7 +16,9 @@ import {
     useSaveGatewayConfig,
     useSavePayoutConfig,
     useTestGateway,
-    useUpdatePayoutConfig
+    useUpdatePayoutConfig,
+    useBanks,
+    useResolveAccount
 } from '@/features/settings/gateways';
 import { usePermissions } from '@/lib/stores/rbac';
 import { AlertCircle, CheckCircle2, Loader2, Lock, Shield } from 'lucide-react';
@@ -188,6 +190,21 @@ function PaymentsTab() {
   const savePayoutConfig = useSavePayoutConfig();
   const updatePayoutConfig = useUpdatePayoutConfig();
 
+  // Map currency to country for bank listing
+  const currencyToCountry: Record<string, string> = {
+    KES: 'kenya',
+    NGN: 'nigeria',
+    GHS: 'ghana',
+    ZAR: 'south-africa'
+  };
+
+  // Bank listing and account resolution - dynamic based on currency
+  const [bankCountry, setBankCountry] = useState('kenya');
+  const { data: banks = [], isLoading: banksLoading } = useBanks(bankCountry);
+  const resolveAccount = useResolveAccount();
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [accountVerified, setAccountVerified] = useState(false);
+
   // Helper to copy URL to clipboard
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -225,8 +242,77 @@ function PaymentsTab() {
         currency: payoutConfig.currency || 'KES',
         min_payout_amount: payoutConfig.min_payout_amount || 1000,
       });
+      // Set bank country based on currency
+      const currency = payoutConfig.currency || 'KES';
+      setBankCountry(currencyToCountry[currency] || 'kenya');
+      // Mark as verified if account_name exists
+      if (payoutConfig.account_name) {
+        setAccountVerified(true);
+      }
     }
   }, [payoutConfig]);
+
+  // Handle bank selection - auto-fill bank name
+  const handleBankChange = (bankCode: string) => {
+    const selectedBank = banks.find(b => b.code === bankCode);
+    setPayoutForm(prev => ({
+      ...prev,
+      bank_code: bankCode,
+      bank_name: selectedBank?.name || '',
+      account_name: '' // Reset account name when bank changes
+    }));
+    // Reset verification when bank changes
+    setAccountVerified(false);
+  };
+
+  // Verify account number
+  const handleVerifyAccount = async () => {
+    if (!payoutForm.bank_code) {
+      toast.error('Please select a bank first');
+      return;
+    }
+    if (!payoutForm.account_number) {
+      toast.error('Please enter an account number');
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const result = await resolveAccount.mutateAsync({
+        accountNumber: payoutForm.account_number,
+        bankCode: payoutForm.bank_code
+      });
+      setPayoutForm(prev => ({ ...prev, account_name: result.account_name }));
+      setAccountVerified(true);
+      toast.success(`Account verified: ${result.account_name}`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to verify account');
+      setAccountVerified(false);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Reset verification when account number changes
+  const handleAccountNumberChange = (value: string) => {
+    setPayoutForm({ ...payoutForm, account_number: value });
+    setAccountVerified(false);
+  };
+
+  // Handle currency change - update bank country and reset bank selection
+  const handleCurrencyChange = (currency: string) => {
+    const country = currencyToCountry[currency] || 'kenya';
+    setBankCountry(country);
+    setPayoutForm({
+      ...payoutForm,
+      currency,
+      bank_code: '',
+      bank_name: '',
+      account_number: '',
+      account_name: ''
+    });
+    setAccountVerified(false);
+  };
 
   const handlePayoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -373,10 +459,10 @@ function PaymentsTab() {
 
                 <div>
                   <label className="text-sm text-gray-700">Currency</label>
-                  <select 
+                  <select
                     className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
                     value={payoutForm.currency}
-                    onChange={(e) => setPayoutForm({ ...payoutForm, currency: e.target.value })}
+                    onChange={(e) => handleCurrencyChange(e.target.value)}
                   >
                     <option value="KES">KES - Kenyan Shilling</option>
                     <option value="NGN">NGN - Nigerian Naira</option>
@@ -389,27 +475,69 @@ function PaymentsTab() {
                   <>
                     <div>
                       <label className="text-sm text-gray-700">Bank Code</label>
-                      <Input 
-                        placeholder="e.g., 063 for Diamond Bank"
+                      <Input
+                        placeholder="e.g., 033"
                         value={payoutForm.bank_code}
-                        onChange={(e) => setPayoutForm({ ...payoutForm, bank_code: e.target.value })}
+                        onChange={(e) => {
+                          const code = e.target.value;
+                          const matchedBank = banks.find(b => b.code === code);
+                          setPayoutForm(prev => ({
+                            ...prev,
+                            bank_code: code,
+                            bank_name: matchedBank?.name || prev.bank_name
+                          }));
+                          setAccountVerified(false);
+                        }}
                       />
+                      <p className="text-xs text-gray-500 mt-1">Enter bank code or select from Bank Name dropdown</p>
                     </div>
                     <div>
                       <label className="text-sm text-gray-700">Bank Name</label>
-                      <Input 
-                        placeholder="Bank name"
-                        value={payoutForm.bank_name}
-                        onChange={(e) => setPayoutForm({ ...payoutForm, bank_name: e.target.value })}
-                      />
+                      <select
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                        value={payoutForm.bank_code}
+                        onChange={(e) => handleBankChange(e.target.value)}
+                        disabled={banksLoading}
+                      >
+                        <option value="">Select a bank</option>
+                        {banks.map((bank) => (
+                          <option key={bank.code} value={bank.code}>
+                            {bank.name} ({bank.code})
+                          </option>
+                        ))}
+                      </select>
+                      {banksLoading && (
+                        <p className="text-xs text-gray-500 mt-1">Loading banks...</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm text-gray-700">Account Number</label>
-                      <Input 
-                        placeholder="Account number"
-                        value={payoutForm.account_number}
-                        onChange={(e) => setPayoutForm({ ...payoutForm, account_number: e.target.value })}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Account number"
+                          value={payoutForm.account_number}
+                          onChange={(e) => handleAccountNumberChange(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleVerifyAccount}
+                          disabled={isVerifying || !payoutForm.bank_code || !payoutForm.account_number}
+                          className="shrink-0"
+                        >
+                          {isVerifying ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : accountVerified ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          ) : (
+                            'Verify'
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {accountVerified ? 'Account verified' : 'Enter account number and click Verify'}
+                      </p>
                     </div>
                   </>
                 )}
@@ -445,12 +573,22 @@ function PaymentsTab() {
                 )}
 
                 <div>
-                  <label className="text-sm text-gray-700">Account Holder Name</label>
-                  <Input 
-                    placeholder="Name on account"
+                  <label className="text-sm text-gray-700">
+                    Account Holder Name
+                    {accountVerified && !isMobileMoney && (
+                      <span className="ml-2 text-xs text-green-600">(Verified)</span>
+                    )}
+                  </label>
+                  <Input
+                    placeholder={isMobileMoney ? "Name on account" : "Auto-filled after verification"}
                     value={payoutForm.account_name}
-                    onChange={(e) => setPayoutForm({ ...payoutForm, account_name: e.target.value })}
+                    onChange={(e) => isMobileMoney && setPayoutForm({ ...payoutForm, account_name: e.target.value })}
+                    readOnly={!isMobileMoney}
+                    className={!isMobileMoney ? 'bg-gray-50 cursor-not-allowed' : ''}
                   />
+                  {!isMobileMoney && !accountVerified && payoutForm.bank_code && payoutForm.account_number && (
+                    <p className="text-xs text-amber-600 mt-1">Click Verify to auto-fill this field</p>
+                  )}
                 </div>
               </div>
             </div>

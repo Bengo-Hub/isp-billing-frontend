@@ -3,15 +3,48 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Bell, Copy, CreditCard, Globe, Mail, Plug, Settings, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Bell, Copy, CreditCard, Globe, Mail, Plug, Settings, Shield, AlertTriangle, ExternalLink, Check, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { apiClient } from '@/lib/api/api-client';
+
+interface PaymentGateway {
+  id: number;
+  gateway_type: string;
+  name: string;
+  is_active: boolean;
+  is_primary: boolean;
+  has_credentials: boolean;
+}
+
+interface SMSGateway {
+  id: number;
+  provider_type: string;
+  name: string;
+  is_active: boolean;
+  is_primary: boolean;
+  environment: string;
+  has_credentials: boolean;
+  status: string;
+  last_error?: string;
+}
+
+interface TestConnectionResult {
+  success: boolean;
+  message: string;
+  details?: {
+    balance?: number;
+    currency?: string;
+  };
+}
 
 const tabs = [
   { id: 'general', label: 'General', icon: Settings },
   { id: 'domain', label: 'Domain', icon: Globe },
-  { id: 'integrations', label: 'Integrations', icon: Plug },
-  { id: 'paystack', label: 'Paystack', icon: CreditCard },
+  { id: 'payments', label: 'Payment Options', icon: CreditCard },
+  { id: 'sms', label: 'Notification Options', icon: Plug },
   { id: 'email', label: 'Email', icon: Mail },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Shield },
@@ -19,6 +52,476 @@ const tabs = [
 
 export default function PlatformSettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
+  const [activePaymentGateway, setActivePaymentGateway] = useState<'mpesa' | 'paystack'>('paystack');
+  const [activeSmsProvider, setActiveSmsProvider] = useState<'twilio' | 'africastalking'>('twilio');
+  const [paystackEnabled, setPaystackEnabled] = useState(false);
+  const [paystackMode, setPaystackMode] = useState<'test' | 'live'>('test');
+
+  // Twilio state
+  const [twilioGatewayId, setTwilioGatewayId] = useState<number | null>(null);
+  const [twilioEnabled, setTwilioEnabled] = useState(false);
+  const [twilioMode, setTwilioMode] = useState<'test' | 'live'>('test');
+  const [twilioAccountSid, setTwilioAccountSid] = useState('');
+  const [twilioAuthToken, setTwilioAuthToken] = useState('');
+  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState('');
+  const [isSavingTwilio, setIsSavingTwilio] = useState(false);
+  const [isTestingTwilio, setIsTestingTwilio] = useState(false);
+  const [hasExistingTwilioCredentials, setHasExistingTwilioCredentials] = useState(false);
+  const [isLoadingTwilio, setIsLoadingTwilio] = useState(false);
+
+  // Africa's Talking state
+  const [atGatewayId, setAtGatewayId] = useState<number | null>(null);
+  const [atEnabled, setAtEnabled] = useState(false);
+  const [atMode, setAtMode] = useState<'sandbox' | 'live'>('sandbox');
+  const [atUsername, setAtUsername] = useState('');
+  const [atApiKey, setAtApiKey] = useState('');
+  const [atSenderId, setAtSenderId] = useState('');
+  const [isSavingAt, setIsSavingAt] = useState(false);
+  const [isTestingAt, setIsTestingAt] = useState(false);
+  const [hasExistingAtCredentials, setHasExistingAtCredentials] = useState(false);
+  const [isLoadingAt, setIsLoadingAt] = useState(false);
+
+  // Paystack form state
+  const [paystackGatewayId, setPaystackGatewayId] = useState<number | null>(null);
+  const [publicKey, setPublicKey] = useState('');
+  const [secretKey, setSecretKey] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [callbackUrl, setCallbackUrl] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [defaultCurrency, setDefaultCurrency] = useState('KES');
+  const [paymentChannels, setPaymentChannels] = useState({
+    card: true,
+    bank: true,
+    ussd: false,
+    qr: false,
+    mobile_money: true,
+    bank_transfer: false,
+  });
+
+  // Loading states
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+
+  // Computed URLs based on current domain
+  const getApiBaseUrl = useCallback(() => {
+    if (typeof window === 'undefined') return '';
+    const origin = window.location.origin;
+    // Use environment variable if set, otherwise derive from current domain
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return process.env.NEXT_PUBLIC_API_URL;
+    }
+    // For development (localhost:3000), assume API is on port 8000
+    if (origin.includes('localhost:3000') || origin.includes('127.0.0.1:3000')) {
+      return origin.replace(':3000', ':8000') + '/api/v1';
+    }
+    // For production, assume API is on the same domain with /api/v1 path
+    return origin + '/api/v1';
+  }, []);
+
+  // Track if credentials are already saved
+  const [hasExistingCredentials, setHasExistingCredentials] = useState(false);
+
+  // Load existing Paystack configuration
+  const loadPaystackConfig = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      // Use platform endpoint for platform-level payment gateways
+      // Backend returns array directly, not wrapped in { data: ... }
+      const response = await apiClient.get<PaymentGateway[]>('/platform/payment-gateways/');
+      const gateways = response.data;
+
+      // Find existing Paystack gateway
+      const paystackGateway = gateways.find(g => g.gateway_type === 'paystack');
+      if (paystackGateway) {
+        setPaystackGatewayId(paystackGateway.id);
+        setPaystackEnabled(paystackGateway.is_active);
+        setHasExistingCredentials(paystackGateway.has_credentials);
+        // Clear any previously entered credentials
+        setPublicKey('');
+        setSecretKey('');
+        setWebhookSecret('');
+      }
+    } catch (error) {
+      console.error('Failed to load Paystack config:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Load existing SMS gateway configurations
+  const loadSmsGatewayConfigs = useCallback(async () => {
+    try {
+      setIsLoadingTwilio(true);
+      setIsLoadingAt(true);
+      const response = await apiClient.get<SMSGateway[]>('/platform/sms-gateways/');
+      const gateways = response.data;
+
+      // Find Twilio gateway
+      const twilioGateway = gateways.find(g => g.provider_type === 'twilio');
+      if (twilioGateway) {
+        setTwilioGatewayId(twilioGateway.id);
+        setTwilioEnabled(twilioGateway.is_active);
+        setTwilioMode(twilioGateway.environment === 'sandbox' ? 'test' : 'live');
+        setHasExistingTwilioCredentials(twilioGateway.has_credentials);
+        // Clear any previously entered credentials
+        setTwilioAccountSid('');
+        setTwilioAuthToken('');
+        setTwilioPhoneNumber('');
+      }
+
+      // Find Africa's Talking gateway
+      const atGateway = gateways.find(g => g.provider_type === 'africastalking');
+      if (atGateway) {
+        setAtGatewayId(atGateway.id);
+        setAtEnabled(atGateway.is_active);
+        setAtMode(atGateway.environment === 'sandbox' ? 'sandbox' : 'live');
+        setHasExistingAtCredentials(atGateway.has_credentials);
+        // Clear any previously entered credentials
+        setAtUsername('');
+        setAtApiKey('');
+        setAtSenderId('');
+      }
+    } catch (error) {
+      console.error('Failed to load SMS gateway configs:', error);
+    } finally {
+      setIsLoadingTwilio(false);
+      setIsLoadingAt(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPaystackConfig();
+    loadSmsGatewayConfigs();
+  }, [loadPaystackConfig, loadSmsGatewayConfigs]);
+
+  // Save Paystack configuration
+  const handleSavePaystack = async () => {
+    // Validation with specific error messages
+    if (!paystackEnabled) {
+      toast.error('Please enable Paystack payments first (toggle at the top)');
+      return;
+    }
+
+    // If no existing credentials and no gateway exists, require credentials
+    if (!hasExistingCredentials && !paystackGatewayId) {
+      if (!publicKey) {
+        toast.error('Public Key is required');
+        return;
+      }
+      if (!secretKey) {
+        toast.error('Secret Key is required');
+        return;
+      }
+    }
+
+    try {
+      setIsSaving(true);
+
+      // Only include credentials if user entered new ones
+      const credentials: Record<string, string> = {};
+      if (publicKey) credentials.public_key = publicKey;
+      if (secretKey) credentials.secret_key = secretKey;
+      if (webhookSecret) credentials.webhook_secret = webhookSecret;
+
+      if (paystackGatewayId) {
+        // Update existing gateway - only send credentials if user entered new ones
+        const updatePayload: Record<string, unknown> = {
+          is_active: paystackEnabled,
+        };
+        if (Object.keys(credentials).length > 0) {
+          updatePayload.credentials = credentials;
+        }
+        await apiClient.patch(`/platform/payment-gateways/${paystackGatewayId}`, updatePayload);
+        toast.success('Paystack configuration updated successfully');
+      } else {
+        // Create new gateway (backend does upsert if exists)
+        const response = await apiClient.post<PaymentGateway>('/platform/payment-gateways/', {
+          gateway_type: 'paystack',
+          name: 'Paystack',
+          is_active: paystackEnabled,
+          is_primary: true,
+          credentials,
+        });
+        setPaystackGatewayId(response.data.id);
+        setHasExistingCredentials(true);
+        toast.success('Paystack configuration saved successfully');
+      }
+    } catch (error: unknown) {
+      console.error('Failed to save Paystack config:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Test Paystack connection
+  const handleTestConnection = async () => {
+    // Validation with specific error messages
+    if (!paystackEnabled) {
+      toast.error('Please enable Paystack payments first (toggle at the top)');
+      return;
+    }
+
+    // Only require credentials if no existing credentials
+    if (!hasExistingCredentials) {
+      if (!publicKey) {
+        toast.error('Please enter your Public Key');
+        return;
+      }
+      if (!secretKey) {
+        toast.error('Please enter your Secret Key');
+        return;
+      }
+    }
+
+    // Save first if no gateway exists
+    if (!paystackGatewayId) {
+      toast.info('Saving configuration before testing...');
+      await handleSavePaystack();
+    }
+
+    // Check again after saving
+    if (!paystackGatewayId) {
+      toast.error('Please save configuration first');
+      return;
+    }
+
+    try {
+      setIsTesting(true);
+      const response = await apiClient.post<TestConnectionResult>(`/platform/payment-gateways/${paystackGatewayId}/test`);
+
+      if (response.data.success) {
+        const details = response.data.details;
+        if (details?.balance !== undefined) {
+          toast.success(`Connection successful! Balance: ${details.currency} ${details.balance.toLocaleString()}`);
+        } else {
+          toast.success('Connection successful!');
+        }
+      } else {
+        toast.error(response.data.message || 'Connection test failed');
+      }
+    } catch (error: unknown) {
+      console.error('Connection test failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
+      toast.error(errorMessage);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  // Save Twilio configuration
+  const handleSaveTwilio = async () => {
+    if (!twilioEnabled) {
+      toast.error('Please enable Twilio SMS first');
+      return;
+    }
+
+    // Require credentials if no existing credentials
+    if (!hasExistingTwilioCredentials && !twilioGatewayId) {
+      if (!twilioAccountSid) {
+        toast.error('Account SID is required');
+        return;
+      }
+      if (!twilioAuthToken) {
+        toast.error('Auth Token is required');
+        return;
+      }
+      if (!twilioPhoneNumber) {
+        toast.error('Phone Number is required');
+        return;
+      }
+    }
+
+    try {
+      setIsSavingTwilio(true);
+
+      const credentials: Record<string, string> = {};
+      if (twilioAccountSid) credentials.account_sid = twilioAccountSid;
+      if (twilioAuthToken) credentials.auth_token = twilioAuthToken;
+      if (twilioPhoneNumber) credentials.from_number = twilioPhoneNumber;
+
+      const payload = {
+        provider_type: 'twilio',
+        name: 'Twilio SMS',
+        is_active: twilioEnabled,
+        is_primary: true,
+        environment: twilioMode === 'test' ? 'sandbox' : 'production',
+        credentials,
+      };
+
+      if (twilioGatewayId) {
+        // Update existing
+        await apiClient.patch(`/platform/sms-gateways/${twilioGatewayId}`, payload);
+        toast.success('Twilio configuration updated');
+      } else {
+        // Create new (upsert)
+        const response = await apiClient.post<SMSGateway>('/platform/sms-gateways/', payload);
+        setTwilioGatewayId(response.data.id);
+        setHasExistingTwilioCredentials(true);
+        toast.success('Twilio configuration saved');
+      }
+    } catch (error: unknown) {
+      console.error('Failed to save Twilio config:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingTwilio(false);
+    }
+  };
+
+  // Test Twilio connection
+  const handleTestTwilio = async () => {
+    if (!twilioEnabled) {
+      toast.error('Please enable Twilio SMS first');
+      return;
+    }
+
+    if (!hasExistingTwilioCredentials && !twilioGatewayId) {
+      if (!twilioAccountSid || !twilioAuthToken) {
+        toast.error('Please enter credentials first');
+        return;
+      }
+    }
+
+    // Save first if no gateway exists
+    if (!twilioGatewayId) {
+      toast.info('Saving configuration before testing...');
+      await handleSaveTwilio();
+    }
+
+    if (!twilioGatewayId) {
+      toast.error('Please save configuration first');
+      return;
+    }
+
+    try {
+      setIsTestingTwilio(true);
+      const response = await apiClient.post<TestConnectionResult>(`/platform/sms-gateways/${twilioGatewayId}/test`);
+
+      if (response.data.success) {
+        const details = response.data.details;
+        if (details?.balance !== undefined) {
+          toast.success(`Connection successful! Balance: ${details.currency} ${details.balance.toLocaleString()}`);
+        } else {
+          toast.success('Connection successful!');
+        }
+      } else {
+        toast.error(response.data.message || 'Connection test failed');
+      }
+    } catch (error: unknown) {
+      console.error('Twilio test failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
+      toast.error(errorMessage);
+    } finally {
+      setIsTestingTwilio(false);
+    }
+  };
+
+  // Save Africa's Talking configuration
+  const handleSaveAt = async () => {
+    if (!atEnabled) {
+      toast.error("Please enable Africa's Talking SMS first");
+      return;
+    }
+
+    // Require credentials if no existing credentials
+    if (!hasExistingAtCredentials && !atGatewayId) {
+      if (!atUsername) {
+        toast.error('Username is required');
+        return;
+      }
+      if (!atApiKey) {
+        toast.error('API Key is required');
+        return;
+      }
+    }
+
+    try {
+      setIsSavingAt(true);
+
+      const credentials: Record<string, string> = {};
+      if (atUsername) credentials.username = atUsername;
+      if (atApiKey) credentials.api_key = atApiKey;
+      if (atSenderId) credentials.sender_id = atSenderId;
+
+      const payload = {
+        provider_type: 'africastalking',
+        name: "Africa's Talking SMS",
+        is_active: atEnabled,
+        is_primary: false,
+        environment: atMode === 'sandbox' ? 'sandbox' : 'production',
+        credentials,
+      };
+
+      if (atGatewayId) {
+        // Update existing
+        await apiClient.patch(`/platform/sms-gateways/${atGatewayId}`, payload);
+        toast.success("Africa's Talking configuration updated");
+      } else {
+        // Create new (upsert)
+        const response = await apiClient.post<SMSGateway>('/platform/sms-gateways/', payload);
+        setAtGatewayId(response.data.id);
+        setHasExistingAtCredentials(true);
+        toast.success("Africa's Talking configuration saved");
+      }
+    } catch (error: unknown) {
+      console.error("Failed to save Africa's Talking config:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingAt(false);
+    }
+  };
+
+  // Test Africa's Talking connection
+  const handleTestAt = async () => {
+    if (!atEnabled) {
+      toast.error("Please enable Africa's Talking SMS first");
+      return;
+    }
+
+    if (!hasExistingAtCredentials && !atGatewayId) {
+      if (!atUsername || !atApiKey) {
+        toast.error('Please enter credentials first');
+        return;
+      }
+    }
+
+    // Save first if no gateway exists
+    if (!atGatewayId) {
+      toast.info('Saving configuration before testing...');
+      await handleSaveAt();
+    }
+
+    if (!atGatewayId) {
+      toast.error('Please save configuration first');
+      return;
+    }
+
+    try {
+      setIsTestingAt(true);
+      const response = await apiClient.post<TestConnectionResult>(`/platform/sms-gateways/${atGatewayId}/test`);
+
+      if (response.data.success) {
+        const details = response.data.details;
+        if (details?.balance !== undefined) {
+          toast.success(`Connection successful! Balance: ${details.currency} ${details.balance.toLocaleString()}`);
+        } else {
+          toast.success('Connection successful!');
+        }
+      } else {
+        toast.error(response.data.message || 'Connection test failed');
+      }
+    } catch (error: unknown) {
+      console.error("Africa's Talking test failed:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
+      toast.error(errorMessage);
+    } finally {
+      setIsTestingAt(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -105,189 +608,845 @@ export default function PlatformSettingsPage() {
             </div>
           )}
 
-          {activeTab === 'integrations' && (
+          {activeTab === 'sms' && (
             <div className="space-y-6">
               <div>
-                <h2 className="font-semibold text-gray-900">Platform Integrations</h2>
-                <p className="text-sm text-gray-500 mt-1">Configure payment gateways, SMS providers, and other integrations used across all tenants</p>
+                <h2 className="font-semibold text-gray-900">Notification Options</h2>
+                <p className="text-sm text-gray-500">Configure SMS providers for notifications across all tenants</p>
               </div>
 
-              {/* M-PESA Daraja Configuration */}
-              <Card className="p-6 border-l-4 border-l-green-500">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                    <span className="text-green-600 font-bold text-lg">M</span>
+              {/* SMS Provider Tabs */}
+              <div className="flex gap-2 border-b">
+                <button
+                  onClick={() => setActiveSmsProvider('twilio')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeSmsProvider === 'twilio'
+                      ? 'border-red-600 text-red-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-red-100 flex items-center justify-center">
+                    <span className="text-red-600 font-bold text-xs">T</span>
                   </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">M-Pesa Daraja API</div>
-                    <p className="text-xs text-gray-500">Configure M-Pesa payment gateway for all tenants</p>
+                  Twilio
+                </button>
+                <button
+                  onClick={() => setActiveSmsProvider('africastalking')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeSmsProvider === 'africastalking'
+                      ? 'border-orange-600 text-orange-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-orange-100 flex items-center justify-center">
+                    <span className="text-orange-600 font-bold text-xs">AT</span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Consumer Key</label>
-                    <Input placeholder="Enter consumer key" type="text" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Consumer Secret</label>
-                    <Input placeholder="Enter consumer secret" type="password" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Passkey</label>
-                    <Input placeholder="Enter passkey" type="password" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Shortcode</label>
-                    <Input placeholder="Enter shortcode" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Environment</label>
-                    <select className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm">
-                      <option value="sandbox">Sandbox</option>
-                      <option value="production">Production</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 mt-4">
-                  <Button variant="outline">Test Connection</Button>
-                  <Button className="bg-green-600 hover:bg-green-700">Save Configuration</Button>
-                </div>
-              </Card>
+                  Africa&apos;s Talking
+                </button>
+              </div>
 
-              {/* SMS Gateway Configuration */}
-              <Card className="p-6 border-l-4 border-l-blue-500">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">SMS Gateway</div>
-                    <p className="text-xs text-gray-500">Configure SMS provider for notifications across all tenants</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
-                    <select className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm">
-                      <option value="africastalking">Africa's Talking</option>
-                      <option value="twilio">Twilio</option>
-                      <option value="custom">Custom Provider</option>
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                      <Input placeholder="Enter API key" type="password" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Username/Account SID</label>
-                      <Input placeholder="Enter username or SID" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Sender ID</label>
-                      <Input placeholder="Enter sender ID" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 mt-4">
-                  <Button variant="outline">Send Test SMS</Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700">Save Configuration</Button>
-                </div>
-              </Card>
-
-              {/* Integration Webhook URLs */}
-              <Card className="p-6 border-l-4 border-l-purple-500">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <Plug className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Webhook & Callback URLs</div>
-                    <p className="text-xs text-gray-500">Use these URLs when configuring external payment providers</p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {/* M-PESA URLs */}
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-sm font-medium text-gray-700 mb-2">M-Pesa</div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500">Validation URL</div>
-                          <code className="text-xs text-gray-800 break-all">https://api.yourdomain.com/api/v1/integrations/mpesa/validation</code>
-                        </div>
-                        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText('https://api.yourdomain.com/api/v1/integrations/mpesa/validation'); toast.success('Copied!'); }}>
-                          <Copy className="w-3 h-3" />
-                        </Button>
+              {/* Twilio Configuration */}
+              {activeSmsProvider === 'twilio' && (
+                <Card className="p-6 border-l-4 border-l-red-500">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
+                        <span className="text-red-600 font-bold text-lg">T</span>
                       </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500">Confirmation URL</div>
-                          <code className="text-xs text-gray-800 break-all">https://api.yourdomain.com/api/v1/integrations/mpesa/confirmation</code>
-                        </div>
-                        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText('https://api.yourdomain.com/api/v1/integrations/mpesa/confirmation'); toast.success('Copied!'); }}>
-                          <Copy className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500">Callback URL</div>
-                          <code className="text-xs text-gray-800 break-all">https://api.yourdomain.com/api/v1/integrations/mpesa/callback</code>
-                        </div>
-                        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText('https://api.yourdomain.com/api/v1/integrations/mpesa/callback'); toast.success('Copied!'); }}>
-                          <Copy className="w-3 h-3" />
-                        </Button>
+                      <div>
+                        <div className="font-semibold text-gray-900">Twilio</div>
+                        <p className="text-sm text-gray-500">Global SMS provider with programmable messaging</p>
                       </div>
                     </div>
+                    {isLoadingTwilio ? (
+                      <Badge variant="outline" className="text-gray-400 border-gray-300">
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Loading...
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className={twilioEnabled ? "text-green-600 border-green-300" : "text-gray-400 border-gray-300"}>
+                        {twilioEnabled ? 'Active' : 'Disabled'}
+                      </Badge>
+                    )}
                   </div>
 
-                  {/* Paystack URLs */}
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-sm font-medium text-gray-700 mb-2">Paystack</div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500">Webhook URL</div>
-                          <code className="text-xs text-gray-800 break-all">https://api.yourdomain.com/api/v1/integrations/paystack/webhook</code>
+                  {/* Enable Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+                    <div>
+                      <div className="font-medium text-gray-900">Enable Twilio SMS</div>
+                      <p className="text-sm text-gray-500">Send notifications via Twilio</p>
+                    </div>
+                    <Switch
+                      checked={twilioEnabled}
+                      onCheckedChange={setTwilioEnabled}
+                    />
+                  </div>
+
+                  <div className={`space-y-6 ${!twilioEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {/* Mode Toggles - Side by Side */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div
+                        onClick={() => twilioEnabled && setTwilioMode('test')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          twilioMode === 'test'
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-gray-900">Test Mode</div>
+                            <p className="text-xs text-gray-500 mt-1">Use test credentials</p>
+                          </div>
+                          <Switch
+                            checked={twilioMode === 'test'}
+                            onCheckedChange={(checked) => checked && setTwilioMode('test')}
+                          />
                         </div>
-                        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText('https://api.yourdomain.com/api/v1/integrations/paystack/webhook'); toast.success('Copied!'); }}>
-                          <Copy className="w-3 h-3" />
-                        </Button>
+                        {twilioMode === 'test' && (
+                          <p className="text-xs text-amber-600 mt-2">SMS will be logged but not sent</p>
+                        )}
+                      </div>
+                      <div
+                        onClick={() => twilioEnabled && setTwilioMode('live')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          twilioMode === 'live'
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-gray-900">Live Mode</div>
+                            <p className="text-xs text-gray-500 mt-1">Send real SMS messages</p>
+                          </div>
+                          <Switch
+                            checked={twilioMode === 'live'}
+                            onCheckedChange={(checked) => checked && setTwilioMode('live')}
+                          />
+                        </div>
+                        {twilioMode === 'live' && (
+                          <p className="text-xs text-green-600 mt-2">Real SMS will be sent</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* API Credentials */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Shield className="w-5 h-5 text-red-600" />
+                        <h3 className="font-semibold text-gray-900">API Credentials</h3>
+                      </div>
+                      <div className={`p-4 border rounded-lg mb-4 ${twilioMode === 'test' ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
+                        <div className="flex gap-2">
+                          <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${twilioMode === 'test' ? 'text-amber-600' : 'text-blue-600'}`} />
+                          <div>
+                            <p className={`text-sm font-medium ${twilioMode === 'test' ? 'text-amber-800' : 'text-blue-800'}`}>
+                              {twilioMode === 'test' ? 'Test Credentials' : 'Live Credentials'}
+                            </p>
+                            <p className={`text-xs mt-1 ${twilioMode === 'test' ? 'text-amber-700' : 'text-blue-700'}`}>
+                              {twilioMode === 'test' ? (
+                                <>
+                                  Find your test credentials in{' '}
+                                  <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
+                                    Twilio Console <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                  {' '}under Account &gt; API keys &gt; Test Credentials. No charges will be made.
+                                </>
+                              ) : (
+                                <>
+                                  Get your live credentials from{' '}
+                                  <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
+                                    Twilio Console <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                  . Real SMS will be sent and charges will apply.
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {hasExistingTwilioCredentials && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                          <div className="flex items-center gap-2">
+                            <Check className="w-4 h-4 text-green-600" />
+                            <p className="text-sm text-green-800">
+                              API credentials are configured. Leave fields unchanged to keep existing credentials.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {twilioMode === 'test' ? 'Test Account SID' : 'Account SID'} {!hasExistingTwilioCredentials && <span className="text-red-500">*</span>}
+                          </label>
+                          <Input
+                            placeholder={hasExistingTwilioCredentials ? '••••••••••••••••' : 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
+                            value={twilioAccountSid}
+                            onChange={(e) => setTwilioAccountSid(e.target.value)}
+                            disabled={!twilioEnabled}
+                          />
+                          {twilioMode === 'test' && (
+                            <p className="text-xs text-amber-600 mt-1">Use your Test Account SID from Twilio Console</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {twilioMode === 'test' ? 'Test Auth Token' : 'Auth Token'} {!hasExistingTwilioCredentials && <span className="text-red-500">*</span>}
+                          </label>
+                          <Input
+                            type="password"
+                            placeholder={hasExistingTwilioCredentials ? '••••••••••••••••' : 'Enter auth token'}
+                            value={twilioAuthToken}
+                            onChange={(e) => setTwilioAuthToken(e.target.value)}
+                            disabled={!twilioEnabled}
+                          />
+                          {twilioMode === 'test' && (
+                            <p className="text-xs text-amber-600 mt-1">Use your Test Auth Token from Twilio Console</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone Number (From) {!hasExistingTwilioCredentials && <span className="text-red-500">*</span>}
+                          </label>
+                          <Input
+                            placeholder={hasExistingTwilioCredentials ? '••••••••••••••••' : (twilioMode === 'test' ? '+15005550006' : '+1234567890')}
+                            value={twilioPhoneNumber}
+                            onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                            disabled={!twilioEnabled}
+                          />
+                          {twilioMode === 'test' ? (
+                            <p className="text-xs text-amber-600 mt-1">
+                              Use Twilio magic number <code className="bg-amber-100 px-1 rounded">+15005550006</code> for testing
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Your purchased Twilio phone number in E.164 format (e.g., +254712345678)
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-800">
-                    <strong>Note:</strong> Configure these URLs in your payment provider's dashboard under Webhooks/API settings.
-                  </p>
-                </div>
-              </Card>
+
+                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={handleTestTwilio}
+                      disabled={isTestingTwilio || !twilioEnabled}
+                    >
+                      {isTestingTwilio ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        'Test Connection'
+                      )}
+                    </Button>
+                    <Button
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={handleSaveTwilio}
+                      disabled={isSavingTwilio || !twilioEnabled}
+                    >
+                      {isSavingTwilio ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : twilioGatewayId ? (
+                        'Update Configuration'
+                      ) : (
+                        'Save Configuration'
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              )}
+
+              {/* Africa's Talking Configuration */}
+              {activeSmsProvider === 'africastalking' && (
+                <Card className="p-6 border-l-4 border-l-orange-500">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                        <span className="text-orange-600 font-bold text-lg">AT</span>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">Africa&apos;s Talking</div>
+                        <p className="text-sm text-gray-500">African-focused SMS & communications platform</p>
+                      </div>
+                    </div>
+                    {isLoadingAt ? (
+                      <Badge variant="outline" className="text-gray-400 border-gray-300">
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Loading...
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className={atEnabled ? "text-green-600 border-green-300" : "text-gray-400 border-gray-300"}>
+                        {atEnabled ? 'Active' : 'Disabled'}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Enable Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg mb-6">
+                    <div>
+                      <div className="font-medium text-gray-900">Enable Africa&apos;s Talking SMS</div>
+                      <p className="text-sm text-gray-500">Send notifications via Africa&apos;s Talking</p>
+                    </div>
+                    <Switch
+                      checked={atEnabled}
+                      onCheckedChange={setAtEnabled}
+                    />
+                  </div>
+
+                  <div className={`space-y-6 ${!atEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {/* Mode Toggles - Side by Side */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div
+                        onClick={() => atEnabled && setAtMode('sandbox')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          atMode === 'sandbox'
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-gray-900">Sandbox Mode</div>
+                            <p className="text-xs text-gray-500 mt-1">Use sandbox credentials</p>
+                          </div>
+                          <Switch
+                            checked={atMode === 'sandbox'}
+                            onCheckedChange={(checked) => checked && setAtMode('sandbox')}
+                          />
+                        </div>
+                        {atMode === 'sandbox' && (
+                          <p className="text-xs text-amber-600 mt-2">SMS will be simulated</p>
+                        )}
+                      </div>
+                      <div
+                        onClick={() => atEnabled && setAtMode('live')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          atMode === 'live'
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-gray-900">Live Mode</div>
+                            <p className="text-xs text-gray-500 mt-1">Send real SMS messages</p>
+                          </div>
+                          <Switch
+                            checked={atMode === 'live'}
+                            onCheckedChange={(checked) => checked && setAtMode('live')}
+                          />
+                        </div>
+                        {atMode === 'live' && (
+                          <p className="text-xs text-green-600 mt-2">Real SMS will be sent</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* API Credentials */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Shield className="w-5 h-5 text-orange-600" />
+                        <h3 className="font-semibold text-gray-900">API Credentials</h3>
+                      </div>
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+                        <div className="flex gap-2">
+                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Security Notice</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              Get your API credentials from your{' '}
+                              <a href="https://account.africastalking.com" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
+                                Africa&apos;s Talking Dashboard <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {hasExistingAtCredentials && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                          <div className="flex items-center gap-2">
+                            <Check className="w-4 h-4 text-green-600" />
+                            <p className="text-sm text-green-800">
+                              API credentials are configured. Leave fields unchanged to keep existing credentials.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Username {!hasExistingAtCredentials && <span className="text-red-500">*</span>}
+                          </label>
+                          <Input
+                            placeholder={hasExistingAtCredentials ? '••••••••••••••••' : 'sandbox or your_username'}
+                            value={atUsername}
+                            onChange={(e) => setAtUsername(e.target.value)}
+                            disabled={!atEnabled}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Use &apos;sandbox&apos; for testing</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            API Key {!hasExistingAtCredentials && <span className="text-red-500">*</span>}
+                          </label>
+                          <Input
+                            type="password"
+                            placeholder={hasExistingAtCredentials ? '••••••••••••••••' : 'Enter API key'}
+                            value={atApiKey}
+                            onChange={(e) => setAtApiKey(e.target.value)}
+                            disabled={!atEnabled}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Sender ID</label>
+                          <Input
+                            placeholder="Your registered sender ID"
+                            value={atSenderId}
+                            onChange={(e) => setAtSenderId(e.target.value)}
+                            disabled={!atEnabled}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Optional - defaults to AFRICASTKNG</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={handleTestAt}
+                      disabled={isTestingAt || !atEnabled}
+                    >
+                      {isTestingAt ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        'Test Connection'
+                      )}
+                    </Button>
+                    <Button
+                      className="bg-orange-600 hover:bg-orange-700"
+                      onClick={handleSaveAt}
+                      disabled={isSavingAt || !atEnabled}
+                    >
+                      {isSavingAt ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : atGatewayId ? (
+                        'Update Configuration'
+                      ) : (
+                        'Save Configuration'
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              )}
             </div>
           )}
 
-          {activeTab === 'paystack' && (
+          {activeTab === 'payments' && (
             <div className="space-y-6">
-              <h2 className="font-semibold text-gray-900">Paystack Configuration</h2>
-              <p className="text-sm text-gray-500">Configure Paystack for collecting platform subscription fees from ISP providers.</p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Public Key</label>
-                  <Input placeholder="pk_live_..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Secret Key</label>
-                  <Input type="password" placeholder="sk_live_..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Webhook Secret</label>
-                  <Input type="password" placeholder="whsec_..." />
-                </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Payment Options</h2>
+                <p className="text-sm text-gray-500">Configure payment gateways where all customer payments will be collected. ISPs will receive payouts from this pool.</p>
               </div>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline">Test Connection</Button>
-                <Button className="bg-pink-600 hover:bg-pink-700">Save Changes</Button>
+
+              {/* Payment Gateway Tabs */}
+              <div className="flex gap-2 border-b">
+                <button
+                  onClick={() => setActivePaymentGateway('mpesa')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activePaymentGateway === 'mpesa'
+                      ? 'border-green-600 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
+                    <span className="text-green-600 font-bold text-xs">M</span>
+                  </div>
+                  M-Pesa
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-100 text-amber-700 rounded">Soon</span>
+                </button>
+                <button
+                  onClick={() => setActivePaymentGateway('paystack')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activePaymentGateway === 'paystack'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 font-bold text-xs">P</span>
+                  </div>
+                  Paystack
+                </button>
               </div>
+
+              {/* M-Pesa Content - Coming Soon */}
+              {activePaymentGateway === 'mpesa' && (
+                <Card className="p-6 border-l-4 border-l-green-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                      <span className="text-green-600 font-bold text-xl">M</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">M-Pesa</div>
+                      <p className="text-sm text-gray-500">Safaricom M-Pesa mobile money payments</p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+                      <AlertTriangle className="w-10 h-10 text-amber-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Coming Soon</h3>
+                    <p className="text-sm text-gray-500 max-w-md mx-auto">
+                      We&apos;re working on integrating M-Pesa Daraja API for seamless mobile money payments.
+                      This feature will be available in a future update.
+                    </p>
+                  </div>
+                </Card>
+              )}
+
+              {/* Paystack Content - Full Configuration */}
+              {activePaymentGateway === 'paystack' && (
+              <Card className="p-6 border-l-4 border-l-blue-500">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <span className="text-blue-600 font-bold text-lg">P</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">Paystack</div>
+                      <p className="text-sm text-gray-500">Accept payments via cards, bank transfers & mobile money</p>
+                    </div>
+                  </div>
+                  {isLoading ? (
+                    <Badge variant="outline" className="text-gray-400 border-gray-300">
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      Loading...
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className={paystackEnabled ? "text-green-600 border-green-300" : "text-gray-400 border-gray-300"}>
+                      {paystackEnabled ? 'Active' : 'Disabled'}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Enable Paystack Toggle - At the top */}
+                <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+                  <div>
+                    <div className="font-medium text-gray-900">Enable Paystack Payments</div>
+                    <p className="text-sm text-gray-500">Allow customers to pay via Paystack</p>
+                  </div>
+                  <Switch
+                    checked={paystackEnabled}
+                    onCheckedChange={setPaystackEnabled}
+                  />
+                </div>
+
+                {/* All settings below - disabled when paystackEnabled is false */}
+                <div className={`space-y-6 ${!paystackEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+
+                  {/* Mode Toggles - Side by Side */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div
+                      onClick={() => paystackEnabled && setPaystackMode('test')}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        paystackMode === 'test'
+                          ? 'border-amber-500 bg-amber-50'
+                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-gray-900">Test Mode</div>
+                          <p className="text-xs text-gray-500 mt-1">Use sandbox credentials</p>
+                        </div>
+                        <Switch
+                          checked={paystackMode === 'test'}
+                          onCheckedChange={(checked) => checked && setPaystackMode('test')}
+                        />
+                      </div>
+                      {paystackMode === 'test' && (
+                        <p className="text-xs text-amber-600 mt-2">No real transactions will be processed</p>
+                      )}
+                    </div>
+                    <div
+                      onClick={() => paystackEnabled && setPaystackMode('live')}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        paystackMode === 'live'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-gray-900">Live Mode</div>
+                          <p className="text-xs text-gray-500 mt-1">Process real payments</p>
+                        </div>
+                        <Switch
+                          checked={paystackMode === 'live'}
+                          onCheckedChange={(checked) => checked && setPaystackMode('live')}
+                        />
+                      </div>
+                      {paystackMode === 'live' && (
+                        <p className="text-xs text-green-600 mt-2">Real transactions will be processed</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Default Currency */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Currency</label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm"
+                      disabled={!paystackEnabled}
+                      value={defaultCurrency}
+                      onChange={(e) => setDefaultCurrency(e.target.value)}
+                    >
+                      <option value="KES">KES - Kenyan Shilling</option>
+                      <option value="NGN">NGN - Nigerian Naira</option>
+                      <option value="GHS">GHS - Ghanaian Cedi</option>
+                      <option value="ZAR">ZAR - South African Rand</option>
+                      <option value="USD">USD - US Dollar</option>
+                    </select>
+                  </div>
+
+                  {/* API Credentials Section */}
+                  <div className="border-t pt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Shield className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-semibold text-gray-900">API Credentials</h3>
+                    </div>
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+                      <div className="flex gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-800">Security Notice</p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            Get your API keys from your{' '}
+                            <a href="https://dashboard.paystack.com/#/settings/developers" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
+                              Paystack Dashboard <ExternalLink className="w-3 h-3" />
+                            </a>
+                            . All credentials are encrypted at rest.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {hasExistingCredentials && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-600" />
+                          <p className="text-sm text-green-800">
+                            API credentials are configured. Leave fields unchanged to keep existing credentials.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Public Key {!hasExistingCredentials && <span className="text-red-500">*</span>}
+                        </label>
+                        <Input
+                          placeholder={hasExistingCredentials ? '••••••••••••••••' : (paystackMode === 'test' ? 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxx' : 'pk_live_xxxxxxxxxxxxxxxxxxxxxxxx')}
+                          value={publicKey.includes('_saved') ? '' : publicKey}
+                          onChange={(e) => setPublicKey(e.target.value)}
+                          disabled={!paystackEnabled}
+                          className={hasExistingCredentials && !publicKey ? 'bg-gray-50' : ''}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {hasExistingCredentials ? 'Leave empty to keep existing key' : 'Starts with pk_test_ or pk_live_'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Secret Key {!hasExistingCredentials && <span className="text-red-500">*</span>}
+                        </label>
+                        <Input
+                          type="password"
+                          placeholder={hasExistingCredentials ? '••••••••••••••••' : 'Enter secret key'}
+                          value={secretKey.includes('_saved') ? '' : secretKey}
+                          onChange={(e) => setSecretKey(e.target.value)}
+                          disabled={!paystackEnabled}
+                          className={hasExistingCredentials && !secretKey ? 'bg-gray-50' : ''}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {hasExistingCredentials ? 'Leave empty to keep existing key' : 'Starts with sk_test_ or sk_live_'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Webhook Secret</label>
+                        <Input
+                          type="password"
+                          placeholder={hasExistingCredentials ? '••••••••••••••••' : 'Enter webhook secret'}
+                          value={webhookSecret.includes('_saved') ? '' : webhookSecret}
+                          onChange={(e) => setWebhookSecret(e.target.value)}
+                          disabled={!paystackEnabled}
+                          className={hasExistingCredentials && !webhookSecret ? 'bg-gray-50' : ''}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {hasExistingCredentials ? 'Leave empty to keep existing secret' : 'Used to verify webhook signatures from Paystack'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Channels */}
+                  <div className="border-t pt-6">
+                    <h3 className="font-semibold text-gray-900 mb-4">Payment Channels</h3>
+                    <p className="text-sm text-gray-500 mb-4">Enabled Payment Methods - Choose which payment methods to show on the checkout page</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        { id: 'card', label: 'Card' },
+                        { id: 'bank', label: 'Bank Transfer' },
+                        { id: 'ussd', label: 'USSD' },
+                        { id: 'qr', label: 'QR Code' },
+                        { id: 'mobile_money', label: 'Mobile Money' },
+                        { id: 'bank_transfer', label: 'Bank Account' },
+                      ].map((channel) => (
+                        <label key={channel.id} className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer ${!paystackEnabled ? 'opacity-50' : 'hover:bg-gray-50'}`}>
+                          <input
+                            type="checkbox"
+                            checked={paymentChannels[channel.id as keyof typeof paymentChannels]}
+                            onChange={(e) => setPaymentChannels(prev => ({ ...prev, [channel.id]: e.target.checked }))}
+                            disabled={!paystackEnabled}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                          />
+                          <span className="text-sm">{channel.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* URL Configuration */}
+                  <div className="border-t pt-6">
+                    <h3 className="font-semibold text-gray-900 mb-4">URL Configuration</h3>
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                      <p className="text-sm text-blue-800 font-medium mb-2">Auto-configured URLs (copy to Paystack Dashboard):</p>
+                      <div className="space-y-2 text-xs text-blue-700">
+                        <div className="flex items-center justify-between gap-2 p-2 bg-white rounded border">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Check className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">Callback: {typeof window !== 'undefined' ? window.location.origin : ''}/payment/callback</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="flex-shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/payment/callback`);
+                              toast.success('Callback URL copied!');
+                            }}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 p-2 bg-white rounded border">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Check className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">Webhook: {getApiBaseUrl()}/payments/paystack/webhook</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="flex-shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${getApiBaseUrl()}/payments/paystack/webhook`);
+                              toast.success('Webhook URL copied!');
+                            }}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Callback URL</label>
+                        <Input
+                          placeholder="https://yourdomain.com/payment/callback"
+                          value={callbackUrl}
+                          onChange={(e) => setCallbackUrl(e.target.value)}
+                          disabled={!paystackEnabled}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">URL to redirect customers after payment (leave empty for auto-config)</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Webhook URL</label>
+                        <Input
+                          placeholder="https://yourdomain.com/api/paystack/webhook"
+                          value={webhookUrl}
+                          onChange={(e) => setWebhookUrl(e.target.value)}
+                          disabled={!paystackEnabled}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">URL for Paystack to send event notifications (leave empty for auto-config)</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-600">
+                        Configure the webhook URL in your Paystack Dashboard to receive payment notifications.
+                        URLs are automatically configured based on your server domain.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={handleTestConnection}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      'Test Connection'
+                    )}
+                  </Button>
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={handleSavePaystack}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : paystackGatewayId ? (
+                      'Update Configuration'
+                    ) : (
+                      'Save Configuration'
+                    )}
+                  </Button>
+                </div>
+              </Card>
+              )}
             </div>
           )}
 
