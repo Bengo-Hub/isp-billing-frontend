@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Copy, CreditCard, Globe, Mail, Plug, Settings, Shield, AlertTriangle, ExternalLink, Check, Loader2 } from 'lucide-react';
+import { Bell, Copy, CreditCard, Globe, Mail, Plug, Settings, Shield, AlertTriangle, ExternalLink, Check, Loader2, DollarSign } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api/api-client';
@@ -53,7 +53,20 @@ const tabs = [
 export default function PlatformSettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [activePaymentGateway, setActivePaymentGateway] = useState<'mpesa' | 'paystack'>('paystack');
-  const [activeSmsProvider, setActiveSmsProvider] = useState<'twilio' | 'africastalking'>('twilio');
+  const [activeSmsProvider, setActiveSmsProvider] = useState<'twilio' | 'africastalking' | 'pricing'>('twilio');
+
+  // SMS Pricing & Payment Settings state
+  const [smsCostPerUnit, setSmsCostPerUnit] = useState('0.50');
+  const [smsMinTopUp, setSmsMinTopUp] = useState('100');
+  const [smsPaymentMethod, setSmsPaymentMethod] = useState<'mpesa' | 'bank' | 'paystack'>('paystack');
+  const [smsMpesaPaybill, setSmsMpesaPaybill] = useState('');
+  const [smsMpesaTill, setSmsMpesaTill] = useState('');
+  const [smsMpesaAccountName, setSmsMpesaAccountName] = useState('');
+  const [smsBankName, setSmsBankName] = useState('');
+  const [smsBankAccountNumber, setSmsBankAccountNumber] = useState('');
+  const [smsBankBranch, setSmsBankBranch] = useState('');
+  const [isSavingSmsPricing, setIsSavingSmsPricing] = useState(false);
+  const [isLoadingSmsPricing, setIsLoadingSmsPricing] = useState(false);
   const [paystackEnabled, setPaystackEnabled] = useState(false);
   const [paystackMode, setPaystackMode] = useState<'test' | 'live'>('test');
 
@@ -190,10 +203,69 @@ export default function PlatformSettingsPage() {
     }
   }, []);
 
+  // Load SMS Pricing Settings
+  const loadSmsPricingSettings = useCallback(async () => {
+    try {
+      setIsLoadingSmsPricing(true);
+      const response = await apiClient.get<{
+        cost_per_sms: number;
+        minimum_top_up_amount: number;
+        payment_method: string;
+        mpesa_paybill: string | null;
+        mpesa_till_number: string | null;
+        mpesa_account_name: string | null;
+        bank_name: string | null;
+        bank_account_number: string | null;
+        bank_branch: string | null;
+      }>('/platform/sms-gateways/settings/pricing');
+      const data = response.data;
+
+      setSmsCostPerUnit(data.cost_per_sms?.toString() || '0.50');
+      setSmsMinTopUp(data.minimum_top_up_amount?.toString() || '100');
+      setSmsPaymentMethod((data.payment_method as 'mpesa' | 'bank' | 'paystack') || 'paystack');
+      setSmsMpesaPaybill(data.mpesa_paybill || '');
+      setSmsMpesaTill(data.mpesa_till_number || '');
+      setSmsMpesaAccountName(data.mpesa_account_name || '');
+      setSmsBankName(data.bank_name || '');
+      setSmsBankAccountNumber(data.bank_account_number || '');
+      setSmsBankBranch(data.bank_branch || '');
+    } catch (error) {
+      console.error('Failed to load SMS pricing settings:', error);
+    } finally {
+      setIsLoadingSmsPricing(false);
+    }
+  }, []);
+
+  // Save SMS Pricing Settings
+  const handleSaveSmsPricing = async () => {
+    try {
+      setIsSavingSmsPricing(true);
+      await apiClient.post('/platform/sms-gateways/settings/pricing', {
+        cost_per_sms: parseFloat(smsCostPerUnit) || 0.50,
+        minimum_top_up_amount: parseFloat(smsMinTopUp) || 100,
+        payment_method: smsPaymentMethod,
+        mpesa_paybill: smsMpesaPaybill || null,
+        mpesa_till_number: smsMpesaTill || null,
+        mpesa_account_name: smsMpesaAccountName || null,
+        bank_name: smsBankName || null,
+        bank_account_number: smsBankAccountNumber || null,
+        bank_branch: smsBankBranch || null,
+      });
+      toast.success('SMS pricing settings saved successfully');
+    } catch (error: unknown) {
+      console.error('Failed to save SMS pricing settings:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save settings';
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingSmsPricing(false);
+    }
+  };
+
   useEffect(() => {
     loadPaystackConfig();
     loadSmsGatewayConfigs();
-  }, [loadPaystackConfig, loadSmsGatewayConfigs]);
+    loadSmsPricingSettings();
+  }, [loadPaystackConfig, loadSmsGatewayConfigs, loadSmsPricingSettings]);
 
   // Save Paystack configuration
   const handleSavePaystack = async () => {
@@ -643,6 +715,19 @@ export default function PlatformSettingsPage() {
                   </div>
                   Africa&apos;s Talking
                 </button>
+                <button
+                  onClick={() => setActiveSmsProvider('pricing')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeSmsProvider === 'pricing'
+                      ? 'border-pink-600 text-pink-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-pink-100 flex items-center justify-center">
+                    <CreditCard className="w-3 h-3 text-pink-600" />
+                  </div>
+                  SMS Pricing & Payments
+                </button>
               </div>
 
               {/* Twilio Configuration */}
@@ -1053,6 +1138,288 @@ export default function PlatformSettingsPage() {
                         'Update Configuration'
                       ) : (
                         'Save Configuration'
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              )}
+
+              {/* SMS Pricing & Payment Settings */}
+              {activeSmsProvider === 'pricing' && (
+                <Card className="p-6 border-l-4 border-l-pink-500">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-pink-100 flex items-center justify-center">
+                        <CreditCard className="w-6 h-6 text-pink-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">SMS Pricing & Payment Collection</div>
+                        <p className="text-sm text-gray-500">Configure pricing for ISPs and where their payments are collected</p>
+                      </div>
+                    </div>
+                    {isLoadingSmsPricing && (
+                      <Badge variant="outline" className="text-gray-400 border-gray-300">
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Loading...
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* SMS Pricing Section */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <DollarSign className="w-5 h-5 text-pink-600" />
+                        <h3 className="font-semibold text-gray-900">SMS Pricing</h3>
+                      </div>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Set the cost per SMS unit that ISPs will pay when they top up their SMS credits.
+                        All SMS sent by ISPs will use the platform&apos;s Africa&apos;s Talking account.
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Cost per SMS (KES) <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.50"
+                            value={smsCostPerUnit}
+                            onChange={(e) => setSmsCostPerUnit(e.target.value)}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Amount ISPs pay per SMS message</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Minimum Top-up Amount (KES) <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            step="10"
+                            min="0"
+                            placeholder="100"
+                            value={smsMinTopUp}
+                            onChange={(e) => setSmsMinTopUp(e.target.value)}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Minimum amount for SMS credit top-up</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <Bell className="w-4 h-4 text-blue-600 mt-0.5" />
+                          <p className="text-sm text-blue-800">
+                            <strong>How it works:</strong> When an ISP tops up KES {smsMinTopUp || '100'}, they get{' '}
+                            <strong>{Math.floor((parseFloat(smsMinTopUp) || 100) / (parseFloat(smsCostPerUnit) || 0.50))} SMS credits</strong>{' '}
+                            at KES {smsCostPerUnit || '0.50'} per SMS.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Collection Section */}
+                    <div className="border-t pt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <CreditCard className="w-5 h-5 text-pink-600" />
+                        <h3 className="font-semibold text-gray-900">Payment Collection Account</h3>
+                      </div>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Configure where ISP payments for SMS credits will be collected.
+                        ISPs will see these payment details when topping up their SMS balance.
+                      </p>
+
+                      {/* Payment Method Selection */}
+                      <div className="grid grid-cols-3 gap-4 mb-6">
+                        <div
+                          onClick={() => setSmsPaymentMethod('paystack')}
+                          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                            smsPaymentMethod === 'paystack'
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded bg-blue-100 flex items-center justify-center">
+                                <span className="text-blue-600 font-bold text-sm">P</span>
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">Paystack</div>
+                                <p className="text-xs text-gray-500">Cards & Mobile Money</p>
+                              </div>
+                            </div>
+                            <Switch
+                              checked={smsPaymentMethod === 'paystack'}
+                              onCheckedChange={(checked) => checked && setSmsPaymentMethod('paystack')}
+                            />
+                          </div>
+                          {smsPaymentMethod === 'paystack' && (
+                            <p className="text-xs text-blue-600 mt-2">Uses platform Paystack config</p>
+                          )}
+                        </div>
+                        <div
+                          onClick={() => setSmsPaymentMethod('mpesa')}
+                          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                            smsPaymentMethod === 'mpesa'
+                              ? 'border-green-500 bg-green-50'
+                              : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded bg-green-100 flex items-center justify-center">
+                                <span className="text-green-600 font-bold text-sm">M</span>
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">M-Pesa</div>
+                                <p className="text-xs text-gray-500">Paybill or Till</p>
+                              </div>
+                            </div>
+                            <Switch
+                              checked={smsPaymentMethod === 'mpesa'}
+                              onCheckedChange={(checked) => checked && setSmsPaymentMethod('mpesa')}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          onClick={() => setSmsPaymentMethod('bank')}
+                          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                            smsPaymentMethod === 'bank'
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded bg-purple-100 flex items-center justify-center">
+                                <span className="text-purple-600 font-bold text-sm">B</span>
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">Bank</div>
+                                <p className="text-xs text-gray-500">Bank Transfer</p>
+                              </div>
+                            </div>
+                            <Switch
+                              checked={smsPaymentMethod === 'bank'}
+                              onCheckedChange={(checked) => checked && setSmsPaymentMethod('bank')}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Paystack Info */}
+                      {smsPaymentMethod === 'paystack' && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-blue-600 font-bold">P</span>
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900">Paystack Integration</h4>
+                              <p className="text-sm text-gray-600 mt-1">
+                                ISP SMS top-ups will be processed through your platform&apos;s Paystack account configured in{' '}
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('payments')}
+                                  className="text-blue-600 hover:underline font-medium"
+                                >
+                                  Payment Options
+                                </button>.
+                              </p>
+                              <p className="text-sm text-gray-500 mt-2">
+                                ISPs can pay using cards, bank transfers, USSD, or mobile money.
+                                Funds are deposited directly to your Paystack balance.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* M-Pesa Details */}
+                      {smsPaymentMethod === 'mpesa' && (
+                        <div className="space-y-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Paybill Number</label>
+                              <Input
+                                placeholder="e.g., 123456"
+                                value={smsMpesaPaybill}
+                                onChange={(e) => setSmsMpesaPaybill(e.target.value)}
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Leave empty if using Till Number</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Till Number</label>
+                              <Input
+                                placeholder="e.g., 5678901"
+                                value={smsMpesaTill}
+                                onChange={(e) => setSmsMpesaTill(e.target.value)}
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Leave empty if using Paybill</p>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Account Name / Reference</label>
+                            <Input
+                              placeholder="e.g., SMS Credits"
+                              value={smsMpesaAccountName}
+                              onChange={(e) => setSmsMpesaAccountName(e.target.value)}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Account reference for Paybill payments</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bank Details */}
+                      {smsPaymentMethod === 'bank' && (
+                        <div className="space-y-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                            <Input
+                              placeholder="e.g., Equity Bank"
+                              value={smsBankName}
+                              onChange={(e) => setSmsBankName(e.target.value)}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                              <Input
+                                placeholder="e.g., 0123456789012"
+                                value={smsBankAccountNumber}
+                                onChange={(e) => setSmsBankAccountNumber(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                              <Input
+                                placeholder="e.g., Nairobi CBD"
+                                value={smsBankBranch}
+                                onChange={(e) => setSmsBankBranch(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                    <Button
+                      className="bg-pink-600 hover:bg-pink-700"
+                      onClick={handleSaveSmsPricing}
+                      disabled={isSavingSmsPricing}
+                    >
+                      {isSavingSmsPricing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Pricing Settings'
                       )}
                     </Button>
                   </div>

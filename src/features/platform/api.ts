@@ -327,3 +327,45 @@ export function useFullAnalytics() {
     },
   });
 }
+
+// =========================================================================
+// ISP SMS Purchases
+// =========================================================================
+
+export interface ISPSMSPurchase {
+  id: number;
+  organization_id: number;
+  organization_name: string;
+  amount: number;
+  sms_credits: number;
+  status: string;
+  payment_reference?: string;
+  purchased_at: string;
+  current_balance: number;
+}
+
+export interface ISPSMSPurchasesResponse {
+  purchases: ISPSMSPurchase[];
+  total: number;
+  total_revenue: number;
+  total_sms_sold: number;
+}
+
+export function useISPSMSPurchases(limit: number = 50) {
+  return useQuery({
+    queryKey: ['platform-isp-sms-purchases', limit],
+    queryFn: async (): Promise<ISPSMSPurchasesResponse> => {
+      try {
+        const { data } = await api.get('/platform/sms-gateways/isp-purchases', { params: { limit } });
+        return data;
+      } catch {
+        return {
+          purchases: [],
+          total: 0,
+          total_revenue: 0,
+          total_sms_sold: 0,
+        };
+      }
+    },
+  });
+}

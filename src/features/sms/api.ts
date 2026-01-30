@@ -46,6 +46,29 @@ export function useSmsBalance(accountId: number) {
   });
 }
 
+// Tenant-aware SMS balance - gets balance for current user's organization
+export function useTenantSmsBalance() {
+  return useQuery({
+    queryKey: ['tenant-sms-balance'],
+    queryFn: async (): Promise<SMSBalance> => {
+      try {
+        const { data } = await api.get('/tenant/messages/sms-balance');
+        return data;
+      } catch {
+        return {
+          account_id: 0,
+          account_name: 'No Account',
+          current_balance: 0,
+          currency: 'KES',
+          is_low_balance: true,
+          today_usage: { sent: 0, failed: 0 },
+          recent_transactions: [],
+        };
+      }
+    },
+  });
+}
+
 export function useSmsAnalytics(accountId: number, days = 30) {
   return useQuery({
     queryKey: ['sms-analytics', accountId, days],
@@ -269,6 +292,140 @@ export function useSMSHistory(params?: { page?: number; size?: number; status?: 
     queryFn: async () => {
       const { data } = await api.get('/sms-credit/history', { params });
       return data;
+    },
+  });
+}
+
+// Messages List (for Messages page)
+export interface Message {
+  id: number;
+  user: string | null;
+  phone: string;
+  channel: string;
+  message: string;
+  delivered: boolean;
+  cost: number;
+  sent: string;
+}
+
+export interface MessagesResponse {
+  messages: Message[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export function useMessages(params?: { page?: number; page_size?: number; search?: string; channel?: string }) {
+  return useQuery({
+    queryKey: ['messages', params],
+    queryFn: async (): Promise<MessagesResponse> => {
+      try {
+        const { data } = await api.get('/tenant/messages', { params });
+        return data;
+      } catch {
+        // Return empty fallback if API fails
+        return {
+          messages: [],
+          total: 0,
+          page: params?.page || 1,
+          page_size: params?.page_size || 20,
+        };
+      }
+    },
+  });
+}
+
+export function useMessage(messageId: number) {
+  return useQuery({
+    queryKey: ['message', messageId],
+    queryFn: async (): Promise<Message | null> => {
+      try {
+        const { data } = await api.get(`/tenant/messages/${messageId}`);
+        return data;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!messageId,
+  });
+}
+
+// Paystack SMS Top-up
+export interface PaystackSMSTopUpRequest {
+  amount: number;
+  email: string;
+  callback_url?: string;
+}
+
+export interface PaystackSMSTopUpResponse {
+  success: boolean;
+  message: string;
+  checkout_url?: string;
+  reference?: string;
+  top_up_id?: number;
+  sms_credits?: number;
+}
+
+export function usePaystackSmsTopUp(accountId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: PaystackSMSTopUpRequest): Promise<PaystackSMSTopUpResponse> => {
+      // Construct callback URL pointing to our success page
+      const callbackUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/messages/sms-topup-success`
+        : data.callback_url;
+
+      const response = await api.post(`/sms-credit/accounts/${accountId}/paystack-top-up`, {
+        ...data,
+        callback_url: callbackUrl,
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data.success && data.checkout_url) {
+        // Redirect to Paystack checkout
+        window.location.href = data.checkout_url;
+      } else if (!data.success) {
+        toast.error(data.message);
+      }
+      queryClient.invalidateQueries({ queryKey: ['sms-balance', accountId] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-sms-balance'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to initiate top-up');
+    },
+  });
+}
+
+// Tenant-aware SMS top-up - automatically uses the current user's organization
+export function useTenantSmsTopUp() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: PaystackSMSTopUpRequest): Promise<PaystackSMSTopUpResponse> => {
+      // Construct callback URL pointing to our success page
+      const callbackUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/messages/sms-topup-success`
+        : data.callback_url;
+
+      const response = await api.post('/tenant/messages/sms-topup', {
+        ...data,
+        callback_url: callbackUrl,
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data.success && data.checkout_url) {
+        // Redirect to Paystack checkout
+        window.location.href = data.checkout_url;
+      } else if (!data.success) {
+        toast.error(data.message);
+      }
+      queryClient.invalidateQueries({ queryKey: ['tenant-sms-balance'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to initiate top-up');
     },
   });
 }

@@ -30,7 +30,7 @@ const tabs = [
   { id: 'payments', label: 'Payments' },
   { id: 'pppoe', label: 'PPPoE' },
   { id: 'hotspot', label: 'Hotspot' },
-  { id: 'sms', label: 'Messages' },
+  { id: 'sms', label: 'SMS Gateway' },
   { id: 'notifications', label: 'Notifications' },
 ];
 
@@ -708,165 +708,97 @@ function HotspotTab() {
   );
 }
 
-// Mock data for SMS messages - in production this would come from an API
-const mockMessages = [
-  { id: 1, user: 'C750', phone: '0719846379', channel: 'SMS', message: 'Dear C750, you have successfully subscribed to GoFiNet 2HR SURF UNLIMITED. Your subscription will expire on 29.01.2026 21:57:43. Your username is C750 and password is 8880.', delivered: true, cost: 0.80, sent: '29.01.2026 19:57' },
-  { id: 2, user: 'C729', phone: '0796908187', channel: 'SMS', message: 'Dear C729, you have successfully subscribed to GoFiNet 2HR SURF UNLIMITED. Your subscription will expire on 29.01.2026 18:55:14. Your username is C729 and password is 3757.', delivered: true, cost: 0.80, sent: '29.01.2026 16:55' },
-  { id: 3, user: 'C696', phone: '0758603229', channel: 'SMS', message: 'Dear C696, you have successfully subscribed to GoFiNet 2HR SURF UNLIMITED. Your subscription will expire on 29.01.2026 18:43:45. Your username is C696 and password is 5029.', delivered: true, cost: 0.80, sent: '29.01.2026 16:43' },
-  { id: 4, user: 'C729', phone: '0796908187', channel: 'SMS', message: 'Dear C729, you have successfully subscribed to GoFiNet 2HR SURF UNLIMITED. Your subscription will expire on 29.01.2026 16:41:33. Your username is C729 and password is 3757.', delivered: true, cost: 0.80, sent: '29.01.2026 14:41' },
-  { id: 5, user: 'C19', phone: '0723241220', channel: 'SMS', message: 'Dear C19, you have successfully subscribed to GoFiNet 2HR SURF UNLIMITED. Your subscription will expire on 29.01.2026 14:51:24. Your username is C19 and password is 1163.', delivered: true, cost: 0.80, sent: '29.01.2026 12:51' },
-];
-
 function SMSTab() {
-  const [activeChannel, setActiveChannel] = useState<'all' | 'sms'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { data = {} as any } = useSettings('sms');
+  const save = useSaveSetting('sms');
 
-  const filteredMessages = mockMessages.filter(msg => {
-    if (activeChannel === 'sms' && msg.channel !== 'SMS') return false;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return msg.user.toLowerCase().includes(query) ||
-             msg.phone.includes(query) ||
-             msg.message.toLowerCase().includes(query);
-    }
-    return true;
-  });
+  // Permission checks
+  const { canManagePlatformSecrets, isSuperuser, isAdmin } = usePermissions();
+  const canViewSecrets = canManagePlatformSecrets() || isSuperuser();
+  const canSelectGateway = isAdmin() || isSuperuser();
+
+  // Providers
+  const [smsProvider, setSmsProvider] = useState<'twilio' | 'africastalking'>(data['sms.gateway_provider'] ?? 'twilio');
+  const cfg = useGatewayConfig('sms', smsProvider);
+  const saveCfg = useSaveGatewayConfig('sms', smsProvider);
+  const testCfg = useTestGateway('sms', smsProvider);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
-          <p className="text-sm text-gray-500">View and filter messages by channel (SMS or WhatsApp), or send new messages.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="5" width="20" height="14" rx="2" />
-              <path d="M12 12v5M9 15h6" />
-            </svg>
-            Top Up SMS
-          </Button>
-          <Button className="bg-pink-600 hover:bg-pink-700 gap-2">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            Send message
-          </Button>
-        </div>
-      </div>
-
-      {/* Channel Tabs */}
-      <div className="flex items-center gap-4 border-b">
-        <button
-          onClick={() => setActiveChannel('all')}
-          className={`flex items-center gap-2 py-3 px-1 -mb-px border-b-2 text-sm font-medium transition-colors ${
-            activeChannel === 'all'
-              ? 'border-pink-500 text-pink-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <path d="M8 21h8M12 17v4" />
-          </svg>
-          All
-        </button>
-        <button
-          onClick={() => setActiveChannel('sms')}
-          className={`flex items-center gap-2 py-3 px-1 -mb-px border-b-2 text-sm font-medium transition-colors ${
-            activeChannel === 'sms'
-              ? 'border-pink-500 text-pink-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="5" y="2" width="14" height="20" rx="2" />
-            <path d="M12 18h.01" />
-          </svg>
-          SMS
-        </button>
-      </div>
-
-      {/* Messages Table */}
-      <Card className="overflow-hidden">
-        <div className="p-4 border-b flex justify-end">
-          <div className="relative">
-            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-            <Input
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-64"
-            />
+      {/* Gateway Selection - Available to ISP Admin */}
+      <Card className="p-6">
+        <form id="form-sms" onSubmit={(e) => { e.preventDefault(); save.mutate({
+          'sms.gateway_provider': (e.currentTarget.elements.namedItem('provider') as HTMLInputElement).value,
+          'sms.enable_balance_alert': (e.currentTarget.elements.namedItem('balance') as HTMLInputElement).checked,
+        }); }} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-700">SMS Gateway</label>
+              <select name="provider" defaultValue={smsProvider} onChange={(e) => setSmsProvider(e.target.value as any)} className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
+                <option value="twilio">Twilio</option>
+                <option value="africastalking">Africa's Talking</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input name="balance" type="checkbox" defaultChecked={!!data['sms.enable_balance_alert']} />
+              <span className="text-sm text-gray-700">Enable SMS Balance Alert</span>
+            </div>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="w-10 px-4 py-3">
-                  <input type="checkbox" className="rounded border-gray-300" />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivered</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredMessages.map((msg) => (
-                <tr key={msg.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4">
-                    <input type="checkbox" className="rounded border-gray-300" />
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-900">{msg.user}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{msg.phone}</td>
-                  <td className="px-4 py-4">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800">
-                      {msg.channel}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-700 max-w-md">
-                    <p className="line-clamp-3">{msg.message}</p>
-                  </td>
-                  <td className="px-4 py-4">
-                    {msg.delivered ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
-                    )}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-500">KSH {msg.cost.toFixed(2)}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">{msg.sent}</td>
-                  <td className="px-4 py-4">
-                    <button className="text-sm text-pink-600 hover:text-pink-700 flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filteredMessages.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
-            <p>No messages found</p>
+          <div className="flex gap-3 justify-end">
+            <Button type="submit">Save changes</Button>
           </div>
-        )}
+        </form>
       </Card>
+
+      {/* SMS Provider Configuration - Platform Owner Only */}
+      {canViewSecrets ? (
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-4 w-4 text-amber-600" />
+            <div className="text-sm font-semibold">{smsProvider === 'twilio' ? 'Twilio' : "Africa's Talking"} Configuration</div>
+            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Platform Only</span>
+          </div>
+          <form onSubmit={(e) => { e.preventDefault();
+            const form = e.currentTarget.elements as any;
+            const payload: Record<string, string> = smsProvider === 'twilio' ? {
+              account_sid: form['sid'].value || '',
+              auth_token: form['token'].value || '',
+              phone_number: form['phone'].value || '',
+            } : {
+              username: form['at_user'].value || '',
+              api_key: form['at_key'].value || '',
+            };
+            saveCfg.mutate(payload);
+          }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {smsProvider === 'twilio' ? (
+              <>
+                <Input name="sid" placeholder="Account SID" defaultValue={cfg.data?.configuration?.account_sid ?? ''} />
+                <Input name="token" placeholder="Auth Token" type="password" defaultValue={cfg.data?.configuration?.auth_token ?? ''} />
+                <Input name="phone" placeholder="Phone Number" defaultValue={cfg.data?.configuration?.phone_number ?? ''} />
+              </>
+            ) : (
+              <>
+                <Input name="at_user" placeholder="Username" defaultValue={cfg.data?.configuration?.username ?? ''} />
+                <Input name="at_key" placeholder="API Key" type="password" defaultValue={cfg.data?.configuration?.api_key ?? ''} />
+              </>
+            )}
+            <div className="col-span-full flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <Button type="submit" className="w-full sm:w-auto">Save</Button>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => testCfg.mutate({})}>Test</Button>
+            </div>
+          </form>
+        </Card>
+      ) : (
+        <Card className="p-6 bg-gray-50">
+          <div className="flex items-center gap-3 text-gray-500">
+            <Lock className="h-5 w-5" />
+            <div>
+              <p className="text-sm font-medium">SMS Gateway API Configuration</p>
+              <p className="text-xs">Contact your platform administrator to configure SMS gateway credentials.</p>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
