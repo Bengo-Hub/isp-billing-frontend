@@ -892,7 +892,7 @@ function HotspotTab() {
 function SMSTab() {
   const { data = {} as any } = useSettings('sms');
   const save = useSaveSetting('sms');
-  
+
   // Permission checks
   const { canManagePlatformSecrets, isSuperuser, isAdmin } = usePermissions();
   const canViewSecrets = canManagePlatformSecrets() || isSuperuser();

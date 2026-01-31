@@ -16,6 +16,7 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardAnalytics } from '@/features/dashboard/api';
+import { useTenantSmsBalance } from '@/features/sms/api';
 import { Activity, MessageSquare, Users, Wallet } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -24,6 +25,9 @@ export default function DashboardPage() {
     refetchInterval: 60000, // Refresh every 60 seconds
     refetchIntervalInBackground: true, // Continue polling when tab is not active
   });
+
+  // Fetch SMS balance for current user's organization
+  const { data: smsBalance } = useTenantSmsBalance();
 
   if (isLoading) {
     return (
@@ -62,7 +66,7 @@ export default function DashboardPage() {
       {/* Top stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatsCard title="Amount this month" value={`Ksh ${data?.billing?.total_revenue?.toLocaleString() ?? 0}`} icon={Wallet} />
-        <StatsCard title="SMS balance" value={`Ksh ${1234}`} icon={MessageSquare} />
+        <StatsCard title="SMS balance" value={`Ksh ${smsBalance?.current_balance?.toLocaleString() ?? 0}`} icon={MessageSquare} />
         <StatsCard title="Total clients" value={data?.subscriptions?.total_subscriptions ?? 0} icon={Users} />
         <StatsCard title="Active users" value={data?.subscriptions?.active_subscriptions ?? 0} icon={Activity} />
       </div>

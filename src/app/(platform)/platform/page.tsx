@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { usePlatformDashboard, useRevenueChart, useTopOrganizations, useOrganizationGrowth } from '@/features/platform/api';
+import { usePlatformDashboard, useRevenueChart, useTopOrganizations, useOrganizationGrowth, useISPSMSPurchases, usePlatformSMSBalance } from '@/features/platform/api';
 import {
   Building2,
   Users,
@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -99,6 +100,8 @@ export default function PlatformDashboard() {
   const { data: revenueChart } = useRevenueChart(30);
   const { data: topOrganizations } = useTopOrganizations(5);
   const { data: growthData } = useOrganizationGrowth(6);
+  const { data: platformSmsBalance } = usePlatformSMSBalance();
+  const { data: smsPurchases } = useISPSMSPurchases(20);
 
   if (isDashboardLoading) {
     return (
@@ -162,7 +165,7 @@ export default function PlatformDashboard() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -198,6 +201,33 @@ export default function PlatformDashboard() {
             </div>
             <div className="p-3 bg-red-50 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">SMS Gateway Balance</p>
+              <p className="text-xl font-bold">
+                {platformSmsBalance?.success
+                  ? `${platformSmsBalance.currency} ${platformSmsBalance.balance.toLocaleString()}`
+                  : 'Not configured'
+                }
+              </p>
+              <p className="text-xs text-gray-500">
+                {platformSmsBalance?.provider && platformSmsBalance.provider !== 'none' ? (
+                  <>
+                    {platformSmsBalance.provider === 'africastalking' ? "Africa's Talking" : platformSmsBalance.provider}
+                    <span className="ml-1">• {platformSmsBalance.environment}</span>
+                  </>
+                ) : (
+                  platformSmsBalance?.message || 'Configure SMS gateway'
+                )}
+              </p>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <MessageSquare className="w-5 h-5 text-blue-600" />
             </div>
           </div>
         </Card>
@@ -307,6 +337,58 @@ export default function PlatformDashboard() {
               ) : (
                 <tr>
                   <td colSpan={5} className="text-center py-8 text-gray-500">No growth data available</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* ISP SMS Purchases */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-gray-900">ISP SMS Purchases</h3>
+            <p className="text-sm text-gray-500">
+              {smsPurchases && smsPurchases.total > 0 && (
+                <>Total: {formatCurrency(smsPurchases.total_revenue)} ({smsPurchases.total_sms_sold.toLocaleString()} SMS sold)</>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-2 font-medium text-gray-500">Organization</th>
+                <th className="text-right py-2 font-medium text-gray-500">Amount</th>
+                <th className="text-right py-2 font-medium text-gray-500">SMS Credits</th>
+                <th className="text-right py-2 font-medium text-gray-500">Current Balance</th>
+                <th className="text-left py-2 font-medium text-gray-500">Date</th>
+                <th className="text-left py-2 font-medium text-gray-500">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {smsPurchases && smsPurchases.purchases.length > 0 ? (
+                smsPurchases.purchases.map((purchase) => (
+                  <tr key={purchase.id} className="border-b hover:bg-gray-50">
+                    <td className="py-3 font-medium">{purchase.organization_name}</td>
+                    <td className="text-right py-3">{formatCurrency(purchase.amount)}</td>
+                    <td className="text-right py-3">{purchase.sms_credits.toLocaleString()}</td>
+                    <td className="text-right py-3 text-blue-600">{purchase.current_balance.toLocaleString()}</td>
+                    <td className="py-3 text-gray-500">{purchase.purchased_at}</td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        purchase.status.toLowerCase() === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {purchase.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-500">No SMS purchases yet</td>
                 </tr>
               )}
             </tbody>

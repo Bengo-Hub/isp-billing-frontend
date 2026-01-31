@@ -7,10 +7,14 @@ export type UserItem = {
   id: number;
   username: string;
   email: string;
+  first_name: string;
+  last_name: string;
   full_name?: string;
-  phone_number?: string;
-  role: 'admin' | 'technician' | 'user';
+  phone?: string;
+  role: 'admin' | 'technician' | 'customer';
   status: 'active' | 'suspended' | 'inactive';
+  is_active?: boolean;
+  is_verified?: boolean;
   created_at?: string;
   last_login?: string;
 };
@@ -26,9 +30,11 @@ export interface UserCreateData {
   username: string;
   email: string;
   password: string;
-  full_name: string;
-  phone_number?: string;
-  role?: 'admin' | 'technician' | 'user';
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  role?: 'admin' | 'technician' | 'customer';
+  bio?: string;
 }
 
 const usersFallback = {
