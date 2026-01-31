@@ -1,8 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { usePlatformDashboard, useRevenueChart, useTopOrganizations, useOrganizationGrowth, useISPSMSPurchases } from '@/features/platform/api';
-import { useSmsBalance } from '@/features/sms/api';
+import { usePlatformDashboard, useRevenueChart, useTopOrganizations, useOrganizationGrowth, useISPSMSPurchases, usePlatformSMSBalance } from '@/features/platform/api';
 import {
   Building2,
   Users,
@@ -101,7 +100,7 @@ export default function PlatformDashboard() {
   const { data: revenueChart } = useRevenueChart(30);
   const { data: topOrganizations } = useTopOrganizations(5);
   const { data: growthData } = useOrganizationGrowth(6);
-  const { data: smsBalance } = useSmsBalance(1);
+  const { data: platformSmsBalance } = usePlatformSMSBalance();
   const { data: smsPurchases } = useISPSMSPurchases(20);
 
   if (isDashboardLoading) {
@@ -209,12 +208,21 @@ export default function PlatformDashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">SMS Balance</p>
-              <p className="text-xl font-bold">{formatCurrency(smsBalance?.current_balance || 0)}</p>
+              <p className="text-sm text-gray-500">SMS Gateway Balance</p>
+              <p className="text-xl font-bold">
+                {platformSmsBalance?.success
+                  ? `${platformSmsBalance.currency} ${platformSmsBalance.balance.toLocaleString()}`
+                  : 'Not configured'
+                }
+              </p>
               <p className="text-xs text-gray-500">
-                {smsBalance?.today_usage?.sent || 0} sent today
-                {smsBalance?.is_low_balance && (
-                  <span className="text-orange-600 ml-1">• Low balance</span>
+                {platformSmsBalance?.provider && platformSmsBalance.provider !== 'none' ? (
+                  <>
+                    {platformSmsBalance.provider === 'africastalking' ? "Africa's Talking" : platformSmsBalance.provider}
+                    <span className="ml-1">• {platformSmsBalance.environment}</span>
+                  </>
+                ) : (
+                  platformSmsBalance?.message || 'Configure SMS gateway'
                 )}
               </p>
             </div>
@@ -371,7 +379,7 @@ export default function PlatformDashboard() {
                     <td className="py-3 text-gray-500">{purchase.purchased_at}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        purchase.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        purchase.status.toLowerCase() === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                       }`}>
                         {purchase.status}
                       </span>

@@ -10,7 +10,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Message, useMessages, useTenantSmsTopUp } from '@/features/sms/api';
+import { Message, useMessages, useTenantSmsTopUp, useSendSMS } from '@/features/sms/api';
+import { useUsers } from '@/features/users/api';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -41,12 +42,17 @@ export default function MessagesPage() {
     channel: activeChannel === 'sms' ? 'sms' : undefined,
   });
 
+  // Fetch users for the dropdown
+  const { data: usersData } = useUsers({ page: 1, size: 100 });
+  const usersWithPhone = (usersData?.users || []).filter(u => u.phone);
+
   const messages = data?.messages || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / 20);
 
   // Top-up mutation (Paystack) - tenant-aware
   const topUpMutation = useTenantSmsTopUp();
+  const sendSmsMutation = useSendSMS();
 
   const handleTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,15 +70,31 @@ export default function MessagesPage() {
     }
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement send message API call
-    console.log('Send message:', { channel: messageChannel, recipientType, selectedUsers, messageContent });
-    toast.success('Message sent successfully!');
-    setCreateMessageOpen(false);
-    setMessageContent('');
-    setSelectedUsers('');
-    refetch();
+
+    if (recipientType === 'specific_users' && !selectedUsers) {
+      toast.error('Please select a user');
+      return;
+    }
+
+    if (!messageContent.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    try {
+      await sendSmsMutation.mutateAsync({
+        to_phone: selectedUsers,
+        message: messageContent,
+      });
+      setCreateMessageOpen(false);
+      setMessageContent('');
+      setSelectedUsers('');
+      refetch();
+    } catch (error: any) {
+      // Error is already handled by the mutation hook
+    }
   };
 
   return (
@@ -193,11 +215,14 @@ export default function MessagesPage() {
                     onChange={(e) => setSelectedUsers(e.target.value)}
                     className="mt-1 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
                   >
-                    <option value="">Select an option</option>
-                    <option value="user1">User 1</option>
-                    <option value="user2">User 2</option>
+                    <option value="">Select a user</option>
+                    {usersWithPhone.map((user) => (
+                      <option key={user.id} value={user.phone}>
+                        {user.first_name} {user.last_name} ({user.phone})
+                      </option>
+                    ))}
                   </select>
-                  <p className="text-sm text-gray-500 mt-1">Search by name or phone, only users with valid phone numbers are shown</p>
+                  <p className="text-sm text-gray-500 mt-1">Only users with valid phone numbers are shown</p>
                 </div>
               )}
 

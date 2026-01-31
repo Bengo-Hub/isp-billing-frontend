@@ -163,22 +163,22 @@ export function useMpesaTopUpFlow(accountId: number) {
 
 // Send SMS
 export interface SendSMSRequest {
-  recipients: string[];
+  to_phone: string;
   message: string;
-  sender_id?: string;
 }
 
 export function useSendSMS() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: SendSMSRequest) => {
       const response = await api.post('/notifications/sms', data);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sms-balance'] });
-      toast.success(`SMS sent to ${data.sent_count || 0} recipients`);
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      toast.success('SMS sent successfully');
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to send SMS');

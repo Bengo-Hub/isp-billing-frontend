@@ -35,15 +35,16 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Map form data to API format
     const userData = {
       username: formData.username,
       email: formData.email,
       password: formData.password,
-      full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-      phone_number: formData.phoneNumber || undefined,
-      role: 'user' as const,
+      first_name: formData.firstName || formData.username,
+      last_name: formData.lastName || formData.username,
+      phone: formData.phoneNumber || undefined,
+      role: 'customer' as const,
     };
 
     createUser.mutate(userData, {

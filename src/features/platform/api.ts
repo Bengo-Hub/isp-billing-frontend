@@ -355,17 +355,32 @@ export function useISPSMSPurchases(limit: number = 50) {
   return useQuery({
     queryKey: ['platform-isp-sms-purchases', limit],
     queryFn: async (): Promise<ISPSMSPurchasesResponse> => {
-      try {
-        const { data } = await api.get('/platform/sms-gateways/isp-purchases', { params: { limit } });
-        return data;
-      } catch {
-        return {
-          purchases: [],
-          total: 0,
-          total_revenue: 0,
-          total_sms_sold: 0,
-        };
-      }
+      const { data } = await api.get('/platform/sms-gateways/isp-purchases', { params: { limit } });
+      return data;
     },
+  });
+}
+
+// =========================================================================
+// Platform SMS Gateway Balance (Real AT Balance)
+// =========================================================================
+
+export interface PlatformSMSBalance {
+  success: boolean;
+  balance: number;
+  currency: string;
+  provider: string;
+  environment: string;
+  message?: string;
+}
+
+export function usePlatformSMSBalance() {
+  return useQuery({
+    queryKey: ['platform-sms-balance'],
+    queryFn: async (): Promise<PlatformSMSBalance> => {
+      const { data } = await api.get('/platform/sms-gateways/balance');
+      return data;
+    },
+    refetchInterval: 60000, // Refresh every minute
   });
 }
