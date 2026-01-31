@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { queryKeys, QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/query/query-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -44,7 +45,7 @@ const usersFallback = {
 
 export function useUsers(params: { page?: number; size?: number; role?: string; status?: string; search?: string }) {
   return useQuery({
-    queryKey: ['users', params],
+    queryKey: queryKeys.users.list(params),
     queryFn: async (): Promise<{ users: UserItem[]; total: number; page: number; size: number; pages: number }> => {
       try {
         const { data } = await api.get('/users/', { params });
@@ -53,30 +54,34 @@ export function useUsers(params: { page?: number; size?: number; role?: string; 
         return usersFallback;
       }
     },
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
   });
 }
 
 export function useUser(userId: number) {
   return useQuery({
-    queryKey: ['user', userId],
+    queryKey: queryKeys.users.detail(String(userId)),
     queryFn: async (): Promise<UserItem> => {
       const { data } = await api.get(`/users/${userId}`);
       return data;
     },
     enabled: !!userId,
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
   });
 }
 
 export function useCreateUser() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: UserCreateData) => {
       const response = await api.post('/auth/register', data);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success('User created successfully');
     },
     onError: (error: any) => {
@@ -87,14 +92,14 @@ export function useCreateUser() {
 
 export function useUpdateUser() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ userId, data }: { userId: number; data: UserUpdateData }) => {
       const response = await api.patch(`/users/${userId}`, data);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success('User updated successfully');
     },
     onError: (error: any) => {
@@ -105,7 +110,7 @@ export function useUpdateUser() {
 
 export function useUpdateUserStatus() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ userId, status }: { userId: number; status: 'active' | 'suspended' | 'inactive' }) => {
       const response = await api.patch(`/users/${userId}/status`, null, {
@@ -114,7 +119,7 @@ export function useUpdateUserStatus() {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success('User status updated successfully');
     },
     onError: (error: any) => {
@@ -125,14 +130,14 @@ export function useUpdateUserStatus() {
 
 export function useActivateUser() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (userId: number) => {
       const response = await api.patch(`/users/${userId}/activate`);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success('User activated successfully');
     },
     onError: (error: any) => {
@@ -143,14 +148,14 @@ export function useActivateUser() {
 
 export function useDeactivateUser() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (userId: number) => {
       const response = await api.patch(`/users/${userId}/deactivate`);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success('User deactivated successfully');
     },
     onError: (error: any) => {
@@ -161,14 +166,14 @@ export function useDeactivateUser() {
 
 export function useDeleteUser() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (userId: number) => {
       const response = await api.delete(`/users/${userId}`);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success('User deleted successfully');
     },
     onError: (error: any) => {
@@ -180,7 +185,7 @@ export function useDeleteUser() {
 // Bulk Operations
 export function useBulkUpdateUserStatus() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ userIds, status }: { userIds: number[]; status: 'active' | 'suspended' | 'inactive' }) => {
       // Execute all updates in parallel
@@ -191,7 +196,7 @@ export function useBulkUpdateUserStatus() {
       return responses.map(r => r.data);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success(`${variables.userIds.length} users updated successfully`);
     },
     onError: (error: any) => {
@@ -202,7 +207,7 @@ export function useBulkUpdateUserStatus() {
 
 export function useBulkDeleteUsers() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (userIds: number[]) => {
       // Execute all deletes in parallel
@@ -211,7 +216,7 @@ export function useBulkDeleteUsers() {
       return responses.map(r => r.data);
     },
     onSuccess: (_, userIds) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success(`${userIds.length} users deleted successfully`);
     },
     onError: (error: any) => {
@@ -222,7 +227,7 @@ export function useBulkDeleteUsers() {
 
 export function useBulkActivateUsers() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (userIds: number[]) => {
       const promises = userIds.map(userId => api.patch(`/users/${userId}/activate`));
@@ -230,7 +235,7 @@ export function useBulkActivateUsers() {
       return responses.map(r => r.data);
     },
     onSuccess: (_, userIds) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success(`${userIds.length} users activated successfully`);
     },
     onError: (error: any) => {
@@ -241,7 +246,7 @@ export function useBulkActivateUsers() {
 
 export function useBulkDeactivateUsers() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (userIds: number[]) => {
       const promises = userIds.map(userId => api.patch(`/users/${userId}/deactivate`));
@@ -249,7 +254,7 @@ export function useBulkDeactivateUsers() {
       return responses.map(r => r.data);
     },
     onSuccess: (_, userIds) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success(`${userIds.length} users deactivated successfully`);
     },
     onError: (error: any) => {

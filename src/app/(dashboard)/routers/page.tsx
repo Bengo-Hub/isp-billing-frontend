@@ -7,17 +7,70 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useActiveConnections, useDisconnectUser, useRouters } from '@/features/routers/api';
-import { Clock, Download, Eye, Monitor, MoreVertical, RefreshCw, Search, Wifi } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useActiveConnections, useDeleteRouter, useDisconnectUser, useRouters, useSyncRouter, useSyncRouterTime, useSyncHotspotFiles, useRegenerateWinbox, useWinboxUrl } from '@/features/routers/api';
+import { Clock, Copy, Download, Eye, Monitor, MoreVertical, RefreshCw, Search, Trash2, Wifi } from 'lucide-react';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+/**
+ * Format uptime seconds to MikroTik-style format (e.g., "5h18m57s", "2d3h45m")
+ */
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+  return parts.join('');
+}
+
 export default function RoutersPage() {
-  const { data, isLoading, error } = useRouters();
+  const { data, isLoading, error, refetch } = useRouters();
   const [selected, setSelected] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('online');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
+
+  // Router action mutations
+  const syncRouterMutation = useSyncRouter();
+  const syncTimeMutation = useSyncRouterTime();
+  const syncHotspotFilesMutation = useSyncHotspotFiles();
+  const regenerateWinboxMutation = useRegenerateWinbox();
+  const deleteRouterMutation = useDeleteRouter();
+
+  const handleSyncRouter = (routerId: number) => {
+    syncRouterMutation.mutate(routerId, {
+      onSuccess: () => refetch(),
+    });
+  };
+
+  const handleSyncTime = (routerId: number) => {
+    syncTimeMutation.mutate(routerId);
+  };
+
+  const handleSyncHotspotFiles = (routerId: number) => {
+    syncHotspotFilesMutation.mutate(routerId);
+  };
+
+  const handleRegenerateWinbox = (routerId: number) => {
+    regenerateWinboxMutation.mutate(routerId);
+  };
+
+  const handleDeleteRouter = (routerId: number, routerName: string) => {
+    if (confirm(`Are you sure you want to delete router "${routerName}"? This action cannot be undone.`)) {
+      deleteRouterMutation.mutate(routerId, {
+        onSuccess: () => refetch(),
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -131,10 +184,12 @@ export default function RoutersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Board Name</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Board</TableHead>
               <TableHead>Provisioning</TableHead>
               <TableHead>CPU</TableHead>
               <TableHead>Memory</TableHead>
+              <TableHead>Uptime</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Remote Winbox</TableHead>
               <TableHead>Actions</TableHead>
@@ -143,15 +198,43 @@ export default function RoutersPage() {
           <TableBody>
             {filteredRouters.map((r: any) => (
               <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.name || 'MikroTik2'}</TableCell>
-                <TableCell>
-                  <Badge className="bg-pink-100 text-pink-800">Completed</Badge>
+                <TableCell className="font-medium">
+                  <div className="flex flex-col">
+                    <span>{r.name || 'MikroTik'}</span>
+                    <span className="text-xs text-gray-500">{r.ip_address}</span>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge className="bg-green-100 text-green-800">0%</Badge>
+                  <div className="flex flex-col">
+                    <span className="text-sm">{r.board_name || '-'}</span>
+                    {r.routeros_version && (
+                      <span className="text-xs text-gray-500">v{r.routeros_version}</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge className="bg-pink-100 text-pink-800">184.82 MB</Badge>
+                  <ProvisioningBadge status={r.provisioning_status} bootstrapCompleted={r.bootstrap_completed} />
+                </TableCell>
+                <TableCell>
+                  <Badge className={`${
+                    r.cpu_load != null && r.cpu_load > 80
+                      ? 'bg-red-100 text-red-800'
+                      : r.cpu_load != null && r.cpu_load > 50
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-green-100 text-green-800'
+                  }`}>
+                    {r.cpu_load_formatted || (r.cpu_load != null ? `${r.cpu_load}%` : '-')}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge className="bg-pink-100 text-pink-800">
+                    {r.free_memory_formatted || (r.free_memory != null ? `${(r.free_memory / 1024 / 1024).toFixed(1)}MiB` : '-')}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-600">
+                    {r.uptime_formatted || (r.uptime != null ? formatUptime(r.uptime) : '-')}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <Badge className={`${r.status === 'online' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -159,10 +242,7 @@ export default function RoutersPage() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Monitor className="h-3 w-3 text-gray-400" />
-                    <span className="text-sm">vpn.codevertex.com:51255</span>
-                  </div>
+                  <WinboxUrlCell routerId={r.id} winboxPort={r.winbox_port} />
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -176,21 +256,32 @@ export default function RoutersPage() {
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSyncRouter(r.id)}>
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Regenerate winbox
+                        Sync Status
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleRegenerateWinbox(r.id)}>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Regenerate Winbox
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => router.push(`/routers/provision?reprovision=${r.id}`)}>
                         <Download className="h-4 w-4 mr-2" />
                         Reprovision
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
+                      <DropdownMenuItem onClick={() => handleSyncHotspotFiles(r.id)}>
                         <Download className="h-4 w-4 mr-2" />
-                        Sync hotspot files
+                        Sync Hotspot Files
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSyncTime(r.id)}>
                         <Clock className="h-4 w-4 mr-2" />
                         Sync Router Time
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteRouter(r.id, r.name)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Router
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -284,5 +375,80 @@ function ActiveSessions({ routerId, onClose }: { routerId: number; onClose: () =
         </Table>
       )}
     </Card>
+  );
+}
+
+/**
+ * ProvisioningBadge - Displays the provisioning status
+ */
+function ProvisioningBadge({ status, bootstrapCompleted }: { status?: string; bootstrapCompleted?: boolean }) {
+  const getStatusConfig = () => {
+    if (bootstrapCompleted || status === 'provisioned' || status === 'completed') {
+      return { label: 'Completed', className: 'bg-green-100 text-green-800' };
+    }
+    if (status === 'in_progress' || status === 'running') {
+      return { label: 'In Progress', className: 'bg-blue-100 text-blue-800' };
+    }
+    if (status === 'failed' || status === 'error') {
+      return { label: 'Failed', className: 'bg-red-100 text-red-800' };
+    }
+    if (status === 'pending' || !status) {
+      return { label: 'Command Pending', className: 'bg-yellow-100 text-yellow-800' };
+    }
+    return { label: status, className: 'bg-gray-100 text-gray-800' };
+  };
+
+  const config = getStatusConfig();
+
+  return <Badge className={config.className}>{config.label}</Badge>;
+}
+
+/**
+ * WinboxUrlCell - Displays the remote Winbox URL with copy functionality
+ */
+function WinboxUrlCell({ routerId, winboxPort }: { routerId: number; winboxPort?: number }) {
+  const { data, isLoading } = useWinboxUrl(routerId);
+
+  const handleCopy = async () => {
+    const urlToCopy = data?.winbox_url || data?.local_winbox_url;
+    if (urlToCopy) {
+      try {
+        await navigator.clipboard.writeText(urlToCopy);
+        toast.success('Winbox URL copied to clipboard');
+      } catch {
+        toast.error('Failed to copy to clipboard');
+      }
+    }
+  };
+
+  if (isLoading) {
+    return <Skeleton className="h-5 w-32" />;
+  }
+
+  const displayUrl = data?.winbox_url || data?.local_winbox_url || 'Not configured';
+  const isConfigured = data?.is_configured ?? !!winboxPort;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-2 text-left hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors group"
+          >
+            <Monitor className="h-3 w-3 text-gray-400" />
+            <span className={`text-sm ${isConfigured ? 'text-blue-600 hover:text-blue-800' : 'text-gray-400'}`}>
+              {displayUrl}
+            </span>
+            <Copy className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <p className="text-sm">
+            {data?.tooltip || 'Click to copy. Ensure port 8291 is open on the device. After copying, paste this to the Winbox connect field.'}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

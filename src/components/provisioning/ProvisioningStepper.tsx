@@ -9,43 +9,27 @@ interface ProvisioningStepperProps {
 }
 
 const getSteps = (isFirstTimeProvisioning: boolean) => {
-  if (isFirstTimeProvisioning) {
-    return [
-      {
-        number: 1,
-        title: 'Connection',
-        description: 'Basic device information',
-        completed: false
-      },
-      {
-        number: 2,
-        title: 'Device Details',
-        description: 'Provisioning command',
-        completed: false
-      },
-      {
-        number: 3,
-        title: 'Service Setup',
-        description: 'Configure PPPoE and Hotspot',
-        completed: false
-      }
-    ];
-  } else {
-    return [
-      {
-        number: 1,
-        title: 'Device Details',
-        description: 'Provisioning command',
-        completed: false
-      },
-      {
-        number: 2,
-        title: 'Service Setup',
-        description: 'Configure PPPoE and Hotspot',
-        completed: false
-      }
-    ];
-  }
+  // Always show 3 steps for both first-time and reprovisioning modes
+  return [
+    {
+      number: 1,
+      title: 'Connection',
+      description: 'Basic device information',
+      completed: false
+    },
+    {
+      number: 2,
+      title: 'Device Details',
+      description: 'Provisioning command',
+      completed: false
+    },
+    {
+      number: 3,
+      title: 'Service Setup',
+      description: 'Configure PPPoE and Hotspot',
+      completed: false
+    }
+  ];
 };
 
 export function ProvisioningStepper({ currentStep, isFirstTimeProvisioning, onStepClick }: ProvisioningStepperProps) {

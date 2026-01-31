@@ -36,6 +36,7 @@ export interface PurchaseRequest {
   plan_id: number;
   phone_number: string;
   email?: string;
+  payment_method?: string;  // 'mpesa' | 'paystack'
 }
 
 export interface PurchaseResponse {

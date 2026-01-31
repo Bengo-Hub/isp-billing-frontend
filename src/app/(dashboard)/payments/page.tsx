@@ -3,47 +3,25 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { CreditCard, Eye, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CreditCard, Eye, Search, Globe, Download, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { usePayments, useInvoices, usePendingInvoices, Invoice } from '@/features/payments/api';
+import { PaystackPaymentDialog } from '@/components/payments';
 
 export default function PaymentsPage() {
-  const [activeTab, setActiveTab] = useState<'checked' | 'unchecked'>('checked');
+  const [activeTab, setActiveTab] = useState<'payments' | 'invoices'>('payments');
   const [showRecordModal, setShowRecordModal] = useState(false);
+  const [showPaystackModal, setShowPaystackModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock data - replace with actual API calls
-  const payments = [
-    {
-      id: 1,
-      user: 'C658',
-      phone: '0713276570',
-      receipt_no: 'UARRE52KDO',
-      amount: 10.00,
-      checked: true,
-      paid_at: '27.01.2026 16:56',
-      disbursement: 'Direct',
-    },
-    {
-      id: 2,
-      user: 'C744',
-      phone: '0705651499',
-      receipt_no: 'UARMP53DIL',
-      amount: 10.00,
-      checked: true,
-      paid_at: '27.01.2026 11:56',
-      disbursement: 'Direct',
-    },
-    {
-      id: 3,
-      user: 'C16',
-      phone: '0722986865',
-      receipt_no: 'UARMO4QWCN',
-      amount: 20.00,
-      checked: true,
-      paid_at: '27.01.2026 09:55',
-      disbursement: 'Direct',
-    },
-  ];
+  // Fetch real data from API
+  const { data: paymentsData, isLoading: paymentsLoading } = usePayments({ page: 1, size: 20 });
+  const { data: pendingInvoicesData, isLoading: invoicesLoading } = usePendingInvoices({ page: 1, size: 20 });
+
+  const payments = paymentsData?.items || [];
+  const pendingInvoices = pendingInvoicesData?.invoices || [];
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -57,13 +35,22 @@ export default function PaymentsPage() {
             </svg>
           </button>
         </div>
-        <Button 
-          className="bg-pink-600 hover:bg-pink-700"
-          onClick={() => setShowRecordModal(true)}
-        >
-          <CreditCard className="h-4 w-4 mr-2" />
-          Record Payment
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setActiveTab('invoices')}
+          >
+            <Globe className="h-4 w-4 mr-2" />
+            Pay Online
+          </Button>
+          <Button
+            className="bg-pink-600 hover:bg-pink-700"
+            onClick={() => setShowRecordModal(true)}
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            Record Payment
+          </Button>
+        </div>
       </div>
 
       {/* Earnings Cards */}
@@ -105,30 +92,26 @@ export default function PaymentsPage() {
       {/* Tabs */}
       <div className="border-b flex items-center gap-6">
         <button
-          onClick={() => setActiveTab('checked')}
+          onClick={() => setActiveTab('payments')}
           className={`pb-3 border-b-2 text-sm font-medium flex items-center gap-2 ${
-            activeTab === 'checked'
+            activeTab === 'payments'
               ? 'border-pink-600 text-pink-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
         >
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-          Checked payments
+          <CreditCard className="h-4 w-4" />
+          All Payments
         </button>
         <button
-          onClick={() => setActiveTab('unchecked')}
+          onClick={() => setActiveTab('invoices')}
           className={`pb-3 border-b-2 text-sm font-medium flex items-center gap-2 ${
-            activeTab === 'unchecked'
+            activeTab === 'invoices'
               ? 'border-pink-600 text-pink-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
         >
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-          Unchecked payments
+          <Globe className="h-4 w-4" />
+          Pending Invoices ({pendingInvoices.length})
         </button>
       </div>
 
@@ -146,56 +129,128 @@ export default function PaymentsPage() {
       </div>
 
       {/* Payments Table */}
-      <Card className="p-6">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b">
-              <tr className="text-left text-sm text-gray-600">
-                <th className="pb-3 font-medium">
-                  <input type="checkbox" className="rounded border-gray-300" />
-                </th>
-                <th className="pb-3 font-medium">User</th>
-                <th className="pb-3 font-medium">Phone</th>
-                <th className="pb-3 font-medium">Receipt No.</th>
-                <th className="pb-3 font-medium">Amount</th>
-                <th className="pb-3 font-medium">Checked</th>
-                <th className="pb-3 font-medium">Paid At</th>
-                <th className="pb-3 font-medium">Disbursement</th>
-                <th className="pb-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((payment) => (
-                <tr key={payment.id} className="border-b hover:bg-gray-50">
-                  <td className="py-3">
-                    <input type="checkbox" className="rounded border-gray-300" />
-                  </td>
-                  <td className="py-3 font-medium text-pink-600">{payment.user}</td>
-                  <td className="py-3 text-sm">{payment.phone}</td>
-                  <td className="py-3 text-sm font-mono">{payment.receipt_no}</td>
-                  <td className="py-3 text-sm font-medium">Ksh {payment.amount.toFixed(2)}</td>
-                  <td className="py-3">
-                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">
-                      Yes
-                    </span>
-                  </td>
-                  <td className="py-3 text-sm">{payment.paid_at}</td>
-                  <td className="py-3">
-                    <span className="text-sm text-pink-600">{payment.disbursement}</span>
-                  </td>
-                  <td className="py-3">
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {activeTab === 'payments' && (
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            {paymentsLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading payments...</div>
+            ) : payments.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No payments found</div>
+            ) : (
+              <table className="w-full">
+                <thead className="border-b">
+                  <tr className="text-left text-sm text-gray-600">
+                    <th className="pb-3 font-medium">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </th>
+                    <th className="pb-3 font-medium">ID</th>
+                    <th className="pb-3 font-medium">User</th>
+                    <th className="pb-3 font-medium">Amount</th>
+                    <th className="pb-3 font-medium">Method</th>
+                    <th className="pb-3 font-medium">Status</th>
+                    <th className="pb-3 font-medium">Date</th>
+                    <th className="pb-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((payment) => (
+                    <tr key={payment.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3">
+                        <input type="checkbox" className="rounded border-gray-300" />
+                      </td>
+                      <td className="py-3 font-medium text-pink-600">#{payment.id}</td>
+                      <td className="py-3 text-sm">{payment.user_id}</td>
+                      <td className="py-3 text-sm font-medium">Ksh {payment.amount.toFixed(2)}</td>
+                      <td className="py-3">
+                        <Badge variant="outline" className="capitalize">{payment.method}</Badge>
+                      </td>
+                      <td className="py-3">
+                        <Badge className={
+                          payment.status === 'completed' ? 'bg-green-100 text-green-700' :
+                          payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-red-100 text-red-700'
+                        }>
+                          {payment.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 text-sm">{new Date(payment.created_at).toLocaleString()}</td>
+                      <td className="py-3">
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Pending Invoices Table */}
+      {activeTab === 'invoices' && (
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            {invoicesLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading invoices...</div>
+            ) : pendingInvoices.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No pending invoices</div>
+            ) : (
+              <table className="w-full">
+                <thead className="border-b">
+                  <tr className="text-left text-sm text-gray-600">
+                    <th className="pb-3 font-medium">Invoice #</th>
+                    <th className="pb-3 font-medium">User</th>
+                    <th className="pb-3 font-medium">Amount</th>
+                    <th className="pb-3 font-medium">Due Date</th>
+                    <th className="pb-3 font-medium">Status</th>
+                    <th className="pb-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingInvoices.map((invoice: Invoice) => (
+                    <tr key={invoice.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 font-medium text-pink-600">{invoice.invoice_number}</td>
+                      <td className="py-3 text-sm">{invoice.user_id}</td>
+                      <td className="py-3 text-sm font-medium">Ksh {invoice.total.toFixed(2)}</td>
+                      <td className="py-3 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
+                      <td className="py-3">
+                        <Badge className={
+                          invoice.status === 'paid' ? 'bg-green-100 text-green-700' :
+                          invoice.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          invoice.status === 'overdue' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }>
+                          {invoice.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-pink-600 hover:bg-pink-700"
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setShowPaystackModal(true);
+                            }}
+                          >
+                            <Globe className="h-4 w-4 mr-1" />
+                            Pay Online
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Record Payment Modal */}
       {showRecordModal && (
@@ -249,6 +304,7 @@ export default function PaymentsPage() {
                       <option value="cash">Cash</option>
                       <option value="kopo">Kopo Kopo</option>
                       <option value="mpesa">M-Pesa</option>
+                      <option value="paystack">Paystack</option>
                     </select>
                   </div>
                   <div className="mt-2">
@@ -263,7 +319,7 @@ export default function PaymentsPage() {
                   Has this payment been checked?<span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-3">
-                  <button 
+                  <button
                     type="button"
                     className="px-4 py-2 bg-gray-100 hover:bg-green-100 border border-gray-300 rounded text-sm flex items-center gap-2"
                   >
@@ -272,7 +328,7 @@ export default function PaymentsPage() {
                     </svg>
                     Yes
                   </button>
-                  <button 
+                  <button
                     type="button"
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white border border-red-600 rounded text-sm flex items-center gap-2"
                   >
@@ -287,15 +343,15 @@ export default function PaymentsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-3 justify-end pt-4 border-t">
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   variant="outline"
                   onClick={() => setShowRecordModal(false)}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="bg-pink-600 hover:bg-pink-700"
                 >
                   Create
@@ -305,6 +361,13 @@ export default function PaymentsPage() {
           </Card>
         </div>
       )}
+
+      {/* Paystack Payment Dialog */}
+      <PaystackPaymentDialog
+        open={showPaystackModal}
+        onOpenChange={setShowPaystackModal}
+        invoice={selectedInvoice}
+      />
     </div>
   );
 }

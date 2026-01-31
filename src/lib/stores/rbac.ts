@@ -15,22 +15,37 @@ const getStorage = (): StateStorage => {
 
 export type UserRole = 'superuser' | 'admin' | 'technician' | 'customer';
 
-export type PermissionModule = 
+export type PermissionModule =
+  // Core ISP modules
   | 'dashboard'
   | 'users'
+  | 'customers'
   | 'packages'
   | 'routers'
   | 'provisioning'
   | 'payments'
+  | 'payment_gateways'
   | 'sms'
+  | 'vouchers'
   | 'settings'
   | 'reports'
   | 'notifications'
-  | 'system_config'
-  | 'licence_management'
+  | 'support'
+  | 'billing'
+  | 'subscriptions'
+  | 'analytics'
+  | 'branding'
   | 'audit_logs'
   | 'backup_restore'
-  // Platform integration modules (ISP Software Provider only)
+  // Legacy modules (backward compatibility)
+  | 'system_config'
+  | 'licence_management'
+  // Platform owner modules (ISP Software Provider only)
+  | 'platform_organizations'
+  | 'platform_billing'
+  | 'platform_analytics'
+  | 'platform_config'
+  | 'platform_tiers'
   | 'platform_integrations'
   | 'platform_integrations_secrets'
   | 'platform_integrations_urls'
@@ -40,7 +55,13 @@ export type PermissionModule =
   // Tenant integration modules (ISP Admin)
   | 'tenant_payment_config'
   | 'tenant_sms_config'
-  | 'tenant_payout_config';
+  | 'tenant_payout_config'
+  // Customer portal modules
+  | 'customer_dashboard'
+  | 'customer_packages'
+  | 'customer_payments'
+  | 'customer_usage'
+  | 'customer_profile';
 
 export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'manage';
 
@@ -264,31 +285,52 @@ export const usePermissions = () => {
 
 // Module access configuration
 export const MODULE_PERMISSIONS: Record<PermissionModule, PermissionAction[]> = {
+  // Core ISP modules
   dashboard: ['read'],
   users: ['create', 'read', 'update', 'delete', 'manage'],
+  customers: ['create', 'read', 'update', 'delete', 'manage'],
   packages: ['create', 'read', 'update', 'delete', 'manage'],
   routers: ['create', 'read', 'update', 'delete', 'manage'],
   provisioning: ['manage'],
   payments: ['read', 'manage'],
+  payment_gateways: ['create', 'read', 'update', 'delete', 'manage'],
   sms: ['read', 'manage'],
+  vouchers: ['create', 'read', 'update', 'delete', 'manage'],
   settings: ['read', 'update'],
   reports: ['read', 'manage'],
   notifications: ['read', 'manage'],
+  support: ['create', 'read', 'update', 'delete', 'manage'],
+  billing: ['read', 'manage'],
+  subscriptions: ['create', 'read', 'update', 'delete', 'manage'],
+  analytics: ['read'],
+  branding: ['read', 'update'],
+  audit_logs: ['read', 'manage'],
+  backup_restore: ['manage'],
+  // Legacy modules
   system_config: ['manage'],
   licence_management: ['manage'],
-  audit_logs: ['read'],
-  backup_restore: ['manage'],
-  // Platform integration modules (ISP Software Provider only)
-  platform_integrations: ['read', 'update', 'manage'],
+  // Platform owner modules
+  platform_organizations: ['create', 'read', 'update', 'delete', 'manage'],
+  platform_billing: ['read', 'manage'],
+  platform_analytics: ['read'],
+  platform_config: ['manage'],
+  platform_tiers: ['manage'],
+  platform_integrations: ['create', 'read', 'update', 'delete', 'manage'],
   platform_integrations_secrets: ['read', 'update', 'manage'],
-  platform_integrations_urls: ['read', 'manage'],
+  platform_integrations_urls: ['read', 'update', 'manage'],
   platform_payment_gateways: ['create', 'read', 'update', 'delete', 'manage'],
   platform_sms_gateways: ['create', 'read', 'update', 'delete', 'manage'],
   platform_email_gateways: ['create', 'read', 'update', 'delete', 'manage'],
-  // Tenant integration modules (ISP Admin)
+  // Tenant integration modules
   tenant_payment_config: ['read', 'update'],
   tenant_sms_config: ['read', 'update'],
   tenant_payout_config: ['create', 'read', 'update'],
+  // Customer portal modules
+  customer_dashboard: ['read'],
+  customer_packages: ['read'],
+  customer_payments: ['read'],
+  customer_usage: ['read'],
+  customer_profile: ['read', 'update'],
 };
 
 // Role hierarchy for UI display
@@ -302,19 +344,38 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
 // Default permissions by role
 export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, PermissionModule[]> = {
   superuser: [
-    'dashboard', 'users', 'packages', 'routers', 'provisioning',
-    'payments', 'sms', 'settings', 'reports', 'notifications',
-    'system_config', 'licence_management', 'audit_logs', 'backup_restore'
+    // Core ISP modules
+    'dashboard', 'users', 'customers', 'packages', 'routers', 'provisioning',
+    'payments', 'payment_gateways', 'sms', 'vouchers', 'settings', 'reports',
+    'notifications', 'support', 'billing', 'subscriptions', 'analytics',
+    'branding', 'audit_logs', 'backup_restore',
+    // Legacy modules
+    'system_config', 'licence_management',
+    // Platform owner modules (superuser only)
+    'platform_organizations', 'platform_billing', 'platform_analytics',
+    'platform_config', 'platform_tiers', 'platform_integrations',
+    'platform_integrations_secrets', 'platform_integrations_urls',
+    'platform_payment_gateways', 'platform_sms_gateways', 'platform_email_gateways',
+    // Tenant integration modules
+    'tenant_payment_config', 'tenant_sms_config', 'tenant_payout_config',
   ],
   admin: [
-    'dashboard', 'users', 'packages', 'routers', 'provisioning',
-    'payments', 'sms', 'settings', 'reports', 'notifications'
+    // Core ISP modules
+    'dashboard', 'users', 'customers', 'packages', 'routers', 'provisioning',
+    'payments', 'payment_gateways', 'sms', 'vouchers', 'settings', 'reports',
+    'notifications', 'support', 'billing', 'subscriptions', 'analytics',
+    'branding', 'audit_logs',
+    // Tenant integration modules (ISP admin configures these)
+    'tenant_payment_config', 'tenant_sms_config', 'tenant_payout_config',
   ],
   technician: [
-    'dashboard', 'users', 'packages', 'routers', 'provisioning',
-    'payments', 'sms', 'notifications'
+    // Operational modules for technicians
+    'dashboard', 'users', 'customers', 'packages', 'routers', 'provisioning',
+    'payments', 'sms', 'vouchers', 'notifications', 'support', 'subscriptions',
   ],
   customer: [
-    'dashboard', 'payments', 'notifications'
+    // Customer portal modules only
+    'customer_dashboard', 'customer_packages', 'customer_payments',
+    'customer_usage', 'customer_profile', 'notifications',
   ],
 };

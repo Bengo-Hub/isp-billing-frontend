@@ -65,6 +65,15 @@ export function normalizePermissions(backendPermissions: any[]): Permission[] {
 }
 
 /**
+ * Customer portal info for redirect after login
+ */
+export interface CustomerPortalInfo {
+  organization_slug: string;
+  subscription_type: 'hotspot' | 'pppoe';
+  portal_url: string;
+}
+
+/**
  * User interface
  */
 export interface User {
@@ -90,6 +99,7 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
+  customerPortalInfo: CustomerPortalInfo | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -135,6 +145,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       user: null,
       accessToken: null,
       refreshToken: null,
+      customerPortalInfo: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
@@ -162,9 +173,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             hasAccessToken: !!(response.data as any)?.access_token,
           });
 
-          // API response is wrapped: { data: { access_token, user, ... } }
+          // API response is wrapped: { data: { access_token, user, customer_portal, ... } }
           const responseData = (response.data as any).data || response.data;
-          const { access_token, refresh_token, user: backendUser } = responseData;
+          const { access_token, refresh_token, user: backendUser, customer_portal } = responseData;
 
           // Store tokens in localStorage for API client
           localStorage.setItem("auth-token", access_token);
@@ -199,10 +210,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               } as User)
             : null;
 
+          // Extract customer portal info for customers
+          const customerPortalInfo = customer_portal ? {
+            organization_slug: customer_portal.organization_slug,
+            subscription_type: customer_portal.subscription_type as 'hotspot' | 'pppoe',
+            portal_url: customer_portal.portal_url,
+          } : null;
+
           set({
             user: normalizedUser,
             accessToken: access_token,
             refreshToken: refresh_token,
+            customerPortalInfo,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -213,6 +232,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             userRole: normalizedUser?.role,
             isAuthenticated: true,
             hasAccessToken: !!access_token,
+            hasCustomerPortalInfo: !!customerPortalInfo,
           });
         } catch (error) {
           const message =
@@ -452,6 +472,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           user: state.user,
           accessToken: state.accessToken,
           refreshToken: state.refreshToken,
+          customerPortalInfo: state.customerPortalInfo,
           isAuthenticated: state.isAuthenticated,
         };
         console.log('[Auth Store] Partializing state for persist:', {
@@ -459,6 +480,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           userRole: partialState.user?.role,
           isAuthenticated: partialState.isAuthenticated,
           hasAccessToken: !!partialState.accessToken,
+          hasCustomerPortalInfo: !!partialState.customerPortalInfo,
         });
         return partialState;
       },

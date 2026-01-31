@@ -208,7 +208,7 @@ export function useUploadLogo() {
 // Delete Logo
 export function useDeleteLogo() {
   const qc = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async () => {
       const response = await api.delete('/configuration/logo');
@@ -220,6 +220,88 @@ export function useDeleteLogo() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to delete logo');
+    },
+  });
+}
+
+// =========================================================================
+// Tenant Settings API (OrganizationSettings-based)
+// =========================================================================
+
+export interface HotspotSettings {
+  username_prefix: string;
+  hotspot_template: string;
+  prune_inactive_users_days: number;
+  redirect_url: string;
+  voucher_format: string;
+  voucher_length: number;
+  show_packages_on_portal: boolean;
+  allow_guest_purchases: boolean;
+  session_timeout_minutes: number;
+  auto_disconnect_expired: boolean;
+}
+
+export interface PPPoESettings {
+  require_username_approval: boolean;
+  allow_self_registration: boolean;
+  session_timeout_minutes: number;
+  auto_disconnect_expired: boolean;
+}
+
+// Hotspot Settings - uses dedicated endpoint instead of Configuration table
+export function useHotspotSettings() {
+  return useQuery({
+    queryKey: ['tenant-settings', 'hotspot'],
+    queryFn: async (): Promise<HotspotSettings> => {
+      const { data } = await api.get('/tenant/settings/hotspot');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveHotspotSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: Partial<HotspotSettings>) => {
+      const { data } = await api.patch('/tenant/settings/hotspot', settings);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-settings', 'hotspot'] });
+      toast.success('Hotspot settings saved successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save hotspot settings');
+    },
+  });
+}
+
+// PPPoE Settings - uses dedicated endpoint instead of Configuration table
+export function usePPPoESettings() {
+  return useQuery({
+    queryKey: ['tenant-settings', 'pppoe'],
+    queryFn: async (): Promise<PPPoESettings> => {
+      const { data } = await api.get('/tenant/settings/pppoe');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSavePPPoESettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: Partial<PPPoESettings>) => {
+      const { data } = await api.patch('/tenant/settings/pppoe', settings);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-settings', 'pppoe'] });
+      toast.success('PPPoE settings saved successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save PPPoE settings');
     },
   });
 }

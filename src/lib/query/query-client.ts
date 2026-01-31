@@ -1,8 +1,77 @@
 /**
  * React Query client configuration and query key factory
+ *
+ * TTL Strategy based on data nature:
+ * - Real-time data (router status, active sessions): 30 seconds
+ * - Frequently changing data (payments, notifications): 1 minute
+ * - Moderately changing data (users, customers): 5 minutes
+ * - Rarely changing data (packages, settings): 15 minutes
+ * - Static data (permissions, roles): 30 minutes
  */
 
 import { QueryClient } from "@tanstack/react-query";
+
+/**
+ * TTL (Time-To-Live) constants for different data categories
+ * Use these when defining queries to ensure consistent caching behavior
+ */
+export const QUERY_STALE_TIMES = {
+  // Real-time data - refresh frequently
+  REALTIME: 1000 * 30, // 30 seconds
+
+  // Frequently changing data
+  FREQUENT: 1000 * 60, // 1 minute
+
+  // Standard data - default for most entities
+  STANDARD: 1000 * 60 * 5, // 5 minutes
+
+  // Rarely changing data
+  INFREQUENT: 1000 * 60 * 15, // 15 minutes
+
+  // Static/configuration data
+  STATIC: 1000 * 60 * 30, // 30 minutes
+} as const;
+
+/**
+ * Garbage collection times (when to remove from cache)
+ */
+export const QUERY_GC_TIMES = {
+  REALTIME: 1000 * 60 * 2, // 2 minutes
+  FREQUENT: 1000 * 60 * 5, // 5 minutes
+  STANDARD: 1000 * 60 * 15, // 15 minutes
+  INFREQUENT: 1000 * 60 * 30, // 30 minutes
+  STATIC: 1000 * 60 * 60, // 1 hour
+} as const;
+
+/**
+ * Helper to get appropriate stale time based on query key
+ */
+export function getStaleTimeForQueryKey(queryKey: readonly unknown[]): number {
+  const rootKey = queryKey[0] as string;
+
+  // Real-time data
+  if (['router-status', 'active-sessions', 'provisioning'].includes(rootKey)) {
+    return QUERY_STALE_TIMES.REALTIME;
+  }
+
+  // Frequently changing
+  if (['payments', 'notifications', 'invoices', 'sms'].includes(rootKey)) {
+    return QUERY_STALE_TIMES.FREQUENT;
+  }
+
+  // Rarely changing
+  if (['packages', 'settings', 'licence'].includes(rootKey)) {
+    return QUERY_STALE_TIMES.INFREQUENT;
+  }
+
+  // Static data
+  if (['rbac', 'permissions', 'roles'].includes(rootKey)) {
+    return QUERY_STALE_TIMES.STATIC;
+  }
+
+  // Default to standard
+  return QUERY_STALE_TIMES.STANDARD;
+}
 
 /**
  * Create and configure QueryClient with sensible defaults
@@ -11,15 +80,15 @@ export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // Data is considered fresh for 5 minutes
-        staleTime: 1000 * 60 * 5,
-        // Garbage collect after 10 minutes
-        gcTime: 1000 * 60 * 10,
+        // Default stale time (5 minutes) - can be overridden per query
+        staleTime: QUERY_STALE_TIMES.STANDARD,
+        // Garbage collect after 15 minutes
+        gcTime: QUERY_GC_TIMES.STANDARD,
         // Don't refetch on window focus (can be overridden per query)
         refetchOnWindowFocus: false,
         // Retry once on failure
         retry: 1,
-        // Retry delay
+        // Retry delay with exponential backoff
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       },
       mutations: {

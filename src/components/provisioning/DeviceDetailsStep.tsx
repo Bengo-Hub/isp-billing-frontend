@@ -3,27 +3,21 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { apiClient } from '@/lib/api/api-client';
-import { Copy } from 'lucide-react';
+import { Copy, CheckCircle2, Loader2, ArrowLeft, ArrowRight, Wifi, Server } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { RealtimeLogViewer } from './RealtimeLogViewer';
 
+// Note: Credentials are NOT collected from users. They are pulled from
+// environment variables on the backend and stored encrypted after bootstrap.
+
 interface DeviceDetailsStepProps {
   apiPort: string;
-  networkInterface: string;
   ipAddress: string;
-  routerUsername: string;
-  routerPassword: string;
-  onApiPortChange: (port: string) => void;
-  onInterfaceChange: (networkInterface: string) => void;
-  onIpAddressChange: (ip: string) => void;
-  onUsernameChange: (username: string) => void;
-  onPasswordChange: (password: string) => void;
   onPrevious: () => void;
   onNext: () => void;
   deviceConnected: boolean;
   provisioningCommand: string;  // Backend-generated command with token
-  isFirstTimeProvisioning: boolean;
   isReprovisioning?: boolean;  // Router has stored credentials
   isScanningDevice: boolean;
   sessionId?: string | null;  // Provisioning session ID
@@ -32,26 +26,19 @@ interface DeviceDetailsStepProps {
 
 export function DeviceDetailsStep({
   apiPort,
-  networkInterface,
   ipAddress,
-  routerUsername,
-  routerPassword,
-  onApiPortChange,
-  onInterfaceChange,
-  onIpAddressChange,
-  onUsernameChange,
-  onPasswordChange,
   onPrevious,
   onNext,
   deviceConnected,
   provisioningCommand,
-  isFirstTimeProvisioning,
   isReprovisioning = false,
   isScanningDevice,
   sessionId = null,
   onDeviceOnline
 }: DeviceDetailsStepProps) {
   const [pingMonitoringStarted, setPingMonitoringStarted] = useState(false);
+  const [pingVerified, setPingVerified] = useState(false);
+  const [apiVerified, setApiVerified] = useState(false);
 
   // Start ping monitoring when sessionId and IP are available
   useEffect(() => {
@@ -62,7 +49,7 @@ export function DeviceDetailsStep({
 
   const startPingMonitoring = async () => {
     if (!sessionId || !ipAddress) return;
-    
+
     try {
       await apiClient.post(
         `/provisioning/bootstrap/ping/start/${sessionId}`,
@@ -70,6 +57,7 @@ export function DeviceDetailsStep({
         {
           params: {
             ip_address: ipAddress,
+            api_port: parseInt(apiPort) || 8728,
             interval_seconds: 2.0,
             max_attempts: 30,
             timeout_ms: 1000
@@ -77,18 +65,29 @@ export function DeviceDetailsStep({
         }
       );
       setPingMonitoringStarted(true);
-      console.log(`[DeviceDetailsStep] Started ping monitoring for session ${sessionId}`);
+      console.log(`[DeviceDetailsStep] Started two-stage monitoring for session ${sessionId}`);
     } catch (error) {
-      console.error('[DeviceDetailsStep] Failed to start ping monitoring:', error);
+      console.error('[DeviceDetailsStep] Failed to start device monitoring:', error);
       toast.error('Failed to start device monitoring');
     }
   };
 
+  const handleStageComplete = (stage: number) => {
+    if (stage === 1) {
+      setPingVerified(true);
+    } else if (stage === 2) {
+      setApiVerified(true);
+    }
+  };
+
   const handleDeviceOnline = () => {
+    setPingVerified(true);
+    setApiVerified(true);
+
     if (onDeviceOnline) {
       onDeviceOnline();
     }
-    
+
     // Stop ping monitoring when device is online
     if (sessionId) {
       apiClient.post(`/provisioning/bootstrap/ping/stop/${sessionId}`)
@@ -101,7 +100,7 @@ export function DeviceDetailsStep({
       toast.error('Provisioning command not generated yet');
       return;
     }
-    
+
     try {
       await navigator.clipboard.writeText(provisioningCommand);
       toast.success('Command copied to clipboard');
@@ -110,35 +109,27 @@ export function DeviceDetailsStep({
     }
   };
 
+  const bothStagesVerified = pingVerified && apiVerified;
+
   return (
     <div className="space-y-6">
       {/* Reprovisioning Status Banner */}
       {isReprovisioning && (
         <Card className="p-4 bg-green-50 border-green-200">
           <div className="flex items-start gap-3">
-            <svg className="h-5 w-5 text-green-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+            <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
             <div>
               <h3 className="font-semibold text-green-900">Router Previously Provisioned</h3>
               <p className="text-sm text-green-700 mt-1">
-                This router has stored API credentials. The system is automatically detecting the device connection. 
+                This router has stored API credentials. The system is automatically detecting the device connection.
                 <strong> No command execution needed.</strong>
               </p>
-              {deviceConnected && (
-                <p className="text-sm font-semibold text-green-800 mt-2 flex items-center gap-2">
-                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Device detected online - ready for reconfiguration!
-                </p>
-              )}
             </div>
           </div>
         </Card>
       )}
 
-      {/* Provisioning Command Card - Show for reference even in reprovisioning */}
+      {/* Provisioning Command Card */}
       <Card className="p-6 bg-gray-900 text-white">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -185,27 +176,128 @@ export function DeviceDetailsStep({
         )}
       </Card>
 
-      {/* Live Log Stream - Reusable Component */}
-      <RealtimeLogViewer
-        sessionId={sessionId}
-        title={deviceConnected ? 'Device Connected Successfully' : isReprovisioning ? 'Auto-detecting device...' : 'Waiting for mikrotik to come online...'}
-        subtitle={isReprovisioning ? 'Device will be detected automatically using stored credentials' : 'Real-time ping monitoring active'}
-        isConnected={deviceConnected}
-        autoConnect={!!sessionId}
-        showConnectionStatus={true}
-        height="h-64"
-        onDeviceOnline={handleDeviceOnline}
-      />
+      {/* Two-Stage Verification Status */}
+      <Card className="p-4 bg-gray-900 text-white">
+        <div className="flex items-center gap-2 mb-4 text-gray-300">
+          <span className="text-green-400">$</span>
+          <span className="font-semibold">Device Connection Status</span>
+        </div>
+
+        {/* Stage Indicators */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* Stage 1: Network Reachability */}
+          <div className={`p-3 rounded-lg border ${pingVerified ? 'bg-green-900/30 border-green-700' : 'bg-gray-800 border-gray-700'}`}>
+            <div className="flex items-center gap-2 mb-1">
+              {pingVerified ? (
+                <CheckCircle2 className="h-4 w-4 text-green-400" />
+              ) : (
+                <Wifi className="h-4 w-4 text-gray-400 animate-pulse" />
+              )}
+              <span className={`text-sm font-medium ${pingVerified ? 'text-green-400' : 'text-gray-400'}`}>
+                Stage 1: Network
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 ml-6">
+              {pingVerified ? 'Device reachable' : 'Checking ICMP ping...'}
+            </p>
+          </div>
+
+          {/* Stage 2: API Port */}
+          <div className={`p-3 rounded-lg border ${apiVerified ? 'bg-green-900/30 border-green-700' : pingVerified ? 'bg-yellow-900/30 border-yellow-700' : 'bg-gray-800 border-gray-700'}`}>
+            <div className="flex items-center gap-2 mb-1">
+              {apiVerified ? (
+                <CheckCircle2 className="h-4 w-4 text-green-400" />
+              ) : pingVerified ? (
+                <Server className="h-4 w-4 text-yellow-400 animate-pulse" />
+              ) : (
+                <Server className="h-4 w-4 text-gray-500" />
+              )}
+              <span className={`text-sm font-medium ${apiVerified ? 'text-green-400' : pingVerified ? 'text-yellow-400' : 'text-gray-500'}`}>
+                Stage 2: API Port
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 ml-6">
+              {apiVerified ? `Port ${apiPort} enabled` : pingVerified ? 'Waiting for bootstrap command...' : 'Pending network check'}
+            </p>
+          </div>
+        </div>
+
+        {bothStagesVerified ? (
+          /* Success State */
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-green-400">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="font-semibold">Device Connected Successfully!</span>
+            </div>
+            <p className="text-gray-300 ml-7">Your device is online and API is enabled - ready for configuration</p>
+
+            {/* Continue Button - Green when device is connected */}
+            <div className="flex justify-end mt-4">
+              <Button
+                onClick={onNext}
+                disabled={isScanningDevice}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isScanningDevice ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Scanning Device...
+                  </>
+                ) : (
+                  <>
+                    Continue <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* Waiting State - Use RealtimeLogViewer for status */
+          <RealtimeLogViewer
+            sessionId={sessionId}
+            title=""
+            subtitle=""
+            autoConnect={!!sessionId}
+            showConnectionStatus={true}
+            height="h-32"
+            onDeviceOnline={handleDeviceOnline}
+            onStageComplete={handleStageComplete}
+            initialMessage={isReprovisioning ? 'Auto-detecting device using stored credentials...' : 'Waiting for command execution...'}
+            deviceConnected={bothStagesVerified}
+            pingVerified={pingVerified}
+            apiVerified={apiVerified}
+          />
+        )}
+      </Card>
 
       {/* Action Buttons */}
-      <div className="flex justify-between pt-4">
-        <Button 
+      <div className="flex justify-between items-center pt-4">
+        <Button
           variant="outline"
           onClick={onPrevious}
-          className="text-gray-600 border-gray-300"
         >
-          ← Previous Step
+          <ArrowLeft className="h-4 w-4 mr-2" /> Previous Step
         </Button>
+
+        {/* Continue button - only show when device is NOT connected (hidden when connected as it's in the card above) */}
+        {!bothStagesVerified && (
+          <Button
+            onClick={onNext}
+            disabled={!bothStagesVerified || isScanningDevice}
+            className="bg-pink-600 hover:bg-pink-700 disabled:bg-gray-300 disabled:text-gray-500"
+          >
+            {isScanningDevice ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Scanning Device...
+              </>
+            ) : (
+              <>
+                Continue <ArrowRight className="h-4 w-4 ml-2" />
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

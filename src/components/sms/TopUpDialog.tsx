@@ -3,15 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { useToast } from '@/components/ui/use-toast';
 import { useMpesaTopUpFlow, useTopUpSms } from '@/features/sms/api';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function TopUpDialog({ accountId }: { accountId: number }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');
-  const { toast } = useToast();
   // manual fallback
   const { mutate: manualTopUp, isPending: manualPending } = useTopUpSms(accountId);
   // mpesa flow
@@ -25,12 +24,12 @@ export default function TopUpDialog({ accountId }: { accountId: number }) {
         { amount: value, phoneNumber: phone },
         {
           onSuccess: () => {
-            toast({ title: 'STK push sent. Complete on your phone.' });
+            toast.success('STK push sent. Complete on your phone.');
             setOpen(false);
             setAmount('');
             setPhone('');
           },
-          onError: (e) => toast({ title: 'MPESA top-up failed', variant: 'destructive' }),
+          onError: () => toast.error('MPESA top-up failed'),
         }
       );
     } else {
@@ -38,11 +37,11 @@ export default function TopUpDialog({ accountId }: { accountId: number }) {
         { amount: value, payment_method: 'manual' },
         {
           onSuccess: () => {
-            toast({ title: 'Manual top-up recorded' });
+            toast.success('Manual top-up recorded');
             setOpen(false);
             setAmount('');
           },
-          onError: () => toast({ title: 'Top up failed', variant: 'destructive' }),
+          onError: () => toast.error('Top up failed'),
         }
       );
     }

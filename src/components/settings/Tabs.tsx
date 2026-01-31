@@ -5,24 +5,33 @@ import { Card } from '@/components/ui/card';
 import { Editor } from '@/components/ui/editor';
 import FileUpload from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
-import { useDeleteLogo, useSaveSetting, useSettings, useUploadLogo } from '@/features/settings/api';
 import {
-    PayoutRecipientType,
-    PayoutScheduleType,
-    useGatewayConfig,
-    usePayoutConfig,
-    usePayoutRecipientTypes,
-    usePayoutScheduleTypes,
-    useSaveGatewayConfig,
-    useSavePayoutConfig,
-    useTestGateway,
-    useUpdatePayoutConfig,
-    useBanks,
-    useResolveAccount
+  useDeleteLogo,
+  useHotspotSettings,
+  usePPPoESettings,
+  useSaveHotspotSettings,
+  useSavePPPoESettings,
+  useSaveSetting,
+  useSettings,
+  useUploadLogo,
+} from '@/features/settings/api';
+import {
+  PayoutRecipientType,
+  PayoutScheduleType,
+  useBanks,
+  useGatewayConfig,
+  usePayoutConfig,
+  usePayoutRecipientTypes,
+  usePayoutScheduleTypes,
+  useResolveAccount,
+  useSaveGatewayConfig,
+  useSavePayoutConfig,
+  useTestGateway,
+  useUpdatePayoutConfig
 } from '@/features/settings/gateways';
 import { usePermissions } from '@/lib/stores/rbac';
-import { AlertCircle, CheckCircle2, Loader2, Lock, Shield } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle2, Info, Loader2, Shield } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 const tabs = [
@@ -340,21 +349,7 @@ function PaymentsTab() {
   const isMobileMoney = ['mobile_money', 'mobile_money_business'].includes(payoutForm.recipient_type);
 
   return (
-    <div className="space-y-6">
-      {/* Notice about platform integrations */}
-      <Card className="p-6 bg-blue-50 border-l-4 border-l-blue-500">
-        <div className="flex items-center gap-3">
-          <Shield className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-blue-900">Payment Gateway Configuration</p>
-            <p className="text-xs text-blue-700 mt-1">
-              Payment gateway credentials (M-Pesa, SMS providers) are managed by your platform administrator. 
-              Contact support if you need changes to the gateway configuration.
-            </p>
-          </div>
-        </div>
-      </Card>
-
+    <div className="space-y-6 gap-2">
       {/* Payout Configuration */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
@@ -644,25 +639,84 @@ function PaymentsTab() {
 }
 
 function PPPoETab() {
-  const { data = {} as any } = useSettings('pppoe');
-  const save = useSaveSetting('pppoe');
+  const { data: settings, isLoading } = usePPPoESettings();
+  const save = useSavePPPoESettings();
+
+  const [formData, setFormData] = useState({
+    require_username_approval: false,
+    allow_self_registration: true,
+    session_timeout_minutes: 60,
+    auto_disconnect_expired: true,
+  });
+
+  // Sync form with loaded settings
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        require_username_approval: settings.require_username_approval,
+        allow_self_registration: settings.allow_self_registration,
+        session_timeout_minutes: settings.session_timeout_minutes,
+        auto_disconnect_expired: settings.auto_disconnect_expired,
+      });
+    }
+  }, [settings]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    save.mutate(formData);
+  };
+
+  if (isLoading) {
+    return <Card className="p-6"><div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div></Card>;
+  }
+
   return (
     <Card className="p-6">
-      <form id="form-pppoe" onSubmit={(e) => { e.preventDefault(); save.mutate({
-        'pppoe.prune_inactive_days': parseInt((e.currentTarget.elements.namedItem('prune') as HTMLInputElement).value || '14', 10),
-        'pppoe.reminder_times_days': [5, 2, 0.16],
-        'pppoe.enable_invoices': (e.currentTarget.elements.namedItem('invoices') as HTMLInputElement).checked,
-      }); }} className="space-y-4">
-        <div>
-          <label className="text-sm text-gray-700">Prune Inactive Users After (days)</label>
-          <Input name="prune" defaultValue={String(data['pppoe.prune_inactive_days'] ?? 14)} />
+      <form id="form-pppoe" onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-gray-700">Session Timeout (minutes)</label>
+            <Input
+              type="number"
+              min={1}
+              max={1440}
+              value={formData.session_timeout_minutes}
+              onChange={(e) => setFormData({ ...formData, session_timeout_minutes: parseInt(e.target.value) || 60 })}
+            />
+            <p className="text-xs text-gray-500 mt-1">Maximum session duration before automatic logout</p>
+          </div>
         </div>
-        <div>
-          <label className="text-sm text-gray-700">Enable Invoices</label>
-          <input name="invoices" type="checkbox" defaultChecked={!!data['pppoe.enable_invoices']} />
+        <div className="space-y-3">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.require_username_approval}
+              onChange={(e) => setFormData({ ...formData, require_username_approval: e.target.checked })}
+            />
+            <span className="text-sm text-gray-700">Require admin approval for new usernames</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.allow_self_registration}
+              onChange={(e) => setFormData({ ...formData, allow_self_registration: e.target.checked })}
+            />
+            <span className="text-sm text-gray-700">Allow customer self-registration</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.auto_disconnect_expired}
+              onChange={(e) => setFormData({ ...formData, auto_disconnect_expired: e.target.checked })}
+            />
+            <span className="text-sm text-gray-700">Auto-disconnect expired sessions</span>
+          </label>
         </div>
         <div className="flex gap-3 justify-end">
-          <Button type="submit">Save changes</Button>
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Save changes
+          </Button>
         </div>
       </form>
     </Card>
@@ -670,38 +724,165 @@ function PPPoETab() {
 }
 
 function HotspotTab() {
-  const { data = {} as any } = useSettings('hotspot');
-  const save = useSaveSetting('hotspot');
+  const { data: settings, isLoading } = useHotspotSettings();
+  const save = useSaveHotspotSettings();
+
+  const [formData, setFormData] = useState({
+    username_prefix: 'C',
+    hotspot_template: 'Aurora',
+    prune_inactive_users_days: 14,
+    redirect_url: 'https://www.google.com',
+    voucher_format: 'XXXX-XXXX-XXXX',
+    voucher_length: 12,
+    show_packages_on_portal: true,
+    allow_guest_purchases: true,
+    session_timeout_minutes: 60,
+    auto_disconnect_expired: true,
+  });
+
+  // Sync form with loaded settings
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        username_prefix: settings.username_prefix,
+        hotspot_template: settings.hotspot_template,
+        prune_inactive_users_days: settings.prune_inactive_users_days,
+        redirect_url: settings.redirect_url,
+        voucher_format: settings.voucher_format,
+        voucher_length: settings.voucher_length,
+        show_packages_on_portal: settings.show_packages_on_portal,
+        allow_guest_purchases: settings.allow_guest_purchases,
+        session_timeout_minutes: settings.session_timeout_minutes,
+        auto_disconnect_expired: settings.auto_disconnect_expired,
+      });
+    }
+  }, [settings]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    save.mutate(formData);
+  };
+
+  if (isLoading) {
+    return <Card className="p-6"><div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div></Card>;
+  }
+
   return (
     <Card className="p-6">
-      <form id="form-hotspot" onSubmit={(e) => { e.preventDefault(); save.mutate({
-        'hotspot.username_prefix': (e.currentTarget.elements.namedItem('prefix') as HTMLInputElement).value,
-        'hotspot.template': (e.currentTarget.elements.namedItem('template') as HTMLInputElement).value,
-        'hotspot.prune_inactive_days': parseInt((e.currentTarget.elements.namedItem('prune') as HTMLInputElement).value || '14', 10),
-        'hotspot.redirect_url': (e.currentTarget.elements.namedItem('redirect') as HTMLInputElement).value,
-      }); }} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-700">Username Prefix</label>
-            <Input name="prefix" defaultValue={data['hotspot.username_prefix'] ?? ''} />
-          </div>
-          <div>
-            <label className="text-sm text-gray-700">Hotspot Template</label>
-            <Input name="template" defaultValue={data['hotspot.template'] ?? ''} />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-700">Prune Inactive Users After</label>
-            <Input name="prune" defaultValue={String(data['hotspot.prune_inactive_days'] ?? 14)} />
-          </div>
-          <div>
-            <label className="text-sm text-gray-700">Redirect URL</label>
-            <Input name="redirect" defaultValue={data['hotspot.redirect_url'] ?? ''} />
+      <form id="form-hotspot" onSubmit={handleSubmit} className="space-y-6">
+        {/* Username Generation Info */}
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-blue-900">Auto-Generated Credentials</p>
+              <p className="text-xs text-blue-700 mt-1">
+                When customers purchase packages, they receive auto-generated hotspot credentials.
+                Username format: <code className="bg-blue-100 px-1 rounded">{formData.username_prefix}001</code>, <code className="bg-blue-100 px-1 rounded">{formData.username_prefix}002</code>, etc.
+                Password: Random 3-digit number (e.g., 865).
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex gap-3 justify-end">
-          <Button type="submit">Save changes</Button>
+
+        {/* Username Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-gray-700 font-medium">Username Prefix</label>
+            <Input
+              value={formData.username_prefix}
+              onChange={(e) => setFormData({ ...formData, username_prefix: e.target.value })}
+              maxLength={10}
+              placeholder="C"
+            />
+            <p className="text-xs text-gray-500 mt-1">Prefix for auto-generated usernames (e.g., C → C001, C002)</p>
+          </div>
+          <div>
+            <label className="text-sm text-gray-700 font-medium">Hotspot Template</label>
+            <select
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              value={formData.hotspot_template}
+              onChange={(e) => setFormData({ ...formData, hotspot_template: e.target.value })}
+            >
+              <option value="Aurora">Aurora</option>
+              <option value="Modern">Modern</option>
+              <option value="Classic">Classic</option>
+              <option value="Minimal">Minimal</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Login page theme for the hotspot portal</p>
+          </div>
+        </div>
+
+        {/* Session & Expiry Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-gray-700 font-medium">Prune Inactive Users After (days)</label>
+            <Input
+              type="number"
+              min={1}
+              max={365}
+              value={formData.prune_inactive_users_days}
+              onChange={(e) => setFormData({ ...formData, prune_inactive_users_days: parseInt(e.target.value) || 14 })}
+            />
+            <p className="text-xs text-gray-500 mt-1">Auto-delete inactive users after this many days</p>
+          </div>
+          <div>
+            <label className="text-sm text-gray-700 font-medium">Session Timeout (minutes)</label>
+            <Input
+              type="number"
+              min={1}
+              max={1440}
+              value={formData.session_timeout_minutes}
+              onChange={(e) => setFormData({ ...formData, session_timeout_minutes: parseInt(e.target.value) || 60 })}
+            />
+            <p className="text-xs text-gray-500 mt-1">Maximum session duration before automatic logout</p>
+          </div>
+        </div>
+
+        {/* Redirect URL */}
+        <div>
+          <label className="text-sm text-gray-700 font-medium">Redirect URL</label>
+          <Input
+            value={formData.redirect_url}
+            onChange={(e) => setFormData({ ...formData, redirect_url: e.target.value })}
+            placeholder="https://www.google.com"
+          />
+          <p className="text-xs text-gray-500 mt-1">URL to redirect users after successful login</p>
+        </div>
+
+        {/* Portal Settings */}
+        <div className="space-y-3 pt-4 border-t">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.show_packages_on_portal}
+              onChange={(e) => setFormData({ ...formData, show_packages_on_portal: e.target.checked })}
+            />
+            <span className="text-sm text-gray-700">Show available packages on the hotspot portal</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.allow_guest_purchases}
+              onChange={(e) => setFormData({ ...formData, allow_guest_purchases: e.target.checked })}
+            />
+            <span className="text-sm text-gray-700">Allow guest purchases (without account)</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.auto_disconnect_expired}
+              onChange={(e) => setFormData({ ...formData, auto_disconnect_expired: e.target.checked })}
+            />
+            <span className="text-sm text-gray-700">Auto-disconnect expired sessions</span>
+          </label>
+        </div>
+
+        <div className="flex gap-3 justify-end pt-4">
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Save changes
+          </Button>
         </div>
       </form>
     </Card>
@@ -788,17 +969,7 @@ function SMSTab() {
             </div>
           </form>
         </Card>
-      ) : (
-        <Card className="p-6 bg-gray-50">
-          <div className="flex items-center gap-3 text-gray-500">
-            <Lock className="h-5 w-5" />
-            <div>
-              <p className="text-sm font-medium">SMS Gateway API Configuration</p>
-              <p className="text-xs">Contact your platform administrator to configure SMS gateway credentials.</p>
-            </div>
-          </div>
-        </Card>
-      )}
+      ) : null}
     </div>
   );
 }

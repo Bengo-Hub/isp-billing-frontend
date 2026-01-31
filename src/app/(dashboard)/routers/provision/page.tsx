@@ -2,32 +2,36 @@
 
 import { ConnectionStep } from '@/components/provisioning/ConnectionStep';
 import { DeviceDetailsStep } from '@/components/provisioning/DeviceDetailsStep';
-import { LiveProvisioningLog } from '@/components/provisioning/LiveProvisioningLog';
 import { ProvisioningStepper } from '@/components/provisioning/ProvisioningStepper';
 import { ServiceSetupStep } from '@/components/provisioning/ServiceSetupStep';
 import { Card } from '@/components/ui/card';
-import { useCreateRouter, useRouter } from '@/features/routers/api';
+import { useUpsertRouter, useRouter } from '@/features/routers/api';
 import { apiClient } from '@/lib/api/api-client';
+import { config } from '@/lib/config';
 import { useProvisioningStore } from '@/lib/store/provisioning';
-import { useSearchParams } from 'next/navigation';
+import { useRouter as useNextRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ProvisionPage() {
   const searchParams = useSearchParams();
+  const navigationRouter = useNextRouter();
   const [step, setStep] = useState(1);
-  const [identity, setIdentity] = useState('MikroTik4');
+  const [identity, setIdentity] = useState('MikroTik1');
   const [apiPort, setApiPort] = useState('8728');
   const [interfaceName, setInterfaceName] = useState('ether1');
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [ipAddress, setIpAddress] = useState('192.168.88.1');
-  const [routerUsername, setRouterUsername] = useState('admin');
-  const [routerPassword, setRouterPassword] = useState('');
+  const [ipAddress, setIpAddress] = useState(config.defaultRouterIp);
+  // Note: Credentials are NOT stored in frontend state - they are pulled from
+  // environment variables on the backend and stored encrypted after bootstrap.
   const [reprovisionRouterId, setReprovisionRouterId] = useState<number | null>(null);
   const [provisioningCommand, setProvisioningCommand] = useState('');
   const [bootstrapUrl, setBootstrapUrl] = useState('');
   const [canUseDirectApi, setCanUseDirectApi] = useState(false);
   const [checkingApiAccess, setCheckingApiAccess] = useState(false);
+  const [isProvisioning, setIsProvisioning] = useState(false);
+  const [progressPercentage, setProgressPercentage] = useState(0);
+  const [currentOperation, setCurrentOperation] = useState('');
 
   // Use centralized provisioning store
   const {
@@ -56,9 +60,10 @@ export default function ProvisionPage() {
     resetProvisioning
   } = useProvisioningStore();
 
-  // Router creation mutation
-  const createRouterMutation = useCreateRouter();
-  const createRouter = async (data: any) => createRouterMutation.mutateAsync(data);
+  // Router upsert mutation (creates or updates by IP address)
+  // Note: Credentials are automatically pulled from env settings on backend
+  const upsertRouterMutation = useUpsertRouter();
+  const upsertRouter = async (data: any) => upsertRouterMutation.mutateAsync(data);
 
   // Fetch existing router data for reprovisioning
   const { data: existingRouter, isLoading: isLoadingRouter } = useRouter(reprovisionRouterId || 0);
@@ -83,7 +88,7 @@ export default function ProvisionPage() {
   const checkDirectApiAccess = async (routerId: number) => {
     setCheckingApiAccess(true);
     try {
-      const response = await apiClient.get(`/provisioning/can-use-direct-api/${routerId}`);
+      const response = await apiClient.get(`/provisioning/bootstrap/can-use-direct-api/${routerId}`);
       const data = response.data;
       setCanUseDirectApi(data.can_use_direct_api || false);
       
@@ -140,9 +145,8 @@ export default function ProvisionPage() {
     if (existingRouter && reprovisionRouterId) {
       setIdentity(existingRouter.name || 'MikroTik');
       setApiPort(String(existingRouter.port || 8728));
-      setIpAddress(existingRouter.ip_address || '192.168.88.1');
-      setRouterUsername(existingRouter.username || 'admin');
-      // Note: We don't load password for security - user must re-enter
+      setIpAddress(existingRouter.ip_address || config.defaultRouterIp);
+      // Note: Credentials are managed by backend - not loaded to frontend
     }
   }, [existingRouter, reprovisionRouterId]);
 
@@ -194,8 +198,8 @@ export default function ProvisionPage() {
 
   const handleStep2Next = async () => {
     // Validate required fields
-    if (!ipAddress || !routerUsername) {
-      toast.error('Please enter IP address and username');
+    if (!ipAddress) {
+      toast.error('Please enter IP address');
       return;
     }
 
@@ -209,13 +213,12 @@ export default function ProvisionPage() {
         routerId = reprovisionRouterId;
         setDeviceConnected(true);
       } else {
-        // Create new router for first-time provisioning
-        const tempRouter = await createRouter({
+        // Create or update router for first-time provisioning
+        // Credentials are automatically pulled from env settings on backend
+        const tempRouter = await upsertRouter({
           name: identity,
           ip_address: ipAddress,
           api_port: parseInt(apiPort),
-          username: routerUsername,
-          password: routerPassword || 'admin' // MikroTik default
         });
         routerId = tempRouter.id;
         setDeviceConnected(true);
@@ -226,7 +229,32 @@ export default function ProvisionPage() {
 
       setAvailablePorts(scannedData.interfaces);
       setDeviceInfo(scannedData);
-      setSelectedPorts(scannedData.interfaces.filter((port: string) => port !== interfaceName)); // Exclude WAN interface
+      // Exclude the detected WAN interface from selected ports
+      const wanPort = scannedData.wan_interface || 'ether1';
+      setSelectedPorts(scannedData.interfaces.filter((port: string) => port !== wanPort));
+
+      // IMPORTANT: Use a DEFAULT LAN subnet that's DIFFERENT from the WAN network
+      // The scanned network (192.168.100.x) is the WAN/management network
+      // The LAN bridge MUST use a different subnet to avoid routing conflicts!
+      // Default: 172.31.0.0/16 (allows 65534 hosts)
+      const DEFAULT_LAN_SUBNET = '172.31.0.0';
+      const DEFAULT_LAN_CIDR = '16';
+      const DEFAULT_LAN_GATEWAY = '172.31.0.1';
+      const DEFAULT_LAN_DHCP_POOL = '172.31.0.2 - 172.31.255.254';
+
+      updateConfiguration({
+        subnetAddress: DEFAULT_LAN_SUBNET,
+        cidr: DEFAULT_LAN_CIDR,
+      });
+      setNetworkConfig({
+        network: `${DEFAULT_LAN_SUBNET}/${DEFAULT_LAN_CIDR}`,
+        gateway: DEFAULT_LAN_GATEWAY,
+        dhcpPool: DEFAULT_LAN_DHCP_POOL,
+      });
+
+      // Store the WAN network info for reference (shown in device info banner)
+      // but don't use it for LAN configuration
+
       setStep(3);
       toast.success('Device scanned successfully');
     } catch (error: any) {
@@ -241,15 +269,27 @@ export default function ProvisionPage() {
       setAvailablePorts(fallbackInterfaces);
       setDeviceInfo({
         interfaces: fallbackInterfaces,
-        services: ['hotspot', 'pppoe'],
-        current_subnet: '192.168.88.0/24',
+        services: [{ name: 'hotspot', active: false, available: true }, { name: 'pppoe', active: false, available: true }],
+        current_subnet: '',
         available_services: ['hotspot', 'pppoe'],
         system_info: { model: 'Manual Configuration', version: 'Unknown' }
-      });
+      } as any);
       setSelectedPorts(fallbackInterfaces.filter((port: string) => port !== interfaceName));
 
+      // Use default LAN subnet (same as successful scan)
+      updateConfiguration({
+        subnetAddress: '172.31.0.0',
+        cidr: '16',
+        useCustomSubnet: false,  // Use default, user can override if needed
+      });
+      setNetworkConfig({
+        network: '172.31.0.0/16',
+        gateway: '172.31.0.1',
+        dhcpPool: '172.31.0.2 - 172.31.255.254',
+      });
+
       // Still proceed to let user configure manually
-      toast.warning('Using default interface list. Please verify your configuration.');
+      toast.warning('Using default interface list. Please configure network settings manually.');
       setStep(3);
     } finally {
       setScanningDevice(false);
@@ -265,23 +305,26 @@ export default function ProvisionPage() {
         routerId = reprovisionRouterId;
       } else {
         // For first-time provisioning, router should already be created in step 2
-        // If not, create it now
-        const router = await createRouter({
+        // If not, upsert it now (credentials pulled from env on backend)
+        const router = await upsertRouter({
           name: identity,
           ip_address: ipAddress,
           api_port: parseInt(apiPort),
-          username: routerUsername,
-          password: routerPassword || 'admin'
         });
         routerId = router.id;
       }
 
       toast.info('Starting provisioning workflow...');
+      setIsProvisioning(true);
+      setProgressPercentage(0);
+      setCurrentOperation('Initializing...');
 
       // Start provisioning workflow
+      // CRITICAL: Include wanInterface to prevent it from being bridged
       const result = await startProvisioning(routerId, {
         identity,
         selectedPorts,
+        wanInterface: deviceInfo?.wan_interface || 'ether1',
         enableAntiSharing: configuration.enableAntiSharing,
         useCustomSubnet: configuration.useCustomSubnet,
         subnetAddress: configuration.subnetAddress,
@@ -291,19 +334,32 @@ export default function ProvisionPage() {
       });
 
       // Update session ID with the actual provisioning session
-      setSessionId(result.id);
+      // Note: Backend returns 'session_id', not 'id'
+      const provisioningSessionId = (result as any).session_id || result.id;
+      console.log('[Provisioning] Session started:', provisioningSessionId);
+      setSessionId(provisioningSessionId);
       toast.success('Provisioning started');
-      // Step 3 will show live provisioning logs
+      // ServiceSetupStep will show live provisioning logs via RealtimeLogViewer
     } catch (error: any) {
       console.error('Failed to start provisioning:', error);
+      setIsProvisioning(false);
       const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to start provisioning';
       toast.error(errorMessage);
     }
   };
 
+  const handleProvisioningComplete = () => {
+    setIsProvisioning(false);
+    setProgressPercentage(100);
+    setCurrentOperation('Completed!');
+    toast.success('Provisioning completed! Redirecting to routers...');
+    resetProvisioning();
+    navigationRouter.push('/routers');
+  };
+
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Add Mikrotik Device</h1>
           <p className="text-gray-600">To proceed with the onboarding, connect your Mikrotik router to enable automated provisioning and management.</p>
@@ -313,8 +369,8 @@ export default function ProvisionPage() {
           <button
             onClick={() => setFirstTimeProvisioning(!isFirstTimeProvisioning)}
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              isFirstTimeProvisioning 
-                ? 'bg-blue-100 text-blue-800' 
+              isFirstTimeProvisioning
+                ? 'bg-blue-100 text-blue-800'
                 : 'bg-green-100 text-green-800'
             }`}
           >
@@ -324,7 +380,7 @@ export default function ProvisionPage() {
       </div>
 
       {/* Device Configuration */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Configuration</h2>
         <p className="text-gray-600 mb-6">Follow these steps to connect your Mikrotik device to our billing system.</p>
 
@@ -354,20 +410,11 @@ export default function ProvisionPage() {
         {step === 2 && (
           <DeviceDetailsStep
             apiPort={apiPort}
-            networkInterface={interfaceName}
             ipAddress={ipAddress}
-            routerUsername={routerUsername}
-            routerPassword={routerPassword}
-            onApiPortChange={setApiPort}
-            onInterfaceChange={setInterfaceName}
-            onIpAddressChange={setIpAddress}
-            onUsernameChange={setRouterUsername}
-            onPasswordChange={setRouterPassword}
-            onPrevious={() => setStep(isFirstTimeProvisioning ? 1 : 1)}
+            onPrevious={() => setStep(1)}
             onNext={handleStep2Next}
             deviceConnected={deviceConnected}
             provisioningCommand={provisioningCommand}
-            isFirstTimeProvisioning={isFirstTimeProvisioning}
             isReprovisioning={!isFirstTimeProvisioning && canUseDirectApi}
             isScanningDevice={isScanningDevice}
             sessionId={sessionId}
@@ -376,36 +423,36 @@ export default function ProvisionPage() {
         )}
 
         {step === 3 && (
-          <div className="space-y-6">
-                 <ServiceSetupStep
-                   enableHotspot={configuration.enableHotspot}
-                   enablePppoe={configuration.enablePppoe}
-                   enableAntiSharing={configuration.enableAntiSharing}
-                   useCustomSubnet={configuration.useCustomSubnet}
-                   subnetAddress={configuration.subnetAddress}
-                   cidr={configuration.cidr}
-                   ethernetPorts={selectedPorts}
-                   availablePorts={availablePorts}
-                   deviceInfo={deviceInfo}
-                   onEnableHotspotChange={(value) => updateConfiguration({ enableHotspot: value })}
-                   onEnablePppoeChange={(value) => updateConfiguration({ enablePppoe: value })}
-                   onEnableAntiSharingChange={(value) => updateConfiguration({ enableAntiSharing: value })}
-                   onUseCustomSubnetChange={(value) => updateConfiguration({ useCustomSubnet: value })}
-                   onSubnetAddressChange={(value) => updateConfiguration({ subnetAddress: value })}
-                   onCidrChange={(value) => updateConfiguration({ cidr: value })}
-                   onEthernetPortsChange={setSelectedPorts}
-                   onPrevious={() => setStep(2)}
-                   onNext={handleStep3Next}
-                   isStarting={false}
-                   networkConfig={calculatedNetworkConfig}
-                 />
-
-            {/* Live Configuration Log */}
-            <LiveProvisioningLog 
-              sessionId={sessionId} 
-              isActive={isScanningDevice || step === 3} 
-            />
-          </div>
+          <ServiceSetupStep
+            enableHotspot={configuration.enableHotspot}
+            enablePppoe={configuration.enablePppoe}
+            enableAntiSharing={configuration.enableAntiSharing}
+            useCustomSubnet={configuration.useCustomSubnet}
+            subnetAddress={configuration.subnetAddress}
+            cidr={configuration.cidr}
+            ethernetPorts={selectedPorts}
+            availablePorts={availablePorts}
+            deviceInfo={deviceInfo}
+            onEnableHotspotChange={(value) => updateConfiguration({ enableHotspot: value })}
+            onEnablePppoeChange={(value) => updateConfiguration({ enablePppoe: value })}
+            onEnableAntiSharingChange={(value) => updateConfiguration({ enableAntiSharing: value })}
+            onUseCustomSubnetChange={(value) => updateConfiguration({ useCustomSubnet: value })}
+            onSubnetAddressChange={(value) => updateConfiguration({ subnetAddress: value })}
+            onCidrChange={(value) => updateConfiguration({ cidr: value })}
+            onEthernetPortsChange={setSelectedPorts}
+            onPrevious={() => setStep(2)}
+            onNext={handleStep3Next}
+            isStarting={isProvisioning}
+            networkConfig={calculatedNetworkConfig}
+            sessionId={sessionId}
+            progressPercentage={progressPercentage}
+            currentOperation={currentOperation}
+            onProvisioningComplete={handleProvisioningComplete}
+            onProgressUpdate={(percentage, operation) => {
+              setProgressPercentage(percentage);
+              setCurrentOperation(operation);
+            }}
+          />
         )}
       </Card>
     </div>

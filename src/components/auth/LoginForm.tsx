@@ -4,9 +4,31 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthStore } from '@/lib/store/auth';
+import { useAuthStore, type UserRole } from '@/lib/store/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+
+/**
+ * Get the appropriate redirect URL based on user role
+ * For customers, uses portal URL from login response (based on subscription type)
+ */
+function getRedirectByRole(role: UserRole | undefined, customerPortalUrl?: string): string {
+  switch (role) {
+    case 'superuser':
+      // Platform owner goes to platform admin dashboard
+      return '/platform';
+    case 'admin':
+    case 'technician':
+      // ISP admin and technicians go to ISP dashboard
+      return '/dashboard';
+    case 'customer':
+      // Customers go to their portal based on subscription type (hotspot/pppoe)
+      // Portal URL is provided by backend based on their active subscription
+      return customerPortalUrl || '/dashboard';
+    default:
+      return '/dashboard';
+  }
+}
 
 export function LoginForm({ inline = false, onSubmit, initialUsername, initialPassword }: { inline?: boolean; onSubmit?: (username: string, password: string) => Promise<void> | void; initialUsername?: string; initialPassword?: string }) {
   const [username, setUsername] = useState(initialUsername ?? 'demoispadmin');
@@ -33,34 +55,40 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
         // Caller handles post-login navigation / token storage
       } else {
         await login(username, password);
-        
+
         console.log('[LoginForm] Login successful, waiting for persist...');
-        
+
         // Wait for Zustand persist to save to localStorage before navigating
         // This prevents race condition where navigation happens before state is saved
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
         // Verify localStorage has the data
         const authStorage = localStorage.getItem('auth-storage');
         const authToken = localStorage.getItem('auth-token');
-        
+
         console.log('[LoginForm] Pre-navigation localStorage check:', {
           hasAuthStorage: !!authStorage,
           hasAuthToken: !!authToken,
           authStoragePreview: authStorage?.substring(0, 100),
         });
-        
+
         if (!authStorage || !authToken) {
           console.error('[LoginForm] WARNING: localStorage not populated after login!');
           setError('Login state not saved. Please try again.');
           return;
         }
-        
-        console.log('[LoginForm] Navigating to dashboard...');
-        
+
+        // Get user role and customer portal info from the store to determine redirect
+        const state = useAuthStore.getState();
+        const userRole = state.user?.role;
+        const customerPortalUrl = state.customerPortalInfo?.portal_url;
+        const redirectUrl = getRedirectByRole(userRole, customerPortalUrl);
+
+        console.log('[LoginForm] Role-based redirect:', { userRole, customerPortalUrl, redirectUrl });
+
         // Use window.location for immediate navigation after login
         // This forces a full page reload with the new auth state
-        window.location.href = '/dashboard';
+        window.location.href = redirectUrl;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

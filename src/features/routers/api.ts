@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { queryKeys, QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/query/query-client';
 import { getDevFallback } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,6 +11,28 @@ export type RouterItem = {
   status: string;
   router_type: string;
   uptime: number;
+  winbox_port?: number;
+  provisioning_status?: string;
+  bootstrap_completed?: boolean;
+  // System resource fields
+  routeros_version?: string;
+  board_name?: string;
+  architecture?: string;
+  cpu_count?: number;
+  cpu_frequency?: number;
+  cpu_load?: number;
+  total_memory?: number;
+  free_memory?: number;
+  total_hdd_space?: number;
+  free_hdd_space?: number;
+  // MikroTik-formatted display values
+  uptime_formatted?: string;
+  cpu_frequency_formatted?: string;
+  cpu_load_formatted?: string;
+  total_memory_formatted?: string;
+  free_memory_formatted?: string;
+  total_hdd_space_formatted?: string;
+  free_hdd_space_formatted?: string;
 };
 
 // Fallback data for development/demo only
@@ -27,7 +50,7 @@ const activeFallback = [
 
 export function useRouters() {
   return useQuery({
-    queryKey: ['routers'],
+    queryKey: queryKeys.routers.all,
     queryFn: async (): Promise<{ items: RouterItem[] }> => {
       try {
         const { data } = await api.get('/routers/');
@@ -37,10 +60,13 @@ export function useRouters() {
         return getDevFallback(routerFallback);
       }
     },
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
   });
 }
 
 // Router detail type
+// Note: username/password are no longer exposed to frontend - credentials are managed by backend
 export interface RouterDetail {
   id: number;
   name: string;
@@ -48,8 +74,6 @@ export interface RouterDetail {
   router_type: string;
   ip_address: string;
   port: number;
-  username: string;
-  password: string;
   location?: string;
   latitude?: string;
   longitude?: string;
@@ -59,6 +83,8 @@ export interface RouterDetail {
   uptime: number;
   last_seen?: string;
   config?: string;
+  provisioning_status?: string;
+  bootstrap_completed?: boolean;
   created_at: string;
   updated_at: string;
   devices: Array<{
@@ -89,19 +115,21 @@ export interface RouterSystemResources {
 // Fetch single router details
 export function useRouter(routerId: number) {
   return useQuery({
-    queryKey: ['router', routerId],
+    queryKey: queryKeys.routers.detail(String(routerId)),
     queryFn: async (): Promise<RouterDetail> => {
       const { data } = await api.get(`/routers/${routerId}`);
       return data;
     },
     enabled: !!routerId,
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
   });
 }
 
 // Fetch router system resources from MikroTik
 export function useRouterSystemResources(routerId: number) {
   return useQuery({
-    queryKey: ['router-resources', routerId],
+    queryKey: queryKeys.routers.status(String(routerId)),
     queryFn: async (): Promise<RouterSystemResources | null> => {
       try {
         const { data } = await api.get(`/routers/${routerId}/resources`);
@@ -111,6 +139,8 @@ export function useRouterSystemResources(routerId: number) {
       }
     },
     enabled: !!routerId,
+    staleTime: QUERY_STALE_TIMES.REALTIME,
+    gcTime: QUERY_GC_TIMES.REALTIME,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 }
@@ -133,7 +163,7 @@ export function useTestRouterConnection() {
 
 export function useActiveConnections(routerId: number) {
   return useQuery({
-    queryKey: ['router-active', routerId],
+    queryKey: queryKeys.routers.devices(String(routerId)),
     queryFn: async (): Promise<any[]> => {
       try {
         const { data } = await api.get(`/routers/${routerId}/active-connections`);
@@ -143,6 +173,8 @@ export function useActiveConnections(routerId: number) {
       }
     },
     enabled: !!routerId,
+    staleTime: QUERY_STALE_TIMES.REALTIME,
+    gcTime: QUERY_GC_TIMES.REALTIME,
   });
 }
 
@@ -156,7 +188,7 @@ export function useDisconnectUser() {
       return data;
     },
     onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: ['router-active', variables.routerId] });
+      qc.invalidateQueries({ queryKey: queryKeys.routers.devices(String(variables.routerId)) });
     },
   });
 }
@@ -185,7 +217,7 @@ export function useStartProvisioning() {
 
 export function useProvisioningStatus(sessionId?: string) {
   return useQuery({
-    queryKey: ['provisioning-status', sessionId],
+    queryKey: ['provisioning', 'status', sessionId],
     queryFn: async () => {
       const { data } = await api.get(`/provisioning/sessions/${sessionId}/status`);
       return data as {
@@ -197,6 +229,8 @@ export function useProvisioningStatus(sessionId?: string) {
       };
     },
     enabled: !!sessionId,
+    staleTime: QUERY_STALE_TIMES.REALTIME,
+    gcTime: QUERY_GC_TIMES.REALTIME,
     refetchInterval: 3000,
   });
 }
@@ -218,11 +252,11 @@ export function useScanDevice() {
 }
 
 // Router CRUD operations
+// Note: Credentials are NOT sent from frontend - they are pulled from
+// environment variables (MIKROTIK_API_USERNAME, MIKROTIK_API_PASSWORD) on the backend.
 export interface RouterCreateData {
   name: string;
   ip_address: string;
-  username: string;
-  password: string;
   api_port?: number;
   router_type?: 'mikrotik';
   description?: string;
@@ -230,14 +264,14 @@ export interface RouterCreateData {
 
 export function useCreateRouter() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: RouterCreateData) => {
       const response = await api.post('/routers/', data);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routers.all });
       toast.success('Router created successfully');
     },
     onError: (error: any) => {
@@ -246,16 +280,35 @@ export function useCreateRouter() {
   });
 }
 
+// Upsert router - creates new or updates existing by IP address
+// Used during provisioning flow to avoid creating duplicate routers
+export function useUpsertRouter() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: RouterCreateData) => {
+      const response = await api.post('/routers/upsert', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.routers.all });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save router');
+    },
+  });
+}
+
 export function useUpdateRouter() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ routerId, data }: { routerId: number; data: Partial<RouterCreateData> }) => {
       const response = await api.patch(`/routers/${routerId}`, data);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routers.all });
       toast.success('Router updated successfully');
     },
     onError: (error: any) => {
@@ -266,13 +319,13 @@ export function useUpdateRouter() {
 
 export function useDeleteRouter() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (routerId: number) => {
       await api.delete(`/routers/${routerId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routers.all });
       toast.success('Router deleted successfully');
     },
     onError: (error: any) => {
@@ -328,22 +381,22 @@ export function useCreateRouterBackup() {
 
 export function useRestoreRouterBackup() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ routerId, file }: { routerId: number; file: File }) => {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await api.post(`/routers/${routerId}/restore`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routers.all });
       toast.success('Router configuration restored successfully');
     },
     onError: (error: any) => {
@@ -354,12 +407,14 @@ export function useRestoreRouterBackup() {
 
 export function useListRouterBackups(routerId: number) {
   return useQuery({
-    queryKey: ['router-backups', routerId],
+    queryKey: [...queryKeys.routers.detail(String(routerId)), 'backups'],
     queryFn: async () => {
       const { data } = await api.get(`/routers/${routerId}/backups`);
       return data;
     },
     enabled: !!routerId,
+    staleTime: QUERY_STALE_TIMES.INFREQUENT,
+    gcTime: QUERY_GC_TIMES.INFREQUENT,
   });
 }
 
@@ -392,6 +447,108 @@ export function useDownloadRouterBackup() {
   });
 }
 
+// Router sync operations
+export function useSyncRouter() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (routerId: number) => {
+      const response = await api.post(`/routers/${routerId}/sync`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.routers.all });
+      toast.success('Router synced successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to sync router');
+    },
+  });
+}
+
+export function useSyncRouterTime() {
+  return useMutation({
+    mutationFn: async (routerId: number) => {
+      const response = await api.post(`/routers/${routerId}/sync-time`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || 'Router time synchronized');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to sync router time');
+    },
+  });
+}
+
+export function useSyncHotspotFiles() {
+  return useMutation({
+    mutationFn: async (routerId: number) => {
+      const response = await api.post(`/routers/${routerId}/sync-hotspot-files`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || 'Hotspot files synchronized');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to sync hotspot files');
+    },
+  });
+}
+
+export function useRegenerateWinbox() {
+  return useMutation({
+    mutationFn: async (routerId: number) => {
+      const response = await api.post(`/routers/${routerId}/regenerate-winbox`);
+      return response.data as {
+        success: boolean;
+        message: string;
+        router_id: number;
+        username: string;
+        new_password: string;
+        winbox_url: string;
+        local_winbox_url: string;
+        remote_winbox_url?: string;
+        winbox_port?: number;
+        api_port: number;
+        note: string;
+      };
+    },
+    onSuccess: () => {
+      toast.success('Winbox credentials regenerated');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to regenerate Winbox credentials');
+    },
+  });
+}
+
+// Winbox URL response type
+export interface WinboxUrlResponse {
+  router_id: number;
+  router_name: string;
+  winbox_port: number | null;
+  winbox_url: string | null;
+  local_winbox_url: string;
+  vpn_domain: string;
+  is_configured: boolean;
+  tooltip: string;
+}
+
+// Fetch Winbox URL for a router
+export function useWinboxUrl(routerId: number) {
+  return useQuery({
+    queryKey: ['winbox-url', routerId],
+    queryFn: async (): Promise<WinboxUrlResponse> => {
+      const { data } = await api.get(`/routers/${routerId}/winbox-url`);
+      return data;
+    },
+    enabled: !!routerId,
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
+  });
+}
+
 // Active connection type from MikroTik
 export interface ActiveConnection {
   id?: string;
@@ -414,7 +571,7 @@ export function useAllActiveConnections() {
   const { data: routersData, isLoading: routersLoading } = useRouters();
 
   return useQuery({
-    queryKey: ['all-active-connections', routersData?.items?.map(r => r.id)],
+    queryKey: ['active-sessions', 'all', routersData?.items?.map(r => r.id)],
     queryFn: async (): Promise<ActiveConnection[]> => {
       if (!routersData?.items || routersData.items.length === 0) {
         return [];
@@ -439,6 +596,8 @@ export function useAllActiveConnections() {
       return results.flat();
     },
     enabled: !routersLoading && !!routersData?.items && routersData.items.length > 0,
+    staleTime: QUERY_STALE_TIMES.REALTIME,
+    gcTime: QUERY_GC_TIMES.REALTIME,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 }

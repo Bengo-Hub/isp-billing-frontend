@@ -262,18 +262,18 @@ export function useDownloadReceipt() {
       const response = await api.get(`/billing/payments/${paymentId}/receipt`, {
         responseType: 'blob',
       });
-      
+
       const filename = `receipt_${paymentId}.pdf`;
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
-      
+
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       return response.data;
     },
     onSuccess: () => {
@@ -281,6 +281,92 @@ export function useDownloadReceipt() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to download receipt');
+    },
+  });
+}
+
+// =============================================================================
+// Paystack Payment Integration
+// =============================================================================
+
+export interface PaystackInitiateRequest {
+  invoice_id: number;
+  callback_url: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface PaystackInitiateResponse {
+  success: boolean;
+  checkout_url?: string;
+  reference?: string;
+  access_code?: string;
+  error?: string;
+}
+
+export interface PaystackVerifyResponse {
+  success: boolean;
+  status: 'success' | 'failed' | 'pending' | 'abandoned';
+  message: string;
+  data?: {
+    reference?: string;
+    amount?: number;
+    currency?: string;
+    paid_at?: string;
+    channel?: string;
+  };
+}
+
+// Initiate Paystack Payment
+export function useInitiatePaystackPayment() {
+  return useMutation({
+    mutationFn: async (data: PaystackInitiateRequest): Promise<PaystackInitiateResponse> => {
+      const response = await api.post('/payments/paystack/initiate', data);
+      return response.data;
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to initiate payment');
+    },
+  });
+}
+
+// Verify Paystack Payment
+export function useVerifyPaystackPayment(reference: string) {
+  return useQuery({
+    queryKey: ['paystack-verify', reference],
+    queryFn: async (): Promise<PaystackVerifyResponse> => {
+      const { data } = await api.get(`/payments/paystack/verify/${reference}`);
+      return data;
+    },
+    enabled: !!reference,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// List Banks for Paystack
+export function usePaystackBanks(country: string = 'kenya') {
+  return useQuery({
+    queryKey: ['paystack-banks', country],
+    queryFn: async () => {
+      const { data } = await api.get(`/payments/paystack/banks/${country}`);
+      return data;
+    },
+    enabled: !!country,
+  });
+}
+
+// Resolve Bank Account
+export function useResolvePaystackAccount() {
+  return useMutation({
+    mutationFn: async ({ accountNumber, bankCode }: { accountNumber: string; bankCode: string }) => {
+      const response = await api.get('/payments/paystack/resolve-account', {
+        params: { account_number: accountNumber, bank_code: bankCode },
+      });
+      return response.data;
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to resolve account');
     },
   });
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import { useSettings } from '@/features/settings/api';
+import { useRBACStore, type PermissionModule } from '@/lib/stores/rbac';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import {
     BarChart3,
     Calendar,
@@ -15,66 +17,145 @@ import {
     Ticket,
     Users,
     Wifi,
-    X
+    X,
+    LogOut
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  
-  // Users Section
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  count?: number;
+  module?: PermissionModule;
+  roles?: ('superuser' | 'admin' | 'technician' | 'customer')[];
+}
+
+interface NavSection {
+  section: string;
+  items: NavItem[];
+  roles?: ('superuser' | 'admin' | 'technician' | 'customer')[];
+}
+
+type NavigationItem = NavItem | NavSection;
+
+const navigation: NavigationItem[] = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, module: 'dashboard' },
+
+  // Users Section - ISP Admin, Technicians
   {
     section: 'Users',
+    roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'Active Users', href: '/users', icon: BarChart3, count: 5 },
-      { name: 'Users', href: '/users/all', icon: Users, count: 179 },
-      { name: 'Expiry Dates', href: '/users/expiry', icon: Calendar, count: 4 },
-      { name: 'IP Bindings', href: '/ip-bindings', icon: Wifi, count: 0 },
-      { name: 'Tickets', href: '/tickets', icon: Ticket, count: 0 },
-      { name: 'Leads', href: '/leads', icon: Users, count: 0 },
+      { name: 'Active Users', href: '/users', icon: BarChart3, module: 'users' },
+      { name: 'Users', href: '/users/all', icon: Users, module: 'users' },
+      { name: 'Expiry Dates', href: '/users/expiry', icon: Calendar, module: 'users' },
+      { name: 'IP Bindings', href: '/ip-bindings', icon: Wifi, module: 'users' },
+      { name: 'Tickets', href: '/tickets', icon: Ticket, module: 'users' },
+      { name: 'Leads', href: '/leads', icon: Users, module: 'users' },
     ]
   },
-  
-  // Finance Section
+
+  // Finance Section - ISP Admin, Technicians (limited)
   {
     section: 'Finance',
+    roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'Packages', href: '/packages', icon: Package, count: 10 },
-      { name: 'Payments', href: '/payments', icon: CreditCard },
-      { name: 'Vouchers', href: '/vouchers', icon: CreditCard, count: 0 },
-      { name: 'Expenses', href: '/expenses', icon: CreditCard },
+      { name: 'Packages', href: '/packages', icon: Package, module: 'packages' },
+      { name: 'Payments', href: '/payments', icon: CreditCard, module: 'payments' },
+      { name: 'Vouchers', href: '/vouchers', icon: CreditCard, module: 'packages' },
+      { name: 'Expenses', href: '/expenses', icon: CreditCard, module: 'payments', roles: ['superuser', 'admin'] },
     ]
   },
-  
-  // Communication Section
+
+  // Communication Section - ISP Admin, Technicians
   {
     section: 'Communication',
+    roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'Messages', href: '/messages', icon: MessageSquare },
-      { name: 'Emails', href: '/emails', icon: Mail },
-      { name: 'Campaigns', href: '/campaigns', icon: MessageSquare, count: 0 },
+      { name: 'Messages', href: '/messages', icon: MessageSquare, module: 'sms' },
+      { name: 'Emails', href: '/emails', icon: Mail, module: 'sms' },
+      { name: 'Campaigns', href: '/campaigns', icon: MessageSquare, module: 'sms', roles: ['superuser', 'admin'] },
     ]
   },
-  
-  // Devices
+
+  // Devices - ISP Admin, Technicians
   {
     section: 'Devices',
+    roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'MikroTik', href: '/routers', icon: Wifi },
+      { name: 'MikroTik', href: '/routers', icon: Wifi, module: 'routers' },
     ]
   },
-  
-  // Other
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+
+  // Reports & Settings - ISP Admin
+  { name: 'Reports', href: '/reports', icon: BarChart3, module: 'reports', roles: ['superuser', 'admin'] },
+  { name: 'Settings', href: '/settings', icon: Settings, module: 'settings', roles: ['superuser', 'admin'] },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { userRole, canAccessModule } = useRBACStore();
+  const { user, logout } = useAuthStore();
+
+  // Filter navigation based on user role and permissions
+  const filteredNavigation = useMemo(() => {
+    if (!userRole) return [];
+
+    return navigation.filter((item) => {
+      // Handle section items
+      if ('section' in item) {
+        // Check if section is allowed for this role
+        if (item.roles && !item.roles.includes(userRole)) {
+          return false;
+        }
+        // Filter section items based on permissions
+        const filteredItems = item.items.filter((subItem) => {
+          // Check role restriction on item
+          if (subItem.roles && !subItem.roles.includes(userRole)) {
+            return false;
+          }
+          // Check module permission
+          if (subItem.module && !canAccessModule(subItem.module)) {
+            return false;
+          }
+          return true;
+        });
+        // Only include section if it has visible items
+        return filteredItems.length > 0;
+      }
+
+      // Handle regular navigation items
+      if (item.roles && !item.roles.includes(userRole)) {
+        return false;
+      }
+      if (item.module && !canAccessModule(item.module)) {
+        return false;
+      }
+      return true;
+    }).map((item) => {
+      // Filter section items for sections that passed
+      if ('section' in item) {
+        return {
+          ...item,
+          items: item.items.filter((subItem) => {
+            if (subItem.roles && !subItem.roles.includes(userRole)) {
+              return false;
+            }
+            if (subItem.module && !canAccessModule(subItem.module)) {
+              return false;
+            }
+            return true;
+          }),
+        };
+      }
+      return item;
+    });
+  }, [userRole, canAccessModule]);
 
   return (
     <>
@@ -111,7 +192,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
-          {navigation.map((item, index) => {
+          {filteredNavigation.map((item, index) => {
             // Handle section items
             if ('section' in item) {
               return (
@@ -172,16 +253,29 @@ export function Sidebar() {
 
         {/* User Info */}
         <div className="p-4 border-t border-gray-200">
-          <button className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">JD</span>
+          <div className="flex items-center gap-3 w-full px-4 py-3 rounded-lg">
+            <div className="h-8 w-8 rounded-full bg-pink-600 flex items-center justify-center">
+              <span className="text-sm font-medium text-white">
+                {user?.first_name?.[0] || user?.username?.[0] || 'U'}
+                {user?.last_name?.[0] || ''}
+              </span>
             </div>
-            <div className="flex-1 text-left">
-              <div className="text-sm font-medium text-gray-900">John Doe</div>
-              <div className="text-xs text-gray-500">Admin</div>
+            <div className="flex-1 text-left min-w-0">
+              <div className="text-sm font-medium text-gray-900 truncate">
+                {user?.first_name && user?.last_name
+                  ? `${user.first_name} ${user.last_name}`
+                  : user?.username || 'User'}
+              </div>
+              <div className="text-xs text-gray-500 capitalize">{userRole || 'User'}</div>
             </div>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          </button>
+            <button
+              onClick={logout}
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </aside>
     </>

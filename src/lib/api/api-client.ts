@@ -3,15 +3,15 @@
  */
 
 import axios, {
-    AxiosError,
-    AxiosInstance,
-    AxiosRequestConfig,
-    InternalAxiosRequestConfig,
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
 } from "axios";
 
 // API configuration
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.100.4:8000/api/v1";
 const TIMEOUT = 30000;
 
 /**
