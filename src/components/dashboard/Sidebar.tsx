@@ -286,7 +286,24 @@ function LogoArea() {
   const { data = {} as any } = useSettings('system');
   const [imageError, setImageError] = useState(false);
   const customLogoUrl = (data['system.logo_url'] as string) || '';
-  const hasCustomLogo = !!customLogoUrl && customLogoUrl.trim().length > 0;
+
+  // Validate URL - must be absolute URL or relative path starting with /
+  const isValidUrl = (url: string): boolean => {
+    if (!url || url.trim().length === 0) return false;
+    // Check if it's an absolute URL
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    // Check if it's a valid relative path
+    return url.startsWith('/');
+  };
+
+  const hasCustomLogo = isValidUrl(customLogoUrl) && !imageError;
   const logoSrc = hasCustomLogo ? customLogoUrl : '/images/logo/logo.png';
 
   // If the image fails to load, show the text fallback only

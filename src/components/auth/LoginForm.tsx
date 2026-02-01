@@ -31,7 +31,7 @@ function getRedirectByRole(role: UserRole | undefined, customerPortalUrl?: strin
 }
 
 export function LoginForm({ inline = false, onSubmit, initialUsername, initialPassword }: { inline?: boolean; onSubmit?: (username: string, password: string) => Promise<void> | void; initialUsername?: string; initialPassword?: string }) {
-  const [username, setUsername] = useState(initialUsername ?? 'demoispadmin');
+  const [username, setUsername] = useState(initialUsername ?? 'codevertexadmin');
   const [password, setPassword] = useState(initialPassword ?? 'admin123');
   const [error, setError] = useState('');
   const { login, isLoading } = useAuthStore();
@@ -40,9 +40,10 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
   // Demo accounts for quick prefills
   const demoAccounts = {
     platformOwner: { username: 'platformadmin', password: 'admin123' },
-    ispAdmin: { username: 'demoispadmin', password: 'admin123' },
-    technician: { username: 'demoistech1', password: 'tech123' },
-    customer: { username: 'democust1', password: 'cust123' },
+    ispAdmin: { username: 'codevertexadmin', password: 'admin123' },
+    technician: { username: 'codevertextech1', password: 'tech123' },
+    hotspotUser: { username: 'demo_hotspot', password: 'demo1234' },
+    pppoeUser: { username: 'demo_pppoe', password: 'demo1234' },
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +114,7 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
             required
             disabled={isLoading}
           />
-          <div className="mt-2 flex gap-2 text-sm">
+          <div className="mt-2 flex flex-wrap gap-2 text-sm">
             <button
               type="button"
               className="text-blue-600 underline"
@@ -134,6 +135,20 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
               onClick={() => { setUsername(demoAccounts.technician.username); setPassword(demoAccounts.technician.password); }}
             >
               Technician
+            </button>
+            <button
+              type="button"
+              className="text-pink-600 underline font-semibold"
+              onClick={() => { setUsername(demoAccounts.hotspotUser.username); setPassword(demoAccounts.hotspotUser.password); }}
+            >
+              Hotspot Test
+            </button>
+            <button
+              type="button"
+              className="text-pink-600 underline font-semibold"
+              onClick={() => { setUsername(demoAccounts.pppoeUser.username); setPassword(demoAccounts.pppoeUser.password); }}
+            >
+              PPPoE Test
             </button>
           </div>
         </div>

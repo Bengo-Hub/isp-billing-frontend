@@ -21,7 +21,7 @@ interface RealtimeLogViewerProps {
   height?: string;
   onDeviceOnline?: () => void;
   onStageComplete?: (stage: number) => void;  // Callback when a verification stage completes
-  onProvisioningComplete?: () => void;
+  onProvisioningComplete?: (logs: LogEntry[]) => void;  // Now passes logs array
   initialMessage?: string;
   deviceConnected?: boolean;
   pingVerified?: boolean;   // Stage 1 verified
@@ -384,15 +384,20 @@ export function RealtimeLogViewer({
       type: 'success'
     };
 
-    setLogs(prev => [...prev, newLog]);
+    // Update logs with final success message
+    setLogs(prev => {
+      const updatedLogs = [...prev, newLog];
 
-    // Trigger the callback to redirect to routers page
-    if (onProvisioningComplete) {
-      // Small delay to let user see the success message
-      setTimeout(() => {
-        onProvisioningComplete();
-      }, 2000);
-    }
+      // Trigger the callback with complete logs array
+      if (onProvisioningComplete) {
+        // Small delay to let user see the success message
+        setTimeout(() => {
+          onProvisioningComplete(updatedLogs);
+        }, 2000);
+      }
+
+      return updatedLogs;
+    });
   };
 
   // Auto-scroll to bottom when new logs arrive

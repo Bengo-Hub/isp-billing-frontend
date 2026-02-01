@@ -2,28 +2,28 @@
 
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { RBACProvider } from '@/components/rbac/RBACProvider';
-import { ReactNode, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import {
-  Building2,
-  LayoutDashboard,
-  Receipt,
-  Users,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  CreditCard,
-  TrendingUp,
-  Bell,
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
+import {
+  Bell,
+  Building2,
+  CreditCard,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Receipt,
+  Settings,
+  TrendingUp,
+  Users,
+  X,
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { ReactNode, useState } from 'react';
 
 const platformNavItems = [
   { href: '/platform', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/platform/organizations', label: 'Organizations', icon: Building2 },
+  { href: '/platform/organizations', label: 'ISP Providers', icon: Building2 },
   { href: '/platform/billing', label: 'Billing', icon: Receipt },
   { href: '/platform/tiers', label: 'Subscription Tiers', icon: CreditCard },
   { href: '/platform/analytics', label: 'Analytics', icon: TrendingUp },

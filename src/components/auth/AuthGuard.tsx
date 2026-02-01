@@ -94,9 +94,16 @@ export function AuthGuard({ children, requiredRole, fallback }: AuthGuardProps) 
 
   const normalizedRequired = normalizeRole(requiredRole);
 
-  // Be defensive: user may be temporarily undefined during hydration
-  if (normalizedRequired && (user?.role ?? undefined) !== normalizedRequired && (user?.role ?? undefined) !== 'admin') {
-    router.push('/unauthorized');
+  // Check role requirement - only superuser can bypass all checks
+  if (normalizedRequired && user?.role !== normalizedRequired && user?.role !== 'superuser') {
+    console.log('[AuthGuard] Role check failed:', {
+      required: normalizedRequired,
+      userRole: user?.role,
+      redirecting: true,
+    });
+
+    // Redirect ISP users to their dashboard, not unauthorized page
+    router.push('/dashboard');
     return fallback || null;
   }
 

@@ -10,13 +10,26 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { useCreatePlan } from '@/features/packages/api';
-import { Clock, Loader2, Star, Wifi, Zap } from 'lucide-react';
+import { Clock, Star, Wifi, Zap } from 'lucide-react';
 import { useState } from 'react';
+
+export interface PackageTemplateData {
+  type: string;
+  name: string;
+  duration: string;
+  price: string;
+  deviceLimit: string;
+  speed: string;
+  enableBurst: boolean;
+  enableSchedule: boolean;
+  startTime: string;
+  endTime: string;
+}
 
 interface QuickTemplatesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSelectTemplate?: (templateData: PackageTemplateData) => void;
 }
 
 const templates = [
@@ -70,9 +83,8 @@ const templates = [
   }
 ];
 
-export default function QuickTemplatesDialog({ open, onOpenChange }: QuickTemplatesDialogProps) {
+export default function QuickTemplatesDialog({ open, onOpenChange, onSelectTemplate }: QuickTemplatesDialogProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
-  const createPlan = useCreatePlan();
 
   const getColorClasses = (color: string) => {
     switch (color) {
@@ -90,39 +102,33 @@ export default function QuickTemplatesDialog({ open, onOpenChange }: QuickTempla
   };
 
   const handleUseTemplate = () => {
-    if (selectedTemplate) {
+    if (selectedTemplate && onSelectTemplate) {
       const template = templates.find(t => t.id === selectedTemplate);
       if (!template) return;
 
-      // Parse duration to hours
-      const durationMap: Record<string, number> = {
-        '1 Hour': 1,
-        '24 Hours': 24,
-        '1 Month': 720,
+      // Map template to CreatePackageDialog form format
+      const durationMap: Record<string, string> = {
+        '1 Hour': '1_hour',
+        '24 Hours': '1_day',
+        '1 Month': '1_month',
       };
 
-      const billingCycleMap: Record<string, 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly'> = {
-        '1 Hour': 'hourly',
-        '24 Hours': 'daily',
-        '1 Month': 'monthly',
-      };
-
-      const planData = {
+      const templateData: PackageTemplateData = {
+        type: template.type,
         name: template.name,
-        plan_type: template.type as 'hotspot' | 'pppoe',
-        price: template.price,
-        billing_cycle: billingCycleMap[template.duration] || 'monthly',
-        duration_hours: durationMap[template.duration] || 24,
-        speed_limit: parseInt(template.speed.split('/')[0]),
-        is_active: true,
+        duration: durationMap[template.duration] || '1_day',
+        price: template.price.toString(),
+        deviceLimit: '1',
+        speed: template.speed.split('/')[0].replace('M', ''),
+        enableBurst: false,
+        enableSchedule: false,
+        startTime: '',
+        endTime: '',
       };
 
-      createPlan.mutate(planData, {
-        onSuccess: () => {
-          onOpenChange(false);
-          setSelectedTemplate(null);
-        },
-      });
+      onSelectTemplate(templateData);
+      onOpenChange(false);
+      setSelectedTemplate(null);
     }
   };
 
@@ -197,15 +203,14 @@ export default function QuickTemplatesDialog({ open, onOpenChange }: QuickTempla
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createPlan.isPending}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleUseTemplate}
-            disabled={!selectedTemplate || createPlan.isPending}
+            disabled={!selectedTemplate}
             className="bg-pink-600 hover:bg-pink-700"
           >
-            {createPlan.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Use Template
           </Button>
         </div>

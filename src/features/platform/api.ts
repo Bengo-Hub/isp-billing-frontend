@@ -384,3 +384,171 @@ export function usePlatformSMSBalance() {
     refetchInterval: 60000, // Refresh every minute
   });
 }
+
+// =========================================================================
+// Subscription Tiers
+// =========================================================================
+
+export interface SubscriptionTier {
+  id: number;
+  name: string;
+  description: string;
+  tier_type: 'hotspot' | 'pppoe';
+  base_monthly_fee: number;
+  earnings_threshold?: number;
+  earnings_percentage?: number;
+  min_customers?: number;
+  max_customers?: number;
+  per_customer_fee?: number;
+  max_routers: number;
+  max_staff_users: number;
+  max_sms_per_month?: number;
+  trial_days: number;
+  is_active: boolean;
+  is_default: boolean;
+  display_order: number;
+  badge_text?: string;
+  badge_color?: string;
+  features: Record<string, boolean>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionTierCreate {
+  name: string;
+  description: string;
+  tier_type: 'hotspot' | 'pppoe';
+  base_monthly_fee: number;
+  earnings_threshold?: number;
+  earnings_percentage?: number;
+  min_customers?: number;
+  max_customers?: number;
+  per_customer_fee?: number;
+  max_routers: number;
+  max_staff_users: number;
+  max_sms_per_month?: number;
+  trial_days?: number;
+  is_active?: boolean;
+  is_default?: boolean;
+  display_order?: number;
+  badge_text?: string;
+  badge_color?: string;
+  features?: Record<string, boolean>;
+}
+
+export interface SubscriptionTierUpdate {
+  name?: string;
+  description?: string;
+  base_monthly_fee?: number;
+  earnings_threshold?: number;
+  earnings_percentage?: number;
+  min_customers?: number;
+  max_customers?: number;
+  per_customer_fee?: number;
+  max_routers?: number;
+  max_staff_users?: number;
+  max_sms_per_month?: number;
+  trial_days?: number;
+  is_active?: boolean;
+  is_default?: boolean;
+  display_order?: number;
+  badge_text?: string;
+  badge_color?: string;
+  features?: Record<string, boolean>;
+}
+
+export function useSubscriptionTiers(tierType?: 'hotspot' | 'pppoe', includeInactive: boolean = false) {
+  return useQuery({
+    queryKey: ['platform-subscription-tiers', tierType, includeInactive],
+    queryFn: async (): Promise<SubscriptionTier[]> => {
+      const params: any = { include_inactive: includeInactive };
+      if (tierType) params.tier_type = tierType;
+      const { data } = await api.get('/platform/tiers/', { params });
+      return data;
+    },
+  });
+}
+
+export function useSubscriptionTier(tierId: number) {
+  return useQuery({
+    queryKey: ['platform-subscription-tier', tierId],
+    queryFn: async (): Promise<SubscriptionTier> => {
+      const { data } = await api.get(`/platform/tiers/${tierId}`);
+      return data;
+    },
+    enabled: !!tierId,
+  });
+}
+
+export function useCreateSubscriptionTier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: SubscriptionTierCreate) => {
+      const response = await api.post('/platform/tiers/', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-subscription-tiers'] });
+      toast.success('Subscription tier created successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to create subscription tier');
+    },
+  });
+}
+
+export function useUpdateSubscriptionTier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ tierId, data }: { tierId: number; data: SubscriptionTierUpdate }) => {
+      const response = await api.patch(`/platform/tiers/${tierId}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-subscription-tiers'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-subscription-tier'] });
+      toast.success('Subscription tier updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to update subscription tier');
+    },
+  });
+}
+
+export function useDeleteSubscriptionTier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (tierId: number) => {
+      const response = await api.delete(`/platform/tiers/${tierId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-subscription-tiers'] });
+      toast.success('Subscription tier deactivated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to deactivate subscription tier');
+    },
+  });
+}
+
+export function useSeedDefaultTiers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/platform/tiers/seed-defaults');
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['platform-subscription-tiers'] });
+      toast.success(data.message || 'Default tiers seeded successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to seed default tiers');
+    },
+  });
+}

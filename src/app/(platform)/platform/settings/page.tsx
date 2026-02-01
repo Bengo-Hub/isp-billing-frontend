@@ -5,10 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Copy, CreditCard, Globe, Mail, Plug, Settings, Shield, AlertTriangle, ExternalLink, Check, Loader2, DollarSign } from 'lucide-react';
+import { Bell, Copy, CreditCard, Globe, Mail, Plug, Settings, Shield, AlertTriangle, ExternalLink, Check, Loader2, DollarSign, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api/api-client';
+import { useWhatsAppGateway, useSaveWhatsAppGateway, useTestWhatsAppGateway, useDeleteWhatsAppGateway, useWhatsAppAnalytics, useWhatsAppSubscriptions } from '@/features/platform/whatsapp-api';
+import { WhatsAppPricingSettings } from '@/components/platform/WhatsAppPricingSettings';
 
 interface PaymentGateway {
   id: number;
@@ -53,7 +55,7 @@ const tabs = [
 export default function PlatformSettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [activePaymentGateway, setActivePaymentGateway] = useState<'mpesa' | 'paystack'>('paystack');
-  const [activeSmsProvider, setActiveSmsProvider] = useState<'twilio' | 'africastalking' | 'pricing'>('twilio');
+  const [activeSmsProvider, setActiveSmsProvider] = useState<'twilio' | 'africastalking' | 'whatsapp' | 'pricing' | 'whatsapp-pricing'>('twilio');
 
   // SMS Pricing & Payment Settings state
   const [smsCostPerUnit, setSmsCostPerUnit] = useState('0.50');
@@ -93,6 +95,26 @@ export default function PlatformSettingsPage() {
   const [isTestingAt, setIsTestingAt] = useState(false);
   const [hasExistingAtCredentials, setHasExistingAtCredentials] = useState(false);
   const [isLoadingAt, setIsLoadingAt] = useState(false);
+
+  // WhatsApp (APIWAP) state
+  const [whatsappGatewayId, setWhatsappGatewayId] = useState<number | null>(null);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappMode, setWhatsappMode] = useState<'sandbox' | 'production'>('production');
+  const [whatsappApiKey, setWhatsappApiKey] = useState('');
+  const [whatsappWebhookUrl, setWhatsappWebhookUrl] = useState('');
+  const [whatsappTestPhone, setWhatsappTestPhone] = useState('');
+  const [isSavingWhatsapp, setIsSavingWhatsapp] = useState(false);
+  const [isTestingWhatsapp, setIsTestingWhatsapp] = useState(false);
+  const [hasExistingWhatsappCredentials, setHasExistingWhatsappCredentials] = useState(false);
+  const [isLoadingWhatsapp, setIsLoadingWhatsapp] = useState(false);
+
+  // WhatsApp API hooks
+  const { data: whatsappGateway, isLoading: isLoadingWhatsappGateway } = useWhatsAppGateway();
+  const saveWhatsappGateway = useSaveWhatsAppGateway();
+  const testWhatsappGateway = useTestWhatsAppGateway();
+  const deleteWhatsappGateway = useDeleteWhatsAppGateway();
+  const { data: whatsappAnalytics } = useWhatsAppAnalytics();
+  const { data: whatsappSubscriptions } = useWhatsAppSubscriptions();
 
   // Paystack form state
   const [paystackGatewayId, setPaystackGatewayId] = useState<number | null>(null);
@@ -266,6 +288,17 @@ export default function PlatformSettingsPage() {
     loadSmsGatewayConfigs();
     loadSmsPricingSettings();
   }, [loadPaystackConfig, loadSmsGatewayConfigs, loadSmsPricingSettings]);
+
+  // Load WhatsApp gateway configuration
+  useEffect(() => {
+    if (whatsappGateway) {
+      setWhatsappGatewayId(whatsappGateway.id);
+      setWhatsappEnabled(whatsappGateway.is_active);
+      setWhatsappMode(whatsappGateway.environment as 'sandbox' | 'production');
+      setWhatsappWebhookUrl(whatsappGateway.webhook_url || '');
+      setHasExistingWhatsappCredentials(whatsappGateway.has_credentials);
+    }
+  }, [whatsappGateway]);
 
   // Save Paystack configuration
   const handleSavePaystack = async () => {
@@ -716,6 +749,19 @@ export default function PlatformSettingsPage() {
                   Africa&apos;s Talking
                 </button>
                 <button
+                  onClick={() => setActiveSmsProvider('whatsapp')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeSmsProvider === 'whatsapp'
+                      ? 'border-green-600 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
+                    <MessageCircle className="w-3 h-3 text-green-600" />
+                  </div>
+                  WhatsApp
+                </button>
+                <button
                   onClick={() => setActiveSmsProvider('pricing')}
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeSmsProvider === 'pricing'
@@ -727,6 +773,19 @@ export default function PlatformSettingsPage() {
                     <CreditCard className="w-3 h-3 text-pink-600" />
                   </div>
                   SMS Pricing & Payments
+                </button>
+                <button
+                  onClick={() => setActiveSmsProvider('whatsapp-pricing')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeSmsProvider === 'whatsapp-pricing'
+                      ? 'border-green-600 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
+                    <MessageCircle className="w-3 h-3 text-green-600" />
+                  </div>
+                  WhatsApp Pricing & Payments
                 </button>
               </div>
 
@@ -1140,6 +1199,311 @@ export default function PlatformSettingsPage() {
                         'Save Configuration'
                       )}
                     </Button>
+                  </div>
+                </Card>
+              )}
+
+              {/* WhatsApp (APIWAP) Configuration */}
+              {activeSmsProvider === 'whatsapp' && (
+                <Card className="p-6 border-l-4 border-l-green-500">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                        <MessageCircle className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">WhatsApp (APIWAP)</div>
+                        <p className="text-sm text-gray-500">Platform-managed WhatsApp messaging for all tenants</p>
+                      </div>
+                    </div>
+                    {isLoadingWhatsappGateway ? (
+                      <Badge variant="outline" className="text-gray-400 border-gray-300">
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Loading...
+                      </Badge>
+                    ) : whatsappGateway ? (
+                      <Badge variant="outline" className={whatsappGateway.is_active ? "text-green-600 border-green-300" : "text-gray-400 border-gray-300"}>
+                        {whatsappGateway.status === 'active' ? 'Active' : whatsappGateway.status === 'pending_verification' ? 'Pending Verification' : whatsappGateway.status === 'error' ? 'Error' : 'Inactive'}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-gray-400 border-gray-300">
+                        Not Configured
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Info Banner */}
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-6">
+                    <div className="flex gap-2">
+                      <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">
+                          Platform-Managed Integration
+                        </p>
+                        <p className="text-sm text-green-700 mt-1">
+                          Configure your APIWAP API keys here. ISP providers will simply subscribe (500 KES/month) to enable WhatsApp messaging for their organization. No technical configuration needed from tenants.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Mode Toggles */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div
+                        onClick={() => setWhatsappMode('sandbox')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          whatsappMode === 'sandbox'
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-gray-900">Sandbox Mode</div>
+                            <p className="text-xs text-gray-500 mt-1">Use sandbox credentials</p>
+                          </div>
+                          <Switch
+                            checked={whatsappMode === 'sandbox'}
+                            onCheckedChange={(checked) => checked && setWhatsappMode('sandbox')}
+                          />
+                        </div>
+                        {whatsappMode === 'sandbox' && (
+                          <p className="text-xs text-amber-600 mt-2">Messages will be logged but not sent</p>
+                        )}
+                      </div>
+                      <div
+                        onClick={() => setWhatsappMode('production')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          whatsappMode === 'production'
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-gray-900">Production Mode</div>
+                            <p className="text-xs text-gray-500 mt-1">Send real WhatsApp messages</p>
+                          </div>
+                          <Switch
+                            checked={whatsappMode === 'production'}
+                            onCheckedChange={(checked) => checked && setWhatsappMode('production')}
+                          />
+                        </div>
+                        {whatsappMode === 'production' && (
+                          <p className="text-xs text-green-600 mt-2">Real WhatsApp messages will be sent</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* API Credentials */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Shield className="w-5 h-5 text-green-600" />
+                        <h3 className="font-semibold text-gray-900">API Credentials</h3>
+                      </div>
+                      <div className={`p-4 border rounded-lg mb-4 ${whatsappMode === 'sandbox' ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
+                        <div className="flex gap-2">
+                          <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${whatsappMode === 'sandbox' ? 'text-amber-600' : 'text-blue-600'}`} />
+                          <div>
+                            <p className={`text-sm font-medium ${whatsappMode === 'sandbox' ? 'text-amber-800' : 'text-blue-800'}`}>
+                              {whatsappMode === 'sandbox' ? 'Sandbox Environment' : 'Production Environment'}
+                            </p>
+                            <p className={`text-sm ${whatsappMode === 'sandbox' ? 'text-amber-700' : 'text-blue-700'} mt-1`}>
+                              {whatsappMode === 'sandbox'
+                                ? 'Use your APIWAP sandbox API key for testing. Messages will not be delivered.'
+                                : 'Use your APIWAP production API key. Real WhatsApp messages will be sent and charged.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            APIWAP API Key <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="password"
+                            value={whatsappApiKey}
+                            onChange={(e) => setWhatsappApiKey(e.target.value)}
+                            placeholder={hasExistingWhatsappCredentials ? "••••••••••••••••" : "Enter your APIWAP API key"}
+                            className="font-mono"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Get your API key from <a href="https://apiwap.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">APIWAP Dashboard</a>
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Webhook URL <span className="text-gray-400">(Optional)</span>
+                          </label>
+                          <Input
+                            type="url"
+                            value={whatsappWebhookUrl}
+                            onChange={(e) => setWhatsappWebhookUrl(e.target.value)}
+                            placeholder="https://your-domain.com/webhooks/whatsapp"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Receive delivery status callbacks from APIWAP
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Test Connection */}
+                    {whatsappGateway && whatsappGateway.has_credentials && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Check className="w-5 h-5 text-green-600" />
+                          <h3 className="font-semibold text-gray-900">Test Connection</h3>
+                        </div>
+                        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-4">
+                            Send a test WhatsApp message to verify your configuration
+                          </p>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Phone Number (with country code)
+                              </label>
+                              <Input
+                                type="tel"
+                                value={whatsappTestPhone}
+                                onChange={(e) => setWhatsappTestPhone(e.target.value)}
+                                placeholder="+254712345678"
+                              />
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={async () => {
+                                if (!whatsappTestPhone.trim()) {
+                                  toast.error('Please enter a phone number');
+                                  return;
+                                }
+                                setIsTestingWhatsapp(true);
+                                try {
+                                  await testWhatsappGateway.mutateAsync({
+                                    phone_number: whatsappTestPhone,
+                                    test_message: 'Test message from ISP Billing Platform'
+                                  });
+                                } finally {
+                                  setIsTestingWhatsapp(false);
+                                }
+                              }}
+                              disabled={isTestingWhatsapp || !whatsappTestPhone.trim()}
+                              className="w-full"
+                            >
+                              {isTestingWhatsapp ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                'Send Test Message'
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Error Display */}
+                    {whatsappGateway?.last_error && whatsappGateway.status === 'error' && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex gap-2">
+                          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
+                          <div>
+                            <p className="text-sm font-medium text-red-800">Last Error</p>
+                            <p className="text-sm text-red-700 mt-1">{whatsappGateway.last_error}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Analytics */}
+                    {whatsappAnalytics && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <DollarSign className="w-5 h-5 text-green-600" />
+                          <h3 className="font-semibold text-gray-900">WhatsApp Analytics</h3>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">
+                              {whatsappAnalytics.active_subscriptions}
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">Active Subscriptions</div>
+                          </div>
+                          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {whatsappAnalytics.total_messages_this_month.toLocaleString()}
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">Messages This Month</div>
+                          </div>
+                          <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="text-2xl font-bold text-purple-600">
+                              KES {whatsappAnalytics.total_revenue_this_month.toLocaleString()}
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">Revenue This Month</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-4 border-t">
+                      <Button
+                        onClick={async () => {
+                          if (!whatsappApiKey.trim()) {
+                            toast.error('Please enter your APIWAP API key');
+                            return;
+                          }
+                          setIsSavingWhatsapp(true);
+                          try {
+                            await saveWhatsappGateway.mutateAsync({
+                              api_key: whatsappApiKey,
+                              environment: whatsappMode,
+                              webhook_url: whatsappWebhookUrl || undefined
+                            });
+                            setWhatsappApiKey(''); // Clear for security
+                            setHasExistingWhatsappCredentials(true);
+                          } finally {
+                            setIsSavingWhatsapp(false);
+                          }
+                        }}
+                        disabled={isSavingWhatsapp || !whatsappApiKey.trim()}
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                      >
+                        {isSavingWhatsapp ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : whatsappGateway ? (
+                          'Update Configuration'
+                        ) : (
+                          'Save Configuration'
+                        )}
+                      </Button>
+                      {whatsappGateway && (
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            if (confirm('Are you sure you want to delete this WhatsApp gateway configuration? This will disable WhatsApp messaging for all tenants.')) {
+                              await deleteWhatsappGateway.mutateAsync();
+                              setWhatsappApiKey('');
+                              setWhatsappWebhookUrl('');
+                              setHasExistingWhatsappCredentials(false);
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </Card>
               )}

@@ -370,3 +370,125 @@ export function useResolvePaystackAccount() {
     },
   });
 }
+
+// =============================================================================
+// Available Payment Gateways
+// =============================================================================
+
+export interface AvailableGateway {
+  gateway_type: 'paystack' | 'mpesa_paybill' | 'mpesa_till' | 'manual';
+  name: string;
+  description: string;
+  is_available: boolean;
+  is_selected: boolean;
+  supports_payout: boolean;
+  supported_currencies: string[];
+}
+
+/**
+ * Get available payment gateways for current organization.
+ * Returns only active gateways configured by platform admin.
+ */
+export function useAvailablePaymentGateways() {
+  return useQuery({
+    queryKey: ['available-payment-gateways'],
+    queryFn: async (): Promise<AvailableGateway[]> => {
+      try {
+        const { data } = await api.get('/payment-gateways/available');
+        // Filter to only show available gateways
+        return data.filter((gateway: AvailableGateway) => gateway.is_available);
+      } catch (error: any) {
+        console.warn('Failed to fetch payment gateways:', error);
+        // Return empty array if fails - no fallback, just show what's available
+        return [];
+      }
+    },
+  });
+}
+
+// =============================================================================
+// M-PESA Payment Integration
+// =============================================================================
+
+export interface MpesaPaymentRequest {
+  amount: number;
+  phone_number: string;
+  account_reference: string;
+  description: string;
+}
+
+export interface MpesaPaymentResponse {
+  success: boolean;
+  checkout_request_id?: string;
+  merchant_request_id?: string;
+  customer_message?: string;
+  error?: string;
+}
+
+/**
+ * Initiate M-PESA STK Push payment.
+ */
+export function useInitiateMpesaPayment() {
+  return useMutation({
+    mutationFn: async (request: MpesaPaymentRequest): Promise<MpesaPaymentResponse> => {
+      const { data } = await api.post('/mpesa/initiate-payment', request);
+      return data;
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to initiate M-PESA payment');
+    },
+  });
+}
+
+/**
+ * Get M-PESA payment status by checkout request ID.
+ */
+export function useMpesaPaymentStatus(checkoutRequestId?: string) {
+  return useQuery({
+    queryKey: ['mpesa-payment-status', checkoutRequestId],
+    queryFn: async () => {
+      if (!checkoutRequestId) return null;
+      const { data } = await api.get(`/mpesa/payment-status/${checkoutRequestId}`);
+      return data;
+    },
+    enabled: !!checkoutRequestId,
+    refetchInterval: (data) => {
+      // Poll every 3 seconds if payment is still pending
+      if (data?.status === 'PENDING' || data?.status === 'PROCESSING') {
+        return 3000;
+      }
+      return false; // Stop polling when complete
+    },
+  });
+}
+
+// =============================================================================
+// Payment Statistics
+// =============================================================================
+
+export interface PaymentStats {
+  total_payments: number;
+  successful_payments: number;
+  failed_payments: number;
+  pending_payments: number;
+  total_amount: number;
+  mpesa_payments: number;
+  cash_payments: number;
+  bank_transfer_payments: number;
+  daily_earnings: number;
+  weekly_earnings: number;
+  monthly_earnings: number;
+}
+
+/**
+ * Get payment statistics including daily, weekly, and monthly earnings.
+ */
+export function usePaymentStats() {
+  return useQuery({
+    queryKey: ['payment-stats'],
+    queryFn: async (): Promise<PaymentStats> => {
+      const { data } = await api.get('/billing/payments/stats');
+      return data;
+    },
+  });
+}

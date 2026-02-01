@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-export type SettingsCategory = 'system' | 'payments' | 'pppoe' | 'hotspot' | 'sms' | 'notifications';
+export type SettingsCategory = 'system' | 'payments' | 'pppoe' | 'hotspot' | 'sms' | 'whatsapp' | 'notifications';
 
 export type SettingsMap = Record<string, any>;
 
@@ -35,6 +35,20 @@ const fallbackByCategory: Record<SettingsCategory, SettingsMap> = {
   sms: {
     'sms.gateway_provider': 'twilio',
     'sms.enable_balance_alert': false
+  },
+  whatsapp: {
+    'whatsapp.enabled': false,
+    'whatsapp.provider': 'apiwap',
+    'whatsapp.send_payment_confirmation': false,
+    'whatsapp.send_expiry_notifications': false,
+    'whatsapp.send_reminder_notifications': false,
+    'whatsapp.prefer_whatsapp_for_expiry': false,
+    'whatsapp.prefer_whatsapp_for_reminders': false,
+    'whatsapp.prefer_whatsapp_for_payment': false,
+    'whatsapp.payment_hotspot_template': 'Hello @username! You have successfully subscribed to @package_name. Your internet access will expire on @expiry_date. Thank you for choosing @company_name!',
+    'whatsapp.payment_pppoe_template': 'Hello @username! Your @package_name subscription is active. Username: @username, Password: @password. Expiry: @expiry_date. Support: @company_name',
+    'whatsapp.expiry_template': 'Hi @first_name, your @package_name subscription expires on @expiry_date. Please renew to continue enjoying our services. @company_name',
+    'whatsapp.reminder_template': 'Reminder: Your internet subscription expires in @days_left days (@expiry_date). Renew now to avoid disconnection. @company_name'
   },
   notifications: {
     'notifications.mikrotik_status_enabled': false,
@@ -80,7 +94,7 @@ export function useSaveSetting(category: SettingsCategory) {
         await api.post('/configuration/', {
           key,
           value,
-          config_type: 'JSON',
+          config_type: 'json',
           category,
         });
       }

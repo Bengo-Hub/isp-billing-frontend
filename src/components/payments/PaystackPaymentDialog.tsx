@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AcceptedPaymentsRow } from '@/components/portal/PaymentProviders';
 import { CreditCard, ExternalLink, Loader2 } from 'lucide-react';
 import { useInitiatePaystackPayment, Invoice } from '@/features/payments/api';
 import { toast } from 'sonner';
@@ -146,6 +147,11 @@ export function PaystackPaymentDialog({
               <p className="text-sm text-blue-800">
                 You will be redirected to Paystack&apos;s secure checkout page to complete your payment.
               </p>
+            </div>
+
+            {/* Accepted Payment Methods */}
+            <div className="pt-2 border-t">
+              <AcceptedPaymentsRow />
             </div>
           </div>
         )}

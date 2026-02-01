@@ -125,15 +125,29 @@ export function usePlan(planId: number) {
 export interface PlanCreateData {
   name: string;
   description?: string;
-  plan_type: 'hotspot' | 'pppoe' | 'bundle';
+  plan_type: 'INTERNET' | 'HOTSPOT' | 'PPPOE' | 'BOTH';
   price: number;
-  billing_cycle: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+  currency?: string;
+  billing_cycle: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'ONE_TIME';
+  download_speed: number;
+  upload_speed: number;
   data_limit?: number;
-  speed_limit?: number;
+  data_limit_type?: string;
   time_limit?: number;
+  time_limit_type?: string;
   validity_days?: number;
-  simultaneous_sessions?: number;
+  concurrent_sessions?: number;
+  enable_burst?: boolean;
+  burst_download?: number;
+  burst_upload?: number;
+  burst_threshold?: number;
+  burst_time?: number;
+  enable_schedule?: boolean;
+  schedule_start_time?: string;
+  schedule_end_time?: string;
   is_active?: boolean;
+  is_popular?: boolean;
+  sort_order?: number;
 }
 
 export function useCreatePlan() {

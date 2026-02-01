@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCreateOrganization, OrganizationType } from '@/features/platform/api';
-import { ArrowLeft } from 'lucide-react';
+import { useCreateOrganization, useSubscriptionTiers, OrganizationType } from '@/features/platform/api';
+import { ArrowLeft, Building, MapPin, Settings, Bell, Palette, Award } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NewOrganizationPage() {
   const router = useRouter();
   const createOrg = useCreateOrganization();
+  const { data: tiers } = useSubscriptionTiers();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -22,11 +23,18 @@ export default function NewOrganizationPage() {
     country: 'Kenya',
     city: '',
     address: '',
+    primary_color: '#ec4899',
+    secondary_color: '#8b5cf6',
+    default_currency: 'KES',
+    timezone: 'Africa/Nairobi',
+    notification_email: '',
+    notification_phone: '',
+    sms_sender_id: '',
+    subscription_tier_id: undefined as number | undefined,
     trial_days: 14,
     max_routers: 5,
     max_customers: 100,
     max_users: 5,
-    primary_color: '#ec4899',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,8 +62,15 @@ export default function NewOrganizationPage() {
     }));
   };
 
+  // Filter tiers by organization type
+  const availableTiers = tiers?.filter(tier => {
+    if (formData.organization_type === 'hotspot') return tier.tier_type === 'hotspot';
+    if (formData.organization_type === 'pppoe') return tier.tier_type === 'pppoe';
+    return true; // hybrid can use either
+  }) || [];
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/platform/organizations">
           <Button variant="ghost" size="sm">
@@ -72,11 +87,14 @@ export default function NewOrganizationPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
         <Card className="p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <Building className="w-5 h-5 text-pink-600" />
+            <h2 className="font-semibold text-gray-900">Basic Information</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Organization Name *
+                Organization Name <span className="text-red-500">*</span>
               </label>
               <Input
                 required
@@ -87,7 +105,7 @@ export default function NewOrganizationPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Slug *
+                Slug <span className="text-red-500">*</span>
               </label>
               <Input
                 required
@@ -96,11 +114,26 @@ export default function NewOrganizationPage() {
                 placeholder="my-isp-company"
                 pattern="^[a-z0-9-]+$"
               />
-              <p className="text-xs text-gray-500 mt-1">Used in URLs: portal.ispbilling.com/{formData.slug || 'slug'}</p>
+              <p className="text-xs text-gray-500 mt-1">Used in URLs: portal.example.com/{formData.slug || 'slug'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
+                Organization Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={formData.organization_type}
+                onChange={(e) => setFormData(prev => ({ ...prev, organization_type: e.target.value as OrganizationType }))}
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              >
+                <option value="hotspot">Hotspot</option>
+                <option value="pppoe">PPPoE</option>
+                <option value="hybrid">Hybrid (Both)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email <span className="text-red-500">*</span>
               </label>
               <Input
                 required
@@ -120,45 +153,15 @@ export default function NewOrganizationPage() {
                 placeholder="+254 7XX XXX XXX"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Organization Type *
-              </label>
-              <select
-                required
-                value={formData.organization_type}
-                onChange={(e) => setFormData(prev => ({ ...prev, organization_type: e.target.value as OrganizationType }))}
-                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm"
-              >
-                <option value="hotspot">Hotspot</option>
-                <option value="pppoe">PPPoE</option>
-                <option value="hybrid">Hybrid (Both)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Primary Color
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="color"
-                  value={formData.primary_color}
-                  onChange={(e) => setFormData(prev => ({ ...prev, primary_color: e.target.value }))}
-                  className="w-12 h-10 p-1"
-                />
-                <Input
-                  value={formData.primary_color}
-                  onChange={(e) => setFormData(prev => ({ ...prev, primary_color: e.target.value }))}
-                  placeholder="#ec4899"
-                />
-              </div>
-            </div>
           </div>
         </Card>
 
         {/* Location */}
         <Card className="p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Location</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="w-5 h-5 text-pink-600" />
+            <h2 className="font-semibold text-gray-900">Location</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -193,10 +196,167 @@ export default function NewOrganizationPage() {
           </div>
         </Card>
 
-        {/* Limits */}
+        {/* Branding */}
         <Card className="p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Subscription Limits</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Palette className="w-5 h-5 text-pink-600" />
+            <h2 className="font-semibold text-gray-900">Branding</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Primary Color
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={formData.primary_color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, primary_color: e.target.value }))}
+                  className="w-12 h-10 p-1"
+                />
+                <Input
+                  value={formData.primary_color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, primary_color: e.target.value }))}
+                  placeholder="#ec4899"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Secondary Color
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={formData.secondary_color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, secondary_color: e.target.value }))}
+                  className="w-12 h-10 p-1"
+                />
+                <Input
+                  value={formData.secondary_color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, secondary_color: e.target.value }))}
+                  placeholder="#8b5cf6"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Regional Settings */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-5 h-5 text-pink-600" />
+            <h2 className="font-semibold text-gray-900">Regional Settings</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Default Currency
+              </label>
+              <select
+                value={formData.default_currency}
+                onChange={(e) => setFormData(prev => ({ ...prev, default_currency: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              >
+                <option value="KES">KES - Kenyan Shilling</option>
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="GBP">GBP - British Pound</option>
+                <option value="TZS">TZS - Tanzanian Shilling</option>
+                <option value="UGX">UGX - Ugandan Shilling</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Timezone
+              </label>
+              <select
+                value={formData.timezone}
+                onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              >
+                <option value="Africa/Nairobi">Africa/Nairobi (EAT)</option>
+                <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
+                <option value="Africa/Cairo">Africa/Cairo (EET)</option>
+                <option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option>
+                <option value="UTC">UTC</option>
+              </select>
+            </div>
+          </div>
+        </Card>
+
+        {/* Notifications */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="w-5 h-5 text-pink-600" />
+            <h2 className="font-semibold text-gray-900">Notification Settings</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notification Email
+              </label>
+              <Input
+                type="email"
+                value={formData.notification_email}
+                onChange={(e) => setFormData(prev => ({ ...prev, notification_email: e.target.value }))}
+                placeholder="notifications@example.com"
+              />
+              <p className="text-xs text-gray-500 mt-1">For system alerts and reports</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notification Phone
+              </label>
+              <Input
+                value={formData.notification_phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, notification_phone: e.target.value }))}
+                placeholder="+254 7XX XXX XXX"
+              />
+              <p className="text-xs text-gray-500 mt-1">For urgent SMS alerts</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                SMS Sender ID
+              </label>
+              <Input
+                value={formData.sms_sender_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, sms_sender_id: e.target.value }))}
+                placeholder="MyISP"
+                maxLength={11}
+              />
+              <p className="text-xs text-gray-500 mt-1">Alphanumeric, max 11 characters</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Subscription & Limits */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Award className="w-5 h-5 text-pink-600" />
+            <h2 className="font-semibold text-gray-900">Subscription & Limits</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subscription Tier
+              </label>
+              <select
+                value={formData.subscription_tier_id || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, subscription_tier_id: e.target.value ? parseInt(e.target.value) : undefined }))}
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              >
+                <option value="">No Tier (Custom Limits)</option>
+                {availableTiers.map((tier) => (
+                  <option key={tier.id} value={tier.id}>
+                    {tier.name} - KES {tier.base_monthly_fee.toLocaleString()}/mo
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Select a tier or use custom limits below
+              </p>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Trial Days
@@ -233,7 +393,7 @@ export default function NewOrganizationPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Max Users
+                Max Staff Users
               </label>
               <Input
                 type="number"
@@ -246,7 +406,7 @@ export default function NewOrganizationPage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-4 pb-8">
           <Link href="/platform/organizations">
             <Button variant="outline" type="button">Cancel</Button>
           </Link>

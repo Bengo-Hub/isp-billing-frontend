@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PublicBrandedLayout } from '@/components/layouts/PublicBrandedLayout';
 import { CheckCircle2, XCircle, Loader2, ArrowLeft, Receipt, Home } from 'lucide-react';
 import { api } from '@/lib/api/api-client';
 import Link from 'next/link';
@@ -64,8 +65,9 @@ export default function PaymentCallbackPage() {
   }, [reference]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8">
+    <PublicBrandedLayout showHeader backgroundColor="#ec4899">
+      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-8">
         {/* Loading State */}
         {status === 'loading' && (
           <div className="text-center">
@@ -227,6 +229,7 @@ export default function PaymentCallbackPage() {
           </p>
         </div>
       </Card>
-    </div>
+      </div>
+    </PublicBrandedLayout>
   );
 }

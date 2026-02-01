@@ -1,11 +1,14 @@
 import { ReactNode } from 'react';
-import { Toaster } from 'sonner';
 
+/**
+ * Captive Portal Layout
+ *
+ * This is the PUBLIC buying page where MikroTik auto-redirects all users
+ * connected to the ISP network (ethernet or WiFi hotspot).
+ *
+ * NO authentication required - this is the entry point for new customers
+ * and returning customers to purchase packages.
+ */
 export default function CaptiveLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      {children}
-      <Toaster position="top-center" richColors />
-    </div>
-  );
+  return <>{children}</>;
 }

@@ -9,16 +9,36 @@ export const PAYMENT_LOGOS = {
   airtel: '/logos/payments/airtel-money.svg',
   visa: '/logos/payments/visa.svg',
   mastercard: '/logos/payments/mastercard.svg',
+  verve: '/logos/payments/verve.svg',
   bank: '/logos/payments/bank-transfer.svg',
+  ussd: '/logos/payments/ussd.svg',
+  qr: '/logos/payments/qr-code.svg',
+  applePay: '/logos/payments/apple-pay.svg',
+  mtnMomo: '/logos/payments/mtn-momo.svg',
+  vodafone: '/logos/payments/vodafone-cash.svg',
+  tigo: '/logos/payments/tigo-cash.svg',
 } as const;
 
 // Supported payment methods under Paystack
+// Organized by category for better UX
 export const SUPPORTED_PROVIDERS = [
-  { id: 'visa', name: 'Visa', logo: PAYMENT_LOGOS.visa },
-  { id: 'mastercard', name: 'Mastercard', logo: PAYMENT_LOGOS.mastercard },
-  { id: 'mpesa', name: 'M-Pesa', logo: PAYMENT_LOGOS.mpesa },
-  { id: 'airtel', name: 'Airtel Money', logo: PAYMENT_LOGOS.airtel },
-  { id: 'bank', name: 'Bank Transfer', logo: PAYMENT_LOGOS.bank },
+  // Cards
+  { id: 'visa', name: 'Visa', logo: PAYMENT_LOGOS.visa, category: 'card' },
+  { id: 'mastercard', name: 'Mastercard', logo: PAYMENT_LOGOS.mastercard, category: 'card' },
+  { id: 'verve', name: 'Verve', logo: PAYMENT_LOGOS.verve, category: 'card' },
+
+  // Mobile Money
+  { id: 'mpesa', name: 'M-Pesa', logo: PAYMENT_LOGOS.mpesa, category: 'mobile' },
+  { id: 'airtel', name: 'Airtel Money', logo: PAYMENT_LOGOS.airtel, category: 'mobile' },
+  { id: 'mtnMomo', name: 'MTN MoMo', logo: PAYMENT_LOGOS.mtnMomo, category: 'mobile' },
+  { id: 'vodafone', name: 'Vodafone Cash', logo: PAYMENT_LOGOS.vodafone, category: 'mobile' },
+  { id: 'tigo', name: 'Tigo Cash', logo: PAYMENT_LOGOS.tigo, category: 'mobile' },
+
+  // Bank & Other
+  { id: 'bank', name: 'Bank Transfer', logo: PAYMENT_LOGOS.bank, category: 'bank' },
+  { id: 'ussd', name: 'USSD', logo: PAYMENT_LOGOS.ussd, category: 'bank' },
+  { id: 'qr', name: 'QR Code', logo: PAYMENT_LOGOS.qr, category: 'other' },
+  { id: 'applePay', name: 'Apple Pay', logo: PAYMENT_LOGOS.applePay, category: 'wallet' },
 ];
 
 interface PaymentMethodSelectorProps {

@@ -2,24 +2,58 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { usePlans } from '@/features/packages/api';
-import { MoreHorizontal, Package } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  usePlans,
+  useDeletePlan,
+  useActivatePlan,
+  useDeactivatePlan,
+  type PlanItem,
+} from '@/features/packages/api';
+import {
+  MoreHorizontal,
+  Package,
+  Edit,
+  Trash2,
+  Eye,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface PackageTableProps {
   activeTab?: string;
   searchQuery?: string;
+  onEditPackage?: (pkg: PlanItem) => void;
+  onViewPackage?: (pkg: PlanItem) => void;
 }
 
-export default function PackageTable({ activeTab = 'all', searchQuery = '' }: PackageTableProps) {
+export default function PackageTable({
+  activeTab = 'all',
+  searchQuery = '',
+  onEditPackage,
+  onViewPackage,
+}: PackageTableProps) {
   const [selectedPackages, setSelectedPackages] = useState<number[]>([]);
-  
-  const { data, isLoading, error } = usePlans({ 
-    page: 1, 
+
+  const { data, isLoading, error } = usePlans({
+    page: 1,
     size: 20,
     plan_type: activeTab === 'all' ? undefined : activeTab,
     search: searchQuery || undefined
   });
+
+  const deleteMutation = useDeletePlan();
+  const activateMutation = useActivatePlan();
+  const deactivateMutation = useDeactivatePlan();
 
   if (isLoading) return <PkgSkeleton />;
   if (error) return <div className="text-red-600">{String(error)}</div>;
@@ -38,6 +72,33 @@ export default function PackageTable({ activeTab = 'all', searchQuery = '' }: Pa
         ? prev.filter(id => id !== packageId)
         : [...prev, packageId]
     );
+  };
+
+  const handleDelete = async (planId: number) => {
+    if (!confirm('Are you sure you want to delete this package?')) return;
+
+    try {
+      await deleteMutation.mutateAsync(planId);
+      toast.success('Package deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete package');
+    }
+  };
+
+  const handleActivate = async (planId: number) => {
+    try {
+      await activateMutation.mutateAsync(planId);
+    } catch (error) {
+      toast.error('Failed to activate package');
+    }
+  };
+
+  const handleDeactivate = async (planId: number) => {
+    try {
+      await deactivateMutation.mutateAsync(planId);
+    } catch (error) {
+      toast.error('Failed to deactivate package');
+    }
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -136,9 +197,49 @@ export default function PackageTable({ activeTab = 'all', searchQuery = '' }: Pa
                 </Badge>
               </td>
               <td className="py-4 px-4">
-                <Button variant="outline" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {onViewPackage && (
+                      <DropdownMenuItem onClick={() => onViewPackage(pkg)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </DropdownMenuItem>
+                    )}
+                    {onEditPackage && (
+                      <DropdownMenuItem onClick={() => onEditPackage(pkg)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    {pkg.is_active ? (
+                      <DropdownMenuItem onClick={() => handleDeactivate(pkg.id)}>
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Deactivate
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => handleActivate(pkg.id)}>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Activate
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(pkg.id)}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </td>
             </tr>
           ))}

@@ -2,7 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Editor } from '@/components/ui/editor';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Switch } from '@/components/ui/switch';
+import { WhatsAppSubscriptionDialog } from '@/components/whatsapp/WhatsAppSubscriptionDialog';
 import FileUpload from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
 import {
@@ -30,6 +32,8 @@ import {
   useUpdatePayoutConfig
 } from '@/features/settings/gateways';
 import { usePermissions } from '@/lib/stores/rbac';
+import { useAuthStore } from '@/lib/store/auth';
+import { useOrganization } from '@/features/platform/api';
 import { AlertCircle, CheckCircle2, Info, Loader2, Shield } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -40,6 +44,7 @@ const tabs = [
   { id: 'pppoe', label: 'PPPoE' },
   { id: 'hotspot', label: 'Hotspot' },
   { id: 'sms', label: 'SMS Gateway' },
+  { id: 'whatsapp', label: 'WhatsApp' },
   { id: 'notifications', label: 'Notifications' },
 ];
 
@@ -72,6 +77,7 @@ export default function SettingsTabs() {
         {active === 'pppoe' && <PPPoETab />}
         {active === 'hotspot' && <HotspotTab />}
         {active === 'sms' && <SMSTab />}
+        {active === 'whatsapp' && <WhatsAppTab />}
         {active === 'notifications' && <NotificationsTab />}
       </div>
     </div>
@@ -88,6 +94,7 @@ function GeneralTab() {
   const [logo, setLogo] = useState<string>(data['system.logo_url'] || DEFAULT_LOGO);
   const [terms, setTerms] = useState<string>(data['system.terms_text'] ?? '');
   const [isUploading, setIsUploading] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState<string>(data['system.primary_color'] || '#ec4899');
 
   // Sync logo from settings when data loads
   useState(() => {
@@ -95,6 +102,9 @@ function GeneralTab() {
       setLogo(data['system.logo_url']);
     } else {
       setLogo(DEFAULT_LOGO);
+    }
+    if (data['system.primary_color']) {
+      setPrimaryColor(data['system.primary_color']);
     }
   });
 
@@ -121,70 +131,166 @@ function GeneralTab() {
   };
 
   return (
-    <Card className="p-6">
-      <form id="form-general" onSubmit={(e) => { e.preventDefault(); save.mutate({
-        'system.company_name': (e.currentTarget.elements.namedItem('company') as HTMLInputElement).value,
-        'system.primary_color': (e.currentTarget.elements.namedItem('color') as HTMLInputElement).value,
-        'system.support_email': (e.currentTarget.elements.namedItem('email') as HTMLInputElement).value,
-        'system.support_phone': (e.currentTarget.elements.namedItem('phone') as HTMLInputElement).value,
-        'system.terms_text': terms,
-        'system.logo_url': logo,
-        'system.require_terms_consent': true,
-        'system.theme': (e.currentTarget.elements.namedItem('theme') as HTMLSelectElement).value,
-      }); }} className="space-y-4">
-        <div>
-          <label className="text-sm text-gray-700">The name of your ISP / WiFi Company</label>
-          <Input name="company" defaultValue={data['system.company_name'] ?? ''} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <Card className="p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Company Information</h3>
+        <form id="form-general" onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate({
+            'system.company_name': (e.currentTarget.elements.namedItem('company') as HTMLInputElement).value,
+            'system.primary_color': primaryColor,
+            'system.support_email': (e.currentTarget.elements.namedItem('email') as HTMLInputElement).value,
+            'system.support_phone': (e.currentTarget.elements.namedItem('phone') as HTMLInputElement).value,
+            'system.terms_text': terms,
+            'system.logo_url': logo,
+            'system.require_terms_consent': true,
+            'system.theme': (e.currentTarget.elements.namedItem('theme') as HTMLSelectElement).value,
+          });
+        }} className="space-y-6">
+          {/* Company Name */}
           <div>
-            <label className="text-sm text-gray-700">Color</label>
-            <Input name="color" defaultValue={data['system.primary_color'] ?? ''} />
+            <label className="text-sm font-medium text-gray-700">Company Name</label>
+            <Input
+              name="company"
+              defaultValue={data['system.company_name'] ?? ''}
+              placeholder="e.g., Codevertex IT Solutions"
+            />
+            <p className="text-xs text-gray-500 mt-1">The name of your ISP / WiFi Company</p>
           </div>
-          <div>
-            <label className="text-sm text-gray-700">Theme</label>
-            <select name="theme" defaultValue={data['system.theme'] ?? 'system'} className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
-              <option value="system">System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
+
+          {/* Contact Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Support Email</label>
+              <Input
+                name="email"
+                type="email"
+                defaultValue={data['system.support_email'] ?? ''}
+                placeholder="support@yourcompany.com"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Support Phone</label>
+              <Input
+                name="phone"
+                defaultValue={data['system.support_phone'] ?? ''}
+                placeholder="+254 700 000000"
+              />
+            </div>
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-700">Customer Support Email</label>
-            <Input name="email" defaultValue={data['system.support_email'] ?? ''} />
+
+          {/* Branding Section */}
+          <div className="border-t pt-6">
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">Branding & Appearance</h4>
+
+            {/* Logo Upload */}
+            <div className="mb-6">
+              <label className="text-sm font-medium text-gray-700">Company Logo</label>
+              <p className="text-xs text-gray-500 mb-2">Upload your company logo to personalize your dashboard and customer portal</p>
+              <FileUpload
+                name="logo"
+                accept="image/*"
+                maxSize={2}
+                previewUrl={logo}
+                disabled={isUploading}
+                onFileChange={handleLogoUpload}
+              />
+              {isUploading && (
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Uploading logo...
+                </p>
+              )}
+            </div>
+
+            {/* Brand Color */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Primary Brand Color</label>
+                <div className="flex gap-3 mt-2">
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      placeholder="#ec4899"
+                      className="font-mono"
+                    />
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="h-10 w-20 rounded-md border border-gray-300 cursor-pointer"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">This color will be applied across your dashboard and customer portal</p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Theme</label>
+                <select
+                  name="theme"
+                  defaultValue={data['system.theme'] ?? 'system'}
+                  className="mt-2 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="system">System Default</option>
+                  <option value="light">Light Mode</option>
+                  <option value="dark">Dark Mode</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Choose your preferred color theme</p>
+              </div>
+            </div>
+
+            {/* Color Preview */}
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-xs font-medium text-gray-700 mb-2">Brand Color Preview:</p>
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-10 w-10 rounded-lg border-2 border-white shadow-sm"
+                  style={{ backgroundColor: primaryColor }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    Primary Button
+                  </button>
+                  <span
+                    className="px-3 py-2 text-sm font-medium rounded-md"
+                    style={{ color: primaryColor, backgroundColor: `${primaryColor}10` }}
+                  >
+                    Badge
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="text-sm text-gray-700">Customer Support Number</label>
-            <Input name="phone" defaultValue={data['system.support_phone'] ?? ''} />
+
+          {/* Terms & Conditions */}
+          <div className="border-t pt-6">
+            <RichTextEditor
+              label="Terms & Conditions"
+              value={terms}
+              onChange={(value) => setTerms(value)}
+              placeholder="Define the terms and conditions for your WiFi service"
+              minHeight="300px"
+            />
           </div>
-        </div>
-        <div>
-          <label className="text-sm text-gray-700">System Logo</label>
-          <FileUpload
-            name="logo"
-            accept="image/*"
-            maxSize={2}
-            previewUrl={logo}
-            disabled={isUploading}
-            onFileChange={handleLogoUpload}
-          />
-          {isUploading && (
-            <p className="text-xs text-gray-500 mt-1">Uploading logo...</p>
-          )}
-        </div>
-        <div>
-          <label className="text-sm text-gray-700">Terms & Conditions</label>
-          <Editor label="Terms & Conditions" value={terms} onChange={(value) => {
-            setTerms(value);
-          }} />
+
+          <div className="flex gap-3 justify-end pt-4">
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
           </div>
-        <div className="flex gap-3 justify-end">
-          <Button type="submit">Save changes</Button>
-        </div>
-      </form>
-    </Card>
+        </form>
+      </Card>
+    </div>
   );
 }
 
@@ -726,6 +832,10 @@ function PPPoETab() {
 function HotspotTab() {
   const { data: settings, isLoading } = useHotspotSettings();
   const save = useSaveHotspotSettings();
+  const user = useAuthStore((state) => state.user);
+
+  // Get current organization details to access slug for captive portal URL
+  const { data: organization } = useOrganization(user?.organization_id ? parseInt(user.organization_id) : 0);
 
   const [formData, setFormData] = useState({
     username_prefix: 'C',
@@ -878,7 +988,22 @@ function HotspotTab() {
           </label>
         </div>
 
-        <div className="flex gap-3 justify-end pt-4">
+        <div className="flex gap-3 justify-between pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              // Open captive portal with organization slug
+              if (organization?.slug) {
+                window.open(`/buy/${organization.slug}`, '_blank');
+              } else {
+                toast.error('Unable to load organization details. Please try again.');
+              }
+            }}
+            disabled={!organization?.slug}
+          >
+            Preview Captive Portal
+          </Button>
           <Button type="submit" disabled={save.isPending}>
             {save.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Save changes
@@ -974,58 +1099,475 @@ function SMSTab() {
   );
 }
 
-function NotificationsTab() {
-  const { data = {} as any } = useSettings('notifications');
-  const save = useSaveSetting('notifications');
+function WhatsAppTab() {
+  const { data = {} as any } = useSettings('whatsapp');
+  const save = useSaveSetting('whatsapp');
+  const [enabled, setEnabled] = useState(!!data['whatsapp.enabled']);
+  const [paymentConfirm, setPaymentConfirm] = useState(!!data['whatsapp.send_payment_confirmation']);
+  const [expiryNotify, setExpiryNotify] = useState(!!data['whatsapp.send_expiry_notifications']);
+  const [reminderNotify, setReminderNotify] = useState(!!data['whatsapp.send_reminder_notifications']);
+  const [preferExpiry, setPreferExpiry] = useState(!!data['whatsapp.prefer_whatsapp_for_expiry']);
+  const [preferReminders, setPreferReminders] = useState(!!data['whatsapp.prefer_whatsapp_for_reminders']);
+  const [preferPayment, setPreferPayment] = useState(!!data['whatsapp.prefer_whatsapp_for_payment']);
+  const [provider, setProvider] = useState(data['whatsapp.provider'] || 'apiwap');
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+
+  useEffect(() => {
+    setEnabled(!!data['whatsapp.enabled']);
+    setPaymentConfirm(!!data['whatsapp.send_payment_confirmation']);
+    setExpiryNotify(!!data['whatsapp.send_expiry_notifications']);
+    setReminderNotify(!!data['whatsapp.send_reminder_notifications']);
+    setPreferExpiry(!!data['whatsapp.prefer_whatsapp_for_expiry']);
+    setPreferReminders(!!data['whatsapp.prefer_whatsapp_for_reminders']);
+    setPreferPayment(!!data['whatsapp.prefer_whatsapp_for_payment']);
+    setProvider(data['whatsapp.provider'] || 'apiwap');
+  }, [data]);
+
   return (
-    <Card className="p-6">
-      <form id="form-notifications" onSubmit={(e) => { e.preventDefault(); save.mutate({
-        'notifications.mikrotik_status_enabled': (e.currentTarget.elements.namedItem('mt') as HTMLInputElement).checked,
-        'notifications.payment_hotspot_template': (e.currentTarget.elements.namedItem('tpl_hotspot') as HTMLInputElement).value,
-        'notifications.payment_pppoe_template': (e.currentTarget.elements.namedItem('tpl_pppoe') as HTMLInputElement).value,
-        'notifications.expiry_hotspot': (e.currentTarget.elements.namedItem('exp_hs') as HTMLInputElement).checked,
-        'notifications.expiry_pppoe': (e.currentTarget.elements.namedItem('exp_pppoe') as HTMLInputElement).checked,
-        'notifications.reminder_hotspot': (e.currentTarget.elements.namedItem('rem_hs') as HTMLInputElement).checked,
-        'notifications.reminder_pppoe': (e.currentTarget.elements.namedItem('rem_pppoe') as HTMLInputElement).checked,
-        'notifications.email_subscription_enable': (e.currentTarget.elements.namedItem('email_enable') as HTMLInputElement).checked,
-        'notifications.email_subject_pppoe': (e.currentTarget.elements.namedItem('email_subj') as HTMLInputElement).value,
-        'notifications.email_template_pppoe': (e.currentTarget.elements.namedItem('email_tpl') as HTMLInputElement).value,
-      }); }} className="space-y-4">
-        <div className="flex items-center gap-2">
-          <input name="mt" type="checkbox" defaultChecked={!!data['notifications.mikrotik_status_enabled']} />
-          <span className="text-sm text-gray-700">Enable Mikrotik Status Notifications</span>
-        </div>
-        <div>
-          <label className="text-sm text-gray-700">Hotspot payment confirmation SMS</label>
-          <Input name="tpl_hotspot" defaultValue={data['notifications.payment_hotspot_template'] ?? ''} />
-        </div>
-        <div>
-          <label className="text-sm text-gray-700">PPPoE payment confirmation SMS</label>
-          <Input name="tpl_pppoe" defaultValue={data['notifications.payment_pppoe_template'] ?? ''} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex items-center gap-2"><input name="exp_hs" type="checkbox" defaultChecked={!!data['notifications.expiry_hotspot']} /> <span className="text-sm text-gray-700">Send expiry notifications to hotspot users</span></label>
-          <label className="flex items-center gap-2"><input name="exp_pppoe" type="checkbox" defaultChecked={!!data['notifications.expiry_pppoe']} /> <span className="text-sm text-gray-700">Send expiry notifications to PPPoE users</span></label>
-          <label className="flex items-center gap-2"><input name="rem_hs" type="checkbox" defaultChecked={!!data['notifications.reminder_hotspot']} /> <span className="text-sm text-gray-700">Send expiry reminder notifications to hotspot users</span></label>
-          <label className="flex items-center gap-2"><input name="rem_pppoe" type="checkbox" defaultChecked={!!data['notifications.reminder_pppoe']} /> <span className="text-sm text-gray-700">Send expiry reminder notifications to PPPoE users</span></label>
-        </div>
-        <div className="border-t pt-4">
-          <label className="flex items-center gap-2"><input name="email_enable" type="checkbox" defaultChecked={!!data['notifications.email_subscription_enable']} /> <span className="text-sm text-gray-700">Enable Email Subscription Reminders</span></label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-            <div>
-              <label className="text-sm text-gray-700">Email Subject for PPPoE Users</label>
-              <Input name="email_subj" defaultValue={data['notifications.email_subject_pppoe'] ?? ''} />
+    <div className="space-y-6">
+      {/* Subscription Status & Management */}
+      <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900">WhatsApp Subscription</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Send WhatsApp notifications to your customers via {provider.toUpperCase()} gateway.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-4"
+                onClick={() => setSubscriptionDialogOpen(true)}
+              >
+                Manage Subscription
+              </Button>
             </div>
-            <div>
-              <label className="text-sm text-gray-700">Email Message for PPPoE Users</label>
-              <Input name="email_tpl" defaultValue={data['notifications.email_template_pppoe'] ?? ''} />
+            <div className="mt-3 flex items-center gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Monthly Fee:</span>
+                <span className="ml-2 font-semibold text-gray-900">KES 500</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Status:</span>
+                <span className="ml-2 inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                  Active
+                </span>
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex gap-3 justify-end">
-          <Button type="submit">Save changes</Button>
-        </div>
-      </form>
-    </Card>
+      </Card>
+
+      {/* WhatsApp Settings Form */}
+      <Card className="p-6">
+        <form id="form-whatsapp" onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate({
+            'whatsapp.enabled': enabled,
+            'whatsapp.provider': provider,
+            'whatsapp.send_payment_confirmation': paymentConfirm,
+            'whatsapp.send_expiry_notifications': expiryNotify,
+            'whatsapp.send_reminder_notifications': reminderNotify,
+            'whatsapp.prefer_whatsapp_for_expiry': preferExpiry,
+            'whatsapp.prefer_whatsapp_for_reminders': preferReminders,
+            'whatsapp.prefer_whatsapp_for_payment': preferPayment,
+            'whatsapp.payment_hotspot_template': (e.currentTarget.elements.namedItem('payment_hotspot') as HTMLTextAreaElement).value,
+            'whatsapp.payment_pppoe_template': (e.currentTarget.elements.namedItem('payment_pppoe') as HTMLTextAreaElement).value,
+            'whatsapp.expiry_template': (e.currentTarget.elements.namedItem('expiry_tpl') as HTMLTextAreaElement).value,
+            'whatsapp.reminder_template': (e.currentTarget.elements.namedItem('reminder_tpl') as HTMLTextAreaElement).value,
+          });
+        }} className="space-y-6">
+          {/* Enable WhatsApp & Provider Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <label className="text-sm font-medium text-gray-900">Enable WhatsApp Notifications</label>
+                <p className="text-xs text-gray-500 mt-1">Send notifications to customers via WhatsApp</p>
+              </div>
+              <Switch
+                checked={enabled}
+                onCheckedChange={setEnabled}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">WhatsApp Provider</label>
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                className="mt-2 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="apiwap">APIWAP (Recommended)</option>
+                <option value="twilio" disabled>Twilio (Coming Soon)</option>
+                <option value="messagebird" disabled>MessageBird (Coming Soon)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Select your WhatsApp messaging provider</p>
+            </div>
+          </div>
+
+          {/* Notification Types */}
+          <div className="border-t pt-6">
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">Notification Types</h4>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-700">Send payment confirmation messages</span>
+                <Switch
+                  checked={paymentConfirm}
+                  onCheckedChange={setPaymentConfirm}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-700">Send subscription expiry notifications</span>
+                <Switch
+                  checked={expiryNotify}
+                  onCheckedChange={setExpiryNotify}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-700">Send renewal reminder messages</span>
+                <Switch
+                  checked={reminderNotify}
+                  onCheckedChange={setReminderNotify}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Delivery Preferences */}
+          <div className="border-t pt-6">
+            <h4 className="text-sm font-semibold text-gray-900 mb-2">Delivery Preferences</h4>
+            <p className="text-xs text-gray-600 mb-4">
+              Choose WhatsApp instead of SMS for specific client notifications.
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Prefer WhatsApp for expiry notifications</div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    When a client subscription expires, send via WhatsApp instead of SMS.
+                  </p>
+                </div>
+                <Switch
+                  checked={preferExpiry}
+                  onCheckedChange={setPreferExpiry}
+                  className="ml-4"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Prefer WhatsApp for expiry reminders</div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    When sending pre-expiry reminders, use WhatsApp instead of SMS.
+                  </p>
+                </div>
+                <Switch
+                  checked={preferReminders}
+                  onCheckedChange={setPreferReminders}
+                  className="ml-4"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Prefer WhatsApp for payment confirmations</div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Send payment confirmation messages via WhatsApp instead of SMS.
+                  </p>
+                </div>
+                <Switch
+                  checked={preferPayment}
+                  onCheckedChange={setPreferPayment}
+                  className="ml-4"
+                />
+              </div>
+            </div>
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-blue-800">
+                  <strong>Fallback Strategy:</strong> If WhatsApp delivery fails, notifications automatically fall back to SMS (using your configured SMS gateway), then to email if email notifications are enabled.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Message Templates */}
+          <div className="border-t pt-6">
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">Message Templates</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Hotspot Payment Confirmation</label>
+                <textarea
+                  name="payment_hotspot"
+                  rows={3}
+                  defaultValue={data['whatsapp.payment_hotspot_template'] ?? ''}
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  placeholder="Hello @username! You have successfully subscribed..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Available variables: @username, @package_name, @expiry_date, @company_name
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">PPPoE Payment Confirmation</label>
+                <textarea
+                  name="payment_pppoe"
+                  rows={3}
+                  defaultValue={data['whatsapp.payment_pppoe_template'] ?? ''}
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  placeholder="Hello @username! Your subscription is active..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Available variables: @username, @password, @package_name, @expiry_date, @company_name
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Expiry Notification</label>
+                <textarea
+                  name="expiry_tpl"
+                  rows={3}
+                  defaultValue={data['whatsapp.expiry_template'] ?? ''}
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  placeholder="Hi @first_name, your subscription expires on..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Available variables: @first_name, @package_name, @expiry_date, @company_name
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Renewal Reminder</label>
+                <textarea
+                  name="reminder_tpl"
+                  rows={3}
+                  defaultValue={data['whatsapp.reminder_template'] ?? ''}
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  placeholder="Reminder: Your subscription expires in @days_left days..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Available variables: @first_name, @days_left, @expiry_date, @company_name
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4">
+            <Button type="submit">Save WhatsApp Settings</Button>
+          </div>
+        </form>
+      </Card>
+
+      {/* WhatsApp Subscription Dialog */}
+      <WhatsAppSubscriptionDialog
+        open={subscriptionDialogOpen}
+        onOpenChange={setSubscriptionDialogOpen}
+        onSuccess={() => {
+          // Optionally refresh settings or show success message
+          setSubscriptionDialogOpen(false);
+        }}
+      />
+    </div>
+  );
+}
+
+function NotificationsTab() {
+  const { data = {} as any } = useSettings('notifications');
+  const save = useSaveSetting('notifications');
+
+  return (
+    <div className="space-y-6">
+      {/* System Notifications */}
+      <Card className="p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">System Notifications</h3>
+        <form id="form-notifications" onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate({
+            'notifications.mikrotik_status_enabled': (e.currentTarget.elements.namedItem('mt') as HTMLInputElement).checked,
+            'notifications.payment_hotspot_template': (e.currentTarget.elements.namedItem('tpl_hotspot') as HTMLTextAreaElement).value,
+            'notifications.payment_pppoe_template': (e.currentTarget.elements.namedItem('tpl_pppoe') as HTMLTextAreaElement).value,
+            'notifications.expiry_hotspot': (e.currentTarget.elements.namedItem('exp_hs') as HTMLInputElement).checked,
+            'notifications.expiry_pppoe': (e.currentTarget.elements.namedItem('exp_pppoe') as HTMLInputElement).checked,
+            'notifications.reminder_hotspot': (e.currentTarget.elements.namedItem('rem_hs') as HTMLInputElement).checked,
+            'notifications.reminder_pppoe': (e.currentTarget.elements.namedItem('rem_pppoe') as HTMLInputElement).checked,
+            'notifications.email_subscription_enable': (e.currentTarget.elements.namedItem('email_enable') as HTMLInputElement).checked,
+            'notifications.email_subject_pppoe': (e.currentTarget.elements.namedItem('email_subj') as HTMLInputElement).value,
+            'notifications.email_template_pppoe': (e.currentTarget.elements.namedItem('email_tpl') as HTMLTextAreaElement).value,
+          });
+        }} className="space-y-6">
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+              <label className="text-sm font-medium text-gray-900">Mikrotik Status Notifications</label>
+              <p className="text-xs text-gray-500 mt-1">Receive notifications about MikroTik router status changes</p>
+            </div>
+            <input
+              name="mt"
+              type="checkbox"
+              defaultChecked={!!data['notifications.mikrotik_status_enabled']}
+              className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
+            />
+          </div>
+
+          {/* SMS Templates */}
+          <div className="border-t pt-6">
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">SMS Notification Templates</h4>
+            <p className="text-xs text-gray-600 mb-4">
+              Customize SMS messages sent to customers. Use variable tags to personalize messages.
+            </p>
+
+            <div className="space-y-4">
+              {/* Hotspot Payment Confirmation */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Hotspot Payment Confirmation SMS</label>
+                <textarea
+                  name="tpl_hotspot"
+                  rows={3}
+                  defaultValue={data['notifications.payment_hotspot_template'] ?? ''}
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  placeholder="Dear @username, you have successfully subscribed to @package_name..."
+                />
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span className="text-xs text-gray-500">Available tags:</span>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@username</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@package_name</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@expiry_date</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@password</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@company_name</code>
+                </div>
+              </div>
+
+              {/* PPPoE Payment Confirmation */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">PPPoE Payment Confirmation SMS</label>
+                <textarea
+                  name="tpl_pppoe"
+                  rows={3}
+                  defaultValue={data['notifications.payment_pppoe_template'] ?? ''}
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  placeholder="Dear @username, subscription to @package_name is active..."
+                />
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span className="text-xs text-gray-500">Available tags:</span>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@username</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@password</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@package_name</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@expiry_date</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@company_name</code>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Notification Triggers */}
+          <div className="border-t pt-6">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Notification Triggers</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <input
+                  name="exp_hs"
+                  type="checkbox"
+                  defaultChecked={!!data['notifications.expiry_hotspot']}
+                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                />
+                <span className="text-sm text-gray-700">Send expiry notifications to Hotspot users</span>
+              </label>
+              <label className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <input
+                  name="exp_pppoe"
+                  type="checkbox"
+                  defaultChecked={!!data['notifications.expiry_pppoe']}
+                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                />
+                <span className="text-sm text-gray-700">Send expiry notifications to PPPoE users</span>
+              </label>
+              <label className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <input
+                  name="rem_hs"
+                  type="checkbox"
+                  defaultChecked={!!data['notifications.reminder_hotspot']}
+                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                />
+                <span className="text-sm text-gray-700">Send reminder notifications to Hotspot users</span>
+              </label>
+              <label className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <input
+                  name="rem_pppoe"
+                  type="checkbox"
+                  defaultChecked={!!data['notifications.reminder_pppoe']}
+                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                />
+                <span className="text-sm text-gray-700">Send reminder notifications to PPPoE users</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Email Notifications */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-semibold text-gray-900">Email Subscription Reminders</h4>
+              <label className="flex items-center gap-2">
+                <input
+                  name="email_enable"
+                  type="checkbox"
+                  defaultChecked={!!data['notifications.email_subscription_enable']}
+                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                />
+                <span className="text-xs text-gray-600">Enable</span>
+              </label>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Email Subject for PPPoE Users</label>
+                <Input
+                  name="email_subj"
+                  defaultValue={data['notifications.email_subject_pppoe'] ?? ''}
+                  placeholder="Your subscription expires in @days_left days"
+                />
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span className="text-xs text-gray-500">Available tags:</span>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@days_left</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@expiry_date</code>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Email Message for PPPoE Users</label>
+                <textarea
+                  name="email_tpl"
+                  rows={4}
+                  defaultValue={data['notifications.email_template_pppoe'] ?? ''}
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  placeholder="Dear @first_name, your internet will expire in @days_left days on @expiry_date..."
+                />
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span className="text-xs text-gray-500">Available tags:</span>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@first_name</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@username</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@days_left</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@expiry_date</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@package_name</code>
+                  <code className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">@company_name</code>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4">
+            <Button type="submit">Save Notification Settings</Button>
+          </div>
+        </form>
+      </Card>
+    </div>
   );
 }

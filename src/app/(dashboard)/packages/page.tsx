@@ -1,20 +1,32 @@
 'use client';
 
 import CreatePackageDialog from '@/components/packages/CreatePackageDialog';
+import EditPackageDialog from '@/components/packages/EditPackageDialog';
+import PackageDetailDialog from '@/components/packages/PackageDetailDialog';
 import PackageTable from '@/components/packages/PackageTable';
-import QuickTemplatesDialog from '@/components/packages/QuickTemplatesDialog';
+import QuickTemplatesDialog, { type PackageTemplateData } from '@/components/packages/QuickTemplatesDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Filter, HelpCircle, Package, Plus, Search, Star } from 'lucide-react';
 import { useState } from 'react';
+import type { PlanItem } from '@/features/packages/api';
 
 export default function PackagesPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'hotspot' | 'pppoe' | 'data' | 'trial'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isTemplatesDialogOpen, setIsTemplatesDialogOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<PlanItem | null>(null);
+  const [templateData, setTemplateData] = useState<PackageTemplateData | undefined>(undefined);
+
+  const handleTemplateSelect = (data: PackageTemplateData) => {
+    setTemplateData(data);
+    setIsCreateDialogOpen(true);
+  };
 
   const [packageCounts] = useState({
     all: 10,
@@ -109,22 +121,59 @@ export default function PackagesPage() {
 
       {/* Packages Table */}
       <Card className="p-6">
-        <PackageTable 
-          activeTab={activeTab} 
+        <PackageTable
+          activeTab={activeTab}
           searchQuery={searchQuery}
+          onEditPackage={(pkg) => {
+            setSelectedPackage(pkg);
+            setIsEditDialogOpen(true);
+          }}
+          onViewPackage={(pkg) => {
+            setSelectedPackage(pkg);
+            setIsDetailDialogOpen(true);
+          }}
         />
       </Card>
 
       {/* Create Package Dialog */}
-      <CreatePackageDialog 
+      <CreatePackageDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) setTemplateData(undefined);
+        }}
+        initialData={templateData}
       />
 
+      {/* Edit Package Dialog */}
+      {selectedPackage && (
+        <EditPackageDialog
+          open={isEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) setSelectedPackage(null);
+          }}
+          packageData={selectedPackage}
+        />
+      )}
+
+      {/* Package Detail Dialog */}
+      {selectedPackage && (
+        <PackageDetailDialog
+          open={isDetailDialogOpen}
+          onOpenChange={(open) => {
+            setIsDetailDialogOpen(open);
+            if (!open) setSelectedPackage(null);
+          }}
+          packageData={selectedPackage}
+        />
+      )}
+
       {/* Quick Templates Dialog */}
-      <QuickTemplatesDialog 
+      <QuickTemplatesDialog
         open={isTemplatesDialogOpen}
         onOpenChange={setIsTemplatesDialogOpen}
+        onSelectTemplate={handleTemplateSelect}
       />
     </div>
   );

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, Eye, Search, Globe, Download, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
-import { usePayments, useInvoices, usePendingInvoices, Invoice } from '@/features/payments/api';
+import { usePayments, useInvoices, usePendingInvoices, usePaymentStats, Invoice } from '@/features/payments/api';
 import { PaystackPaymentDialog } from '@/components/payments';
 
 export default function PaymentsPage() {
@@ -19,6 +19,7 @@ export default function PaymentsPage() {
   // Fetch real data from API
   const { data: paymentsData, isLoading: paymentsLoading } = usePayments({ page: 1, size: 20 });
   const { data: pendingInvoicesData, isLoading: invoicesLoading } = usePendingInvoices({ page: 1, size: 20 });
+  const { data: paymentStats, isLoading: statsLoading } = usePaymentStats();
 
   const payments = paymentsData?.items || [];
   const pendingInvoices = pendingInvoicesData?.invoices || [];
@@ -58,7 +59,9 @@ export default function PaymentsPage() {
         <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
           <div className="text-sm opacity-90 mb-2">Daily Earnings</div>
           <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold">Ksh 100.00</div>
+            <div className="text-3xl font-bold">
+              {statsLoading ? 'Loading...' : `Ksh ${(paymentStats?.daily_earnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </div>
             <button className="opacity-70 hover:opacity-100">
               <Eye className="h-4 w-4" />
             </button>
@@ -69,7 +72,9 @@ export default function PaymentsPage() {
         <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
           <div className="text-sm opacity-90 mb-2">Weekly Earnings</div>
           <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold">Ksh 200.00</div>
+            <div className="text-3xl font-bold">
+              {statsLoading ? 'Loading...' : `Ksh ${(paymentStats?.weekly_earnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </div>
             <button className="opacity-70 hover:opacity-100">
               <Eye className="h-4 w-4" />
             </button>
@@ -80,7 +85,9 @@ export default function PaymentsPage() {
         <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
           <div className="text-sm opacity-90 mb-2">Monthly Earnings</div>
           <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold">Ksh 3,705.00</div>
+            <div className="text-3xl font-bold">
+              {statsLoading ? 'Loading...' : `Ksh ${(paymentStats?.monthly_earnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </div>
             <button className="opacity-70 hover:opacity-100">
               <Eye className="h-4 w-4" />
             </button>

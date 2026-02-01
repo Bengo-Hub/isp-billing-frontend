@@ -4,6 +4,7 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { TermsConditionsModal } from '@/components/portal/TermsConditionsModal';
 import {
     usePaymentStatus,
     usePortalConfig,
@@ -21,21 +22,22 @@ import {
     LogOut,
     RefreshCw,
     Upload,
-    Wifi
+    Wifi,
+    Phone
 } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function PPPoEPortalPage() {
   const params = useParams();
+  const router = useRouter();
   const orgSlug = params.org as string;
 
   const [token, setToken] = useState<string | null>(null);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const loginMutation = usePPPoELogin(orgSlug);
@@ -72,8 +74,7 @@ export default function PPPoEPortalPage() {
   const handleLogout = () => {
     localStorage.removeItem(`pppoe_token_${orgSlug}`);
     setToken(null);
-    setUsername('');
-    setPassword('');
+    router.push(`/portal/pppoe/${orgSlug}/login`);
   };
 
   const handleRenew = async () => {
@@ -147,41 +148,15 @@ export default function PPPoEPortalPage() {
     );
   }
 
-  // Login page
+  // Redirect to login page if not authenticated
+  useEffect(() => {
+    if (!token) {
+      router.push(`/portal/pppoe/${orgSlug}/login`);
+    }
+  }, [token, orgSlug, router]);
+
   if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: `${primaryColor}10` }}>
-        <Card className="max-w-md w-full p-8">
-          <div className="text-center mb-8">
-            {config?.logo_url && (
-              <img src={config.logo_url} alt={config.organization_name} className="h-16 mx-auto mb-4" />
-            )}
-            <h1 className="text-2xl font-bold">{config?.organization_name || 'Customer Portal'}</h1>
-            <p className="text-gray-600 mt-2">Sign in to manage your subscription</p>
-          </div>
-
-          <div>
-            <LoginForm
-              inline
-              initialUsername={username}
-              initialPassword={password}
-              onSubmit={async (u, p) => {
-                setUsername(u);
-                setPassword(p);
-                await loginMutation.mutateAsync({ username: u, password: p });
-              }}
-            />
-
-            {loginMutation.isError && (
-              <div className="flex items-center gap-2 text-red-600 text-sm mt-3">
-                <AlertTriangle className="w-4 h-4" />
-                <span>Invalid username or password</span>
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-    );
+    return null; // Will redirect
   }
 
   // Dashboard
@@ -195,8 +170,8 @@ export default function PPPoEPortalPage() {
               <img src={config.logo_url} alt={config.organization_name} className="h-10" />
             )}
             <div>
-              <h1 className="text-xl font-bold">{config?.organization_name || 'Customer Portal'}</h1>
-              <p className="text-white/80 text-sm">Welcome, {loginMutation.data?.user?.username || username}</p>
+              <h1 className="text-xl font-bold">Welcome, {dashboard?.user?.username || 'Customer'}</h1>
+              <p className="text-white/80 text-sm">{config?.organization_name || 'Customer Portal'}</p>
             </div>
           </div>
           <Button
@@ -227,23 +202,21 @@ export default function PPPoEPortalPage() {
             {/* Current Plan */}
             <Card className="p-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="font-semibold text-gray-900 mb-1">Current Plan</h2>
+                <div className="flex-1">
+                  <h2 className="text-sm font-medium text-gray-500 mb-2">Current Package</h2>
                   {dashboard?.current_plan ? (
                     <>
-                      <p className="text-2xl font-bold" style={{ color: primaryColor }}>
+                      <p className="text-2xl font-bold mb-2" style={{ color: primaryColor }}>
                         {dashboard.current_plan.name}
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          Expires: {new Date(dashboard.current_plan.expires_at).toLocaleDateString()}
-                        </span>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="w-4 h-4" />
+                        <span>Expires: {new Date(dashboard.current_plan.expires_at).toLocaleDateString()}</span>
                       </div>
                       {dashboard.current_plan.is_expired && (
-                        <div className="mt-2 flex items-center gap-2 text-red-600">
+                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm">
                           <AlertTriangle className="w-4 h-4" />
-                          <span>Your subscription has expired</span>
+                          <span>Expired</span>
                         </div>
                       )}
                     </>
@@ -252,12 +225,62 @@ export default function PPPoEPortalPage() {
                   )}
                 </div>
                 <Button
-                  onClick={() => setSelectedPackage(dashboard?.current_plan ? null : packages?.[0]?.id || null)}
+                  onClick={() => setSelectedPackage(dashboard?.current_plan?.id || packages?.[0]?.id || null)}
                   style={{ backgroundColor: primaryColor }}
+                  className="hover:opacity-90"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Renew
                 </Button>
+              </div>
+            </Card>
+
+            {/* Monthly Usage Chart */}
+            <Card className="p-6">
+              <h3 className="font-semibold text-gray-900 mb-6">Monthly Internet Usage (GB)</h3>
+              <div className="space-y-3">
+                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'].map((month, index) => {
+                  const downloadGb = Math.random() * 50 + 10;
+                  const uploadGb = Math.random() * 20 + 5;
+                  const maxGb = 80;
+
+                  return (
+                    <div key={month} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600 w-12">{month}</span>
+                        <div className="flex-1 mx-3 flex gap-1">
+                          <div
+                            className="h-8 rounded transition-all"
+                            style={{
+                              width: `${(downloadGb / maxGb) * 100}%`,
+                              backgroundColor: primaryColor
+                            }}
+                          />
+                          <div
+                            className="h-8 rounded transition-all"
+                            style={{
+                              width: `${(uploadGb / maxGb) * 100}%`,
+                              backgroundColor: `${primaryColor}80`
+                            }}
+                          />
+                        </div>
+                        <span className="text-gray-900 font-medium w-16 text-right">
+                          {(downloadGb + uploadGb).toFixed(1)} GB
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-6 mt-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: primaryColor }} />
+                  <span className="text-gray-600">Download</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: `${primaryColor}80` }} />
+                  <span className="text-gray-600">Upload</span>
+                </div>
               </div>
             </Card>
 
@@ -424,9 +447,36 @@ export default function PPPoEPortalPage() {
                 ))}
               </div>
             </Card>
+
+            {/* Footer with Terms & Conditions */}
+            <div className="text-center pt-12 pb-8">
+              <p className="text-sm text-gray-600">
+                By renewing your subscription, you agree to our{' '}
+                <button
+                  onClick={() => setTermsModalOpen(true)}
+                  className="underline hover:no-underline transition-all"
+                  style={{ color: primaryColor }}
+                >
+                  Terms & Conditions
+                </button>
+              </p>
+              {config?.organization_name && (
+                <p className="text-xs text-gray-500 mt-2">
+                  &copy; {new Date().getFullYear()} {config.organization_name}. All rights reserved.
+                </p>
+              )}
+            </div>
           </>
         )}
       </div>
+
+      {/* Terms & Conditions Modal */}
+      <TermsConditionsModal
+        open={termsModalOpen}
+        onOpenChange={setTermsModalOpen}
+        orgSlug={orgSlug}
+        primaryColor={primaryColor}
+      />
     </div>
   );
 }

@@ -183,6 +183,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             localStorage.setItem("refresh-token", refresh_token);
           }
 
+          // Also store in cookies for middleware access
+          if (typeof document !== 'undefined') {
+            document.cookie = `auth-token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            if (refresh_token) {
+              document.cookie = `refresh-token=${refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+            }
+          }
+
           console.log('[Auth Store] Extracted from response:', {
             hasBackendUser: !!backendUser,
             backendUserRole: backendUser?.role,
@@ -261,6 +269,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             localStorage.setItem("refresh-token", refresh_token);
           }
 
+          // Also store in cookies for middleware access
+          if (typeof document !== 'undefined') {
+            document.cookie = `auth-token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            if (refresh_token) {
+              document.cookie = `refresh-token=${refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+            }
+          }
+
           // Normalize role and permissions for frontend
           const normalizedUser = {
             ...user,
@@ -302,6 +318,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         localStorage.removeItem("auth-token");
         localStorage.removeItem("refresh-token");
 
+        // Clear cookies
+        if (typeof document !== 'undefined') {
+          document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          document.cookie = 'refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        }
+
         set({
           user: null,
           accessToken: null,
@@ -334,6 +356,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           localStorage.setItem("auth-token", access_token);
           if (newRefreshToken) {
             localStorage.setItem("refresh-token", newRefreshToken);
+          }
+
+          // Also update cookies for middleware access
+          if (typeof document !== 'undefined') {
+            document.cookie = `auth-token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            if (newRefreshToken) {
+              document.cookie = `refresh-token=${newRefreshToken}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+            }
           }
 
           set({
