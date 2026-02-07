@@ -1,0 +1,28 @@
+# =============================================================================
+# ISP Billing Frontend — Kubernetes Secrets for Local / Manual Deployment
+# Namespace: isp-billing
+# =============================================================================
+# IMPORTANT: Do NOT commit real credentials to version control.
+# Replace all placeholder values before applying.
+#
+# Usage:
+#   kubectl apply -n isp-billing -f KubeSecrets/devENV.yml
+# =============================================================================
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: isp-billing-frontend-secrets
+  namespace: isp-billing
+  labels:
+    app: isp-billing-frontend
+    managed-by: manual
+type: Opaque
+stringData:
+  # ── NextAuth ──
+  # Generate with: openssl rand -base64 32
+  NEXTAUTH_SECRET: "CHANGE_ME_GENERATE_A_32_CHAR_SECRET"
+
+  # ── Monitoring (optional) ──
+  NEXT_PUBLIC_SENTRY_DSN: ""

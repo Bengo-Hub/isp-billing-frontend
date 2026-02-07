@@ -1,8 +1,8 @@
 # ISP Billing System - Frontend Implementation Plan
 
-**Document Version:** 2.0
-**Last Updated:** 2026-01-26
-**Project Status:** 98% Complete
+**Document Version:** 2.1
+**Last Updated:** 2026-02-01
+**Project Status:** 99% Complete
 **Target:** 100% Production-Ready Multi-Tenant ISP Billing Platform
 
 ---
@@ -47,7 +47,7 @@ This plan outlines the comprehensive frontend implementation for the ISP billing
 #### 1. Captive Portal (End-User)
 - **Purpose**: Package purchase after WiFi/PPPoE connection
 - **Route**: `/captive-portal`
-- **Status**: 80% Complete
+- **Status**: 95% Complete
 
 #### 2. Marketing Website (SaaS)
 - **Purpose**: ISP provider acquisition and registration
@@ -57,7 +57,7 @@ This plan outlines the comprehensive frontend implementation for the ISP billing
 #### 3. Admin Dashboard (ISP Provider)
 - **Purpose**: Complete billing management system
 - **Route**: `/dashboard/*`
-- **Status**: 98% Complete
+- **Status**: 99% Complete
 
 ---
 
@@ -332,31 +332,36 @@ This plan outlines the comprehensive frontend implementation for the ISP billing
 
 ---
 
-### Phase 9: Captive Portal (PARTIALLY COMPLETED)
+### Phase 9: Captive Portal (MOSTLY COMPLETE)
 
 #### Sprint 18: End-User Portal
-**Status:** 80% Complete
+**Status:** 95% Complete
 **Priority:** HIGH
 **Estimated Duration:** 1 week
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Package selection | COMPLETED | Plan cards |
-| Price display | COMPLETED | With validity |
-| M-PESA payment | PENDING | STK Push integration |
-| Payment status | PENDING | Polling UI |
-| Success redirect | PENDING | Post-auth flow |
-| Mobile optimization | COMPLETED | Touch-friendly |
-| Tenant branding | PENDING | Dynamic theming |
-| Voucher input | PENDING | Code redemption |
+| Package selection | COMPLETED | Plan cards with responsive grid |
+| Price display | COMPLETED | With validity, speed, data limits |
+| M-PESA payment | COMPLETED | STK Push via payment method selector |
+| Paystack payment | COMPLETED | Redirect-based checkout |
+| Payment status | COMPLETED | Polling UI with spinner |
+| Success redirect | COMPLETED | Post-auth flow with link-login |
+| Mobile optimization | COMPLETED | Touch-friendly, mobile-first tabs |
+| Tenant branding | COMPLETED | Centralized `usePortalBranding` hook with Codevertex fallback |
+| Voucher input | COMPLETED | Code redemption with toast feedback |
+| Connect / Reconnect flow | COMPLETED | ConnectLoginModal (username/password → MikroTik sync) |
+| Shared toast system | COMPLETED | `showToast` utility wrapping Sonner, domain-specific helpers |
+| Dead Radix toast cleanup | COMPLETED | Removed unused toast.tsx, toaster.tsx, use-toast.ts |
+| Branding deduplication | COMPLETED | Single DEFAULT_BRANDING source in `use-portal-branding.ts`, PublicBrandedLayout refactored |
 
 **Captive Portal Flow:**
 1. User connects to WiFi/PPPoE
-2. Redirected to captive portal
-3. Views available packages
-4. Initiates payment (M-PESA/Voucher)
-5. Payment confirmed → Service activated
-6. Redirect to success URL (google.com or custom)
+2. Redirected to captive portal (`/buy/{orgSlug}`)
+3. Three tabs: **Buy Packages** · **Redeem Voucher** · **Connect**
+4. Buy: selects package → payment method (M-PESA/Paystack) → payment confirmed → credentials shown → redirect
+5. Redeem: enters voucher code → validated → session activated → redirect
+6. Connect: returning user enters username/password → backend validates active subscription → MikroTik sync → internet
 
 ---
 
@@ -535,22 +540,25 @@ This plan outlines the comprehensive frontend implementation for the ISP billing
 | Category | Completion | Status |
 |----------|------------|--------|
 | Authentication | 100% | COMPLETED |
-| Dashboard | 100% | COMPLETED |
-| User Management | 100% | COMPLETED |
-| Package Management | 100% | COMPLETED |
+| Dashboard | 100% | COMPLETED (Recent Activity now live from system logs API) |
+| User Management | 100% | COMPLETED (System users, expiry, detail pages use live API) |
+| Package Management | 100% | COMPLETED (Tab counts computed from plans API) |
 | Router Management | 100% | COMPLETED |
 | Provisioning | 100% | COMPLETED |
 | Payments | 100% | COMPLETED |
-| SMS Management | 100% | COMPLETED |
+| SMS Management | 100% | COMPLETED (Stats from useSmsAnalytics/useTenantSmsBalance) |
+| Voucher Management | 100% | COMPLETED (New backend API + frontend hooks + page rewrite) |
+| Billing/Subscriptions | 100% | COMPLETED (Page rewrite with useSubscriptions/usePayments) |
 | Settings | 100% | COMPLETED |
 | Reports | 100% | COMPLETED |
 | RBAC | 100% | COMPLETED |
 | Licence Management | 100% | COMPLETED |
-| Captive Portal | 80% | IN PROGRESS |
+| Support Pages | 100% | COMPLETED (Contact/Feature Request wired to tickets API) |
+| Captive Portal | 95% | IN PROGRESS |
 | Multi-Tenancy UI | 0% | PENDING |
 | Testing | 10% | PENDING |
 
-**Overall: 98% Complete**
+**Overall: 99% Complete**
 
 ---
 
@@ -623,7 +631,7 @@ This plan outlines the comprehensive frontend implementation for the ISP billing
 | Phase 6: Reports | - | COMPLETED |
 | Phase 7: RBAC | - | COMPLETED |
 | Phase 8: Multi-Tenancy | 2 weeks | PENDING |
-| Phase 9: Captive Portal | 1 week | 80% |
+| Phase 9: Captive Portal | 1 week | 95% |
 | Phase 10: Advanced | 2 weeks | PENDING |
 | Phase 11: Testing | 2 weeks | 10% |
 
@@ -639,6 +647,38 @@ This plan outlines the comprehensive frontend implementation for the ISP billing
 4. **Week 4-5:** Testing infrastructure (Sprint 21)
 5. **Week 6:** Performance optimization (Sprint 22)
 6. **Week 7-8:** Advanced features + Polish (Sprint 19-20)
+
+---
+
+## Recent Changes (Sprint Delta)
+
+### 2FA — Full Implementation (was Preview Mode)
+- **2FA setup page** (`security/2fa/page.tsx`): Rewrote from hardcoded preview to real API integration. Setup → QR scan → TOTP verify → recovery codes flow. Disable with password confirmation.
+- **2FA API hooks** (`features/auth/api.ts`): 7 new hooks — `use2FAStatus`, `useSetup2FA`, `useVerify2FA`, `useDisable2FA`, `useRegenerateRecoveryCodes`, `useAuthenticate2FA`.
+- **Settings security page** (`settings/security/page.tsx`): Replaced disabled "Coming Soon" button with link to 2FA management page.
+
+### IP Bindings — Full Implementation (was Coming Soon)
+- **IP Bindings page** (`ip-bindings/page.tsx`): Full CRUD interface with router selector, search/filter, create/edit/delete dialogs, binding type badges (Regular/Bypassed/Blocked).
+- **IP Bindings API hooks** (`features/ip-bindings/api.ts`): `useIPBindings`, `useCreateIPBinding`, `useUpdateIPBinding`, `useDeleteIPBinding`.
+- **Query keys** (`lib/query/query-client.ts`): Added `ipBindings` key factory.
+
+### Packages — Form Field Completeness
+- **CreatePackageDialog**: Added missing fields: `description`, `currency` selector (was hardcoded KES), `data_limit` with unlimited toggle, `time_limit` with unlimited toggle, FUP configuration (threshold + reduced speeds), `auto_renewal`, `sort_order`, `notes`.
+
+### Customer Portal — RBAC Sidebar
+- **Sidebar** (`components/dashboard/Sidebar.tsx`): Added dynamic customer navigation section using `customer_dashboard/packages/payments/usage/profile` RBAC modules. Customer nav built from auth store's `customerPortalInfo` (org slug + subscription type).
+
+### 2FA Login Flow Integration
+- **Auth store** (`lib/stores/auth-store.ts`): Added `TwoFactorChallenge` interface and state, `complete2FALogin(tempToken, code)` action, `clear2FAChallenge()` action. Modified `login()` to detect `requires_2fa: true` and store challenge state.
+- **Login form** (`components/auth/LoginForm.tsx`): Complete rewrite with 2FA verification UI — TOTP code input, recovery code support, back button to return to credentials.
+- Removed demo account quick-fill buttons (production cleanup).
+
+### Production Hardening
+- **Security headers** (`next.config.ts`): Added X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy.
+- **Localhost fallback** (`lib/config.ts`, `lib/api/api-client.ts`): Changed from hardcoded IP to `localhost:8000`.
+- **Error boundaries** (`app/{dashboard,platform,portal,marketing}/error.tsx`): Created error.tsx files for all 4 route groups.
+- **Production-safe logging** (`lib/logger.ts`): Created logger utility with `authLogger`, `apiLogger`, `storeLogger` — only outputs in development mode.
+- **Console.log cleanup**: Replaced all console.log/console.error in `auth-store.ts` and `LoginForm.tsx` with production-safe logger calls.
 
 ---
 

@@ -180,6 +180,44 @@ export function usePaymentStatus(orgSlug: string, reference?: string) {
 }
 
 // =========================================================================
+// Hotspot Login / Connect Hooks
+// =========================================================================
+
+export interface HotspotLoginRequest {
+  username: string;
+  password: string;
+  mac_address?: string;
+}
+
+export interface HotspotLoginResponse {
+  success: boolean;
+  message: string;
+  session_token?: string;
+  /** MikroTik login URL the client should redirect to after auth. */
+  login_url?: string;
+  plan_name?: string;
+  expires_at?: string;
+  is_active: boolean;
+}
+
+/**
+ * Hotspot customer login (username + password).
+ * Used by the "Connect" tab on the captive portal for returning users
+ * who already purchased a package or have active vouchers.
+ *
+ * Backend validates credentials → checks active subscription →
+ * syncs MAC to MikroTik → returns login_url for redirect.
+ */
+export function useHotspotLogin(orgSlug: string) {
+  return useMutation({
+    mutationFn: async (request: HotspotLoginRequest): Promise<HotspotLoginResponse> => {
+      const { data } = await api.post(`/portal/hotspot/${orgSlug}/login`, request);
+      return data;
+    },
+  });
+}
+
+// =========================================================================
 // PPPoE Portal Hooks
 // =========================================================================
 

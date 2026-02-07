@@ -1,23 +1,69 @@
 'use client';
 
 import {
-  ActiveUsersChart,
-  DataUsageChart,
-  MostActiveUsersTable,
-  NetworkUsageChart,
-  PackagePerformanceTable,
-  PackageUtilizationChart,
-  PaymentsChart,
-  RetentionChart,
-  RevenueForecastChart,
-  SentSMSChart
+    ActiveUsersChart,
+    DataUsageChart,
+    MostActiveUsersTable,
+    NetworkUsageChart,
+    PackagePerformanceTable,
+    PackageUtilizationChart,
+    PaymentsChart,
+    RetentionChart,
+    RevenueForecastChart,
+    SentSMSChart
 } from '@/components/dashboard/Charts';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardAnalytics } from '@/features/dashboard/api';
+import { useRecentActivity } from '@/features/dashboard/hooks';
 import { useTenantSmsBalance } from '@/features/sms/api';
 import { Activity, MessageSquare, Users, Wallet } from 'lucide-react';
+
+const LOG_LEVEL_COLORS: Record<string, string> = {
+  success: 'bg-green-500',
+  info: 'bg-blue-500',
+  warning: 'bg-orange-500',
+  error: 'bg-red-500',
+};
+
+function timeAgo(dateStr?: string) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function RecentActivityCard() {
+  const { data: logs, isLoading } = useRecentActivity(8);
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+      <div className="space-y-3">
+        {isLoading ? (
+          [...Array(4)].map((_, i) => <Skeleton key={i} className="h-8" />)
+        ) : (!logs || logs.length === 0) ? (
+          <p className="text-sm text-gray-500 py-4 text-center">No recent activity</p>
+        ) : (
+          logs.map((log) => (
+            <div key={log.id} className="flex items-center gap-3 py-1.5">
+              <div className={`h-2 w-2 rounded-full ${LOG_LEVEL_COLORS[log.level] ?? 'bg-gray-400'}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{log.message}</p>
+                <p className="text-xs text-gray-500">{timeAgo(log.timestamp || log.created_at)}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </Card>
+  );
+}
 
 export default function DashboardPage() {
   // Enable real-time updates with 30-second polling
@@ -85,32 +131,7 @@ export default function DashboardPage() {
 
       {/* Bottom grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 py-2">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">New user registered</p>
-                <p className="text-xs text-gray-500">5 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 py-2">
-              <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Payment received</p>
-                <p className="text-xs text-gray-500">12 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 py-2">
-              <div className="h-2 w-2 rounded-full bg-orange-500"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Router went offline</p>
-                <p className="text-xs text-gray-500">1 hour ago</p>
-              </div>
-            </div>
-          </div>
-        </Card>
+        <RecentActivityCard />
 
         <MostActiveUsersTable />
       </div>

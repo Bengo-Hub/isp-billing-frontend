@@ -1,247 +1,201 @@
-'use client';
+﻿'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Ticket, Search, Download, Plus, MoreHorizontal, Eye, Copy } from 'lucide-react';
-import { useState } from 'react';
-
-interface Voucher {
-  id: number;
-  code: string;
-  discount: number;
-  type: 'percentage' | 'fixed';
-  usageCount: number;
-  usageLimit: number;
-  expiryDate: string;
-  status: 'active' | 'expired' | 'disabled';
-  createdBy: string;
-  createdAt: string;
-}
+import { Skeleton } from '@/components/ui/skeleton';
+import { Ticket, Search, Download, Plus, MoreHorizontal, Copy, Trash2, RefreshCw } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { useVouchers, useVoucherStats, useGenerateVouchers, useDeleteVoucher, useUpdateVoucher, type VoucherStatus } from '@/features/vouchers/api';
+import { usePlans } from '@/features/packages/api';
+import { toast } from 'sonner';
 
 export default function VouchersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<VoucherStatus | ''>('');
+  const [page, setPage] = useState(1);
 
-  // Mock data
-  const vouchers: Voucher[] = [
-    {
-      id: 1,
-      code: 'SUMMER2026',
-      discount: 20,
-      type: 'percentage',
-      usageCount: 45,
-      usageLimit: 100,
-      expiryDate: '2026-08-31',
-      status: 'active',
-      createdBy: 'Admin',
-      createdAt: '2026-01-15'
-    },
-    {
-      id: 2,
-      code: 'WELCOME50',
-      discount: 50,
-      type: 'fixed',
-      usageCount: 12,
-      usageLimit: 50,
-      expiryDate: '2026-03-31',
-      status: 'active',
-      createdBy: 'Admin',
-      createdAt: '2026-01-10'
-    },
-    {
-      id: 3,
-      code: 'NEWYEAR2026',
-      discount: 15,
-      type: 'percentage',
-      usageCount: 100,
-      usageLimit: 100,
-      expiryDate: '2026-01-31',
-      status: 'expired',
-      createdBy: 'Admin',
-      createdAt: '2025-12-20'
-    },
-    {
-      id: 4,
-      code: 'LOYALTY25',
-      discount: 25,
-      type: 'percentage',
-      usageCount: 8,
-      usageLimit: 200,
-      expiryDate: '2026-12-31',
-      status: 'active',
-      createdBy: 'Manager',
-      createdAt: '2026-01-05'
-    },
-    {
-      id: 5,
-      code: 'PROMO100',
-      discount: 100,
-      type: 'fixed',
-      usageCount: 23,
-      usageLimit: 50,
-      expiryDate: '2026-06-30',
-      status: 'disabled',
-      createdBy: 'Admin',
-      createdAt: '2026-01-01'
+  // Form state
+  const [formPlanId, setFormPlanId] = useState<number>(0);
+  const [formCount, setFormCount] = useState(10);
+
+  const { data: voucherData, isLoading } = useVouchers({
+    page,
+    size: 20,
+    status: statusFilter || undefined,
+    search: searchTerm || undefined,
+  });
+  const { data: stats } = useVoucherStats();
+  const { data: plansData } = usePlans({ page: 1, size: 100 });
+  const generateVouchers = useGenerateVouchers();
+  const deleteVoucher = useDeleteVoucher();
+  const updateVoucher = useUpdateVoucher();
+
+  const vouchers = voucherData?.vouchers ?? [];
+  const totalPages = voucherData?.pages ?? 0;
+
+  const copyCode = useCallback((code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success('Code copied to clipboard');
+  }, []);
+
+  const handleGenerate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formPlanId) {
+      toast.error('Please select a plan');
+      return;
     }
-  ];
-
-  const stats = {
-    activeVouchers: vouchers.filter(v => v.status === 'active').length,
-    totalRedemptions: vouchers.reduce((sum, v) => sum + v.usageCount, 0),
-    totalDiscount: 'Ksh 12,450.00'
+    generateVouchers.mutate(
+      { plan_id: formPlanId, count: formCount },
+      { onSuccess: () => setShowCreateModal(false) }
+    );
   };
 
-  const filteredVouchers = vouchers.filter(voucher =>
-    voucher.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleDisable = (id: number) => {
+    updateVoucher.mutate({ voucherId: id, data: { status: 'disabled' } });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-700';
+      case 'used': return 'bg-blue-100 text-blue-700';
+      case 'expired': return 'bg-red-100 text-red-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Vouchers</h1>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
+          <Ticket className="h-6 w-6 text-pink-600" />
           <h1 className="text-2xl font-bold text-gray-900">Vouchers</h1>
-          <button className="text-gray-400 hover:text-gray-600">
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </button>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button
-            className="bg-pink-600 hover:bg-pink-700"
-            onClick={() => setShowCreateModal(true)}
-          >
+          <Button size="sm" className="bg-pink-600 hover:bg-pink-700" onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Create Voucher
+            Generate Vouchers
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
-          <div className="text-sm opacity-90 mb-2">Active Vouchers</div>
-          <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold">{stats.activeVouchers}</div>
-            <button className="opacity-70 hover:opacity-100">
-              <Eye className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="text-xs opacity-75 mt-2">Currently active voucher codes</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-5 bg-linear-to-br from-pink-400 to-pink-500 text-white">
+          <div className="text-sm opacity-90 mb-1">Total</div>
+          <div className="text-2xl font-bold">{stats?.total_vouchers ?? 0}</div>
         </Card>
-
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
-          <div className="text-sm opacity-90 mb-2">Total Redemptions</div>
-          <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold">{stats.totalRedemptions}</div>
-            <button className="opacity-70 hover:opacity-100">
-              <Eye className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="text-xs opacity-75 mt-2">Total vouchers redeemed</div>
+        <Card className="p-5 bg-linear-to-br from-green-400 to-green-600 text-white">
+          <div className="text-sm opacity-90 mb-1">Active</div>
+          <div className="text-2xl font-bold">{stats?.active_vouchers ?? 0}</div>
         </Card>
-
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
-          <div className="text-sm opacity-90 mb-2">Total Discount Given</div>
-          <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold">{stats.totalDiscount}</div>
-            <button className="opacity-70 hover:opacity-100">
-              <Eye className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="text-xs opacity-75 mt-2">Total discount amount</div>
+        <Card className="p-5 bg-linear-to-br from-blue-400 to-blue-600 text-white">
+          <div className="text-sm opacity-90 mb-1">Used</div>
+          <div className="text-2xl font-bold">{stats?.used_vouchers ?? 0}</div>
+        </Card>
+        <Card className="p-5 bg-linear-to-br from-red-400 to-red-600 text-white">
+          <div className="text-sm opacity-90 mb-1">Expired</div>
+          <div className="text-2xl font-bold">{stats?.expired_vouchers ?? 0}</div>
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-4">
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search vouchers..."
+            placeholder="Search by code or username..."
             className="pl-10"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
           />
         </div>
+        <select
+          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value as VoucherStatus | ''); setPage(1); }}
+        >
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="used">Used</option>
+          <option value="expired">Expired</option>
+          <option value="disabled">Disabled</option>
+        </select>
       </div>
 
       {/* Vouchers Table */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b">
               <tr className="text-left text-sm text-gray-600">
-                <th className="pb-3 font-medium">
-                  <input type="checkbox" className="rounded border-gray-300" />
-                </th>
                 <th className="pb-3 font-medium">Code</th>
-                <th className="pb-3 font-medium">Discount</th>
-                <th className="pb-3 font-medium">Type</th>
-                <th className="pb-3 font-medium">Usage</th>
-                <th className="pb-3 font-medium">Expiry Date</th>
+                <th className="pb-3 font-medium hidden md:table-cell">Plan</th>
+                <th className="pb-3 font-medium hidden sm:table-cell">Username</th>
+                <th className="pb-3 font-medium hidden lg:table-cell">Bandwidth</th>
                 <th className="pb-3 font-medium">Status</th>
-                <th className="pb-3 font-medium">Created By</th>
-                <th className="pb-3"></th>
+                <th className="pb-3 font-medium hidden sm:table-cell">Created</th>
+                <th className="pb-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredVouchers.length === 0 ? (
+              {vouchers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-gray-500">
+                  <td colSpan={7} className="py-12 text-center text-gray-500">
+                    <Ticket className="h-10 w-10 mx-auto mb-2 text-gray-300" />
                     No vouchers found
                   </td>
                 </tr>
               ) : (
-                filteredVouchers.map((voucher) => (
-                  <tr key={voucher.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3">
-                      <input type="checkbox" className="rounded border-gray-300" />
-                    </td>
+                vouchers.map((v) => (
+                  <tr key={v.id} className="border-b hover:bg-gray-50">
                     <td className="py-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-pink-600">{voucher.code}</span>
-                        <button className="text-gray-400 hover:text-pink-600">
-                          <Copy className="h-4 w-4" />
+                        <span className="font-mono font-medium text-pink-600">{v.code}</span>
+                        <button onClick={() => copyCode(v.code)} className="text-gray-400 hover:text-pink-600">
+                          <Copy className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
-                    <td className="py-3 text-sm font-medium">
-                      {voucher.type === 'percentage' ? `${voucher.discount}%` : `Ksh ${voucher.discount}`}
+                    <td className="py-3 text-sm hidden md:table-cell">{v.plan_name ?? '-'}</td>
+                    <td className="py-3 text-sm hidden sm:table-cell">{v.hotspot_username ?? '-'}</td>
+                    <td className="py-3 text-sm hidden lg:table-cell">{v.bandwidth_limit ?? '-'}</td>
+                    <td className="py-3">
+                      <Badge className={getStatusColor(v.status)}>{v.status}</Badge>
+                    </td>
+                    <td className="py-3 text-sm hidden sm:table-cell">
+                      {v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}
                     </td>
                     <td className="py-3">
-                      <Badge variant="outline" className="capitalize">
-                        {voucher.type}
-                      </Badge>
-                    </td>
-                    <td className="py-3 text-sm">
-                      {voucher.usageCount} / {voucher.usageLimit}
-                    </td>
-                    <td className="py-3 text-sm">
-                      {new Date(voucher.expiryDate).toLocaleDateString()}
-                    </td>
-                    <td className="py-3">
-                      <Badge className={
-                        voucher.status === 'active' ? 'bg-green-100 text-green-700' :
-                        voucher.status === 'expired' ? 'bg-red-100 text-red-700' :
-                        'bg-gray-100 text-gray-700'
-                      }>
-                        {voucher.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 text-sm">{voucher.createdBy}</td>
-                    <td className="py-3">
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {v.status === 'active' && (
+                          <Button variant="ghost" size="sm" onClick={() => handleDisable(v.id)} title="Disable">
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => deleteVoucher.mutate(v.id)} title="Delete">
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -249,100 +203,60 @@ export default function VouchersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <p className="text-sm text-gray-600">
+              Page {page} of {totalPages} ({voucherData?.total ?? 0} total)
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button>
+              <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next</Button>
+            </div>
+          </div>
+        )}
       </Card>
 
-      {/* Create Voucher Modal */}
+      {/* Generate Vouchers Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl p-6">
-            <h2 className="text-xl font-bold mb-6">Create Voucher</h2>
-
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Voucher Code */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Voucher Code<span className="text-red-500">*</span>
-                  </label>
-                  <Input placeholder="e.g., SUMMER2026" />
-                  <p className="text-xs text-gray-500 mt-1">Unique code for the voucher</p>
-                </div>
-
-                {/* Discount Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Discount Type<span className="text-red-500">*</span>
-                  </label>
-                  <select className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
-                    <option value="percentage">Percentage</option>
-                    <option value="fixed">Fixed Amount</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Discount Value */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Discount Value<span className="text-red-500">*</span>
-                  </label>
-                  <Input type="number" placeholder="e.g., 20" />
-                  <p className="text-xs text-gray-500 mt-1">Enter percentage or amount</p>
-                </div>
-
-                {/* Usage Limit */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Usage Limit<span className="text-red-500">*</span>
-                  </label>
-                  <Input type="number" placeholder="e.g., 100" />
-                  <p className="text-xs text-gray-500 mt-1">Maximum number of uses</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Start Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date<span className="text-red-500">*</span>
-                  </label>
-                  <Input type="date" />
-                </div>
-
-                {/* Expiry Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Expiry Date<span className="text-red-500">*</span>
-                  </label>
-                  <Input type="date" />
-                </div>
-              </div>
-
-              {/* Description */}
+          <Card className="w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-6">Generate Vouchers</h2>
+            <form onSubmit={handleGenerate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
+                  Plan<span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  className="w-full h-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                  placeholder="Enter voucher description..."
-                />
+                <select
+                  className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
+                  value={formPlanId}
+                  onChange={(e) => setFormPlanId(Number(e.target.value))}
+                  required
+                >
+                  <option value={0}>Select a plan...</option>
+                  {(plansData?.plans ?? []).map((p) => (
+                    <option key={p.id} value={p.id}>{p.name} - Ksh {p.price}</option>
+                  ))}
+                </select>
               </div>
-
-              {/* Actions */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Vouchers
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={formCount}
+                  onChange={(e) => setFormCount(Number(e.target.value))}
+                />
+                <p className="text-xs text-gray-500 mt-1">Generate 1-500 voucher codes at once</p>
+              </div>
               <div className="flex items-center gap-3 justify-end pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
-                >
-                  Create Voucher
+                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                <Button type="submit" className="bg-pink-600 hover:bg-pink-700" disabled={generateVouchers.isPending}>
+                  {generateVouchers.isPending ? 'Generating...' : 'Generate'}
                 </Button>
               </div>
             </form>

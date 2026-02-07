@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import { queryKeys, QUERY_STALE_TIMES, QUERY_GC_TIMES } from '@/lib/query/query-client';
+import { QUERY_GC_TIMES, QUERY_STALE_TIMES, queryKeys } from '@/lib/query/query-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -37,28 +37,12 @@ export interface UserCreateData {
   bio?: string;
 }
 
-const usersFallback = {
-  users: [
-    { id: 1, username: 'jane.doe', email: 'jane@example.com', role: 'admin' as const, status: 'active' as const },
-    { id: 2, username: 'john.smith', email: 'john@example.com', role: 'user' as const, status: 'inactive' as const },
-    { id: 3, username: 'alice', email: 'alice@example.com', role: 'user' as const, status: 'active' as const },
-  ],
-  total: 3,
-  page: 1,
-  size: 3,
-  pages: 1,
-};
-
 export function useUsers(params: { page?: number; size?: number; role?: string; status?: string; search?: string }) {
   return useQuery({
     queryKey: queryKeys.users.list(params),
     queryFn: async (): Promise<{ users: UserItem[]; total: number; page: number; size: number; pages: number }> => {
-      try {
-        const { data } = await api.get('/users/', { params });
-        return data;
-      } catch {
-        return usersFallback;
-      }
+      const { data } = await api.get('/users/', { params });
+      return data;
     },
     staleTime: QUERY_STALE_TIMES.STANDARD,
     gcTime: QUERY_GC_TIMES.STANDARD,

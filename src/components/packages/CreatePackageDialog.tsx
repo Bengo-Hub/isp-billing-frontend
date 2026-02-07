@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCreatePlan } from '@/features/packages/api';
-import { ArrowLeft, ArrowRight, Loader2, Package, Zap, DollarSign, Settings } from 'lucide-react';
-import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
+import { useCreatePlan } from '@/features/packages/api';
+import { ArrowLeft, ArrowRight, DollarSign, Loader2, Package, Settings, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface CreatePackageDialogProps {
   open: boolean;
@@ -23,21 +23,34 @@ interface CreatePackageDialogProps {
   initialData?: {
     type?: string;
     name?: string;
+    description?: string;
     duration?: string;
     uploadSpeed?: string;
     downloadSpeed?: string;
     price?: string;
+    currency?: string;
     deviceLimit?: string;
+    unlimitedData?: boolean;
+    dataLimit?: string;
+    unlimitedTime?: boolean;
+    timeLimit?: string;
     enableBurst?: boolean;
     burstUpload?: string;
     burstDownload?: string;
     burstThreshold?: string;
     burstTime?: string;
+    enableFUP?: boolean;
+    fupThreshold?: string;
+    fupDownloadSpeed?: string;
+    fupUploadSpeed?: string;
     enableSchedule?: boolean;
     startTime?: string;
     endTime?: string;
     isActive?: boolean;
     isPopular?: boolean;
+    autoRenewal?: boolean;
+    sortOrder?: string;
+    notes?: string;
   };
 }
 
@@ -48,15 +61,21 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
     // Basic Configuration
     type: initialData?.type || '',
     name: initialData?.name || '',
+    description: initialData?.description || '',
     duration: initialData?.duration || '',
 
     // Speed & Performance
     uploadSpeed: initialData?.uploadSpeed || '',
     downloadSpeed: initialData?.downloadSpeed || '',
 
-    // Pricing & Devices
+    // Pricing & Limits
     price: initialData?.price || '',
+    currency: initialData?.currency || 'KES',
     deviceLimit: initialData?.deviceLimit || '1',
+    unlimitedData: initialData?.unlimitedData ?? true,
+    dataLimit: initialData?.dataLimit || '',
+    unlimitedTime: initialData?.unlimitedTime ?? true,
+    timeLimit: initialData?.timeLimit || '',
 
     // Advanced Features - Burst
     enableBurst: initialData?.enableBurst || false,
@@ -64,6 +83,12 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
     burstDownload: initialData?.burstDownload || '',
     burstThreshold: initialData?.burstThreshold || '80',
     burstTime: initialData?.burstTime || '30',
+
+    // Advanced Features - FUP (Fair Usage Policy)
+    enableFUP: initialData?.enableFUP || false,
+    fupThreshold: initialData?.fupThreshold || '',
+    fupDownloadSpeed: initialData?.fupDownloadSpeed || '',
+    fupUploadSpeed: initialData?.fupUploadSpeed || '',
 
     // Advanced Features - Schedule
     enableSchedule: initialData?.enableSchedule || false,
@@ -73,6 +98,9 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
     // Availability & Visibility
     isActive: initialData?.isActive ?? true,
     isPopular: initialData?.isPopular || false,
+    autoRenewal: initialData?.autoRenewal || false,
+    sortOrder: initialData?.sortOrder || '0',
+    notes: initialData?.notes || '',
   });
 
   // Update form data when initialData changes
@@ -81,21 +109,34 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
       setFormData({
         type: initialData.type || '',
         name: initialData.name || '',
+        description: initialData.description || '',
         duration: initialData.duration || '',
         uploadSpeed: initialData.uploadSpeed || '',
         downloadSpeed: initialData.downloadSpeed || '',
         price: initialData.price || '',
+        currency: initialData.currency || 'KES',
         deviceLimit: initialData.deviceLimit || '1',
+        unlimitedData: initialData.unlimitedData ?? true,
+        dataLimit: initialData.dataLimit || '',
+        unlimitedTime: initialData.unlimitedTime ?? true,
+        timeLimit: initialData.timeLimit || '',
         enableBurst: initialData.enableBurst || false,
         burstUpload: initialData.burstUpload || '',
         burstDownload: initialData.burstDownload || '',
         burstThreshold: initialData.burstThreshold || '80',
         burstTime: initialData.burstTime || '30',
+        enableFUP: initialData.enableFUP || false,
+        fupThreshold: initialData.fupThreshold || '',
+        fupDownloadSpeed: initialData.fupDownloadSpeed || '',
+        fupUploadSpeed: initialData.fupUploadSpeed || '',
         enableSchedule: initialData.enableSchedule || false,
         startTime: initialData.startTime || '',
         endTime: initialData.endTime || '',
         isActive: initialData.isActive ?? true,
         isPopular: initialData.isPopular || false,
+        autoRenewal: initialData.autoRenewal || false,
+        sortOrder: initialData.sortOrder || '0',
+        notes: initialData.notes || '',
       });
     }
   }, [initialData]);
@@ -140,9 +181,10 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
 
     const planData = {
       name: formData.name,
+      description: formData.description || undefined,
       plan_type: formData.type as 'INTERNET' | 'HOTSPOT' | 'PPPOE' | 'BOTH',
       price: parseFloat(formData.price) || 0,
-      currency: 'KES',
+      currency: formData.currency || 'KES',
       billing_cycle: (durationData?.cycle || 'MONTHLY') as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'ONE_TIME',
       validity_days: Math.ceil((durationData?.hours || 720) / 24),
 
@@ -151,8 +193,8 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
       upload_speed: parseInt(formData.uploadSpeed) || 0,
 
       // Limits
-      data_limit: -1, // Unlimited by default
-      time_limit: -1, // Unlimited by default
+      data_limit: formData.unlimitedData ? -1 : (parseInt(formData.dataLimit) || -1),
+      time_limit: formData.unlimitedTime ? -1 : (parseInt(formData.timeLimit) || -1),
       concurrent_sessions: parseInt(formData.deviceLimit) || 1,
 
       // Burst configuration
@@ -162,14 +204,23 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
       burst_threshold: formData.enableBurst ? parseInt(formData.burstThreshold) : undefined,
       burst_time: formData.enableBurst ? parseInt(formData.burstTime) : undefined,
 
+      // FUP configuration
+      fup_enabled: formData.enableFUP,
+      fup_threshold: formData.enableFUP ? parseInt(formData.fupThreshold) : undefined,
+      fup_download_speed: formData.enableFUP ? parseInt(formData.fupDownloadSpeed) : undefined,
+      fup_upload_speed: formData.enableFUP ? parseInt(formData.fupUploadSpeed) : undefined,
+
       // Schedule configuration
       enable_schedule: formData.enableSchedule,
       schedule_start_time: formData.enableSchedule ? formData.startTime : undefined,
       schedule_end_time: formData.enableSchedule ? formData.endTime : undefined,
 
-      // Visibility
+      // Visibility & Management
       is_active: formData.isActive,
       is_popular: formData.isPopular,
+      auto_renewal: formData.autoRenewal,
+      sort_order: parseInt(formData.sortOrder) || 0,
+      notes: formData.notes || undefined,
     };
 
     createPlan.mutate(planData, {
@@ -179,21 +230,34 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
         setFormData({
           type: '',
           name: '',
+          description: '',
           duration: '',
           uploadSpeed: '',
           downloadSpeed: '',
           price: '',
+          currency: 'KES',
           deviceLimit: '1',
+          unlimitedData: true,
+          dataLimit: '',
+          unlimitedTime: true,
+          timeLimit: '',
           enableBurst: false,
           burstUpload: '',
           burstDownload: '',
           burstThreshold: '80',
           burstTime: '30',
+          enableFUP: false,
+          fupThreshold: '',
+          fupDownloadSpeed: '',
+          fupUploadSpeed: '',
           enableSchedule: false,
           startTime: '',
           endTime: '',
           isActive: true,
           isPopular: false,
+          autoRenewal: false,
+          sortOrder: '0',
+          notes: '',
         });
       },
     });
@@ -300,6 +364,20 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                   </div>
 
                   <div>
+                    <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                      Description
+                    </Label>
+                    <textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      placeholder="Brief description of this package..."
+                      rows={2}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                    />
+                  </div>
+
+                  <div>
                     <Label htmlFor="duration" className="text-sm font-medium text-gray-700">
                       Duration *
                     </Label>
@@ -368,7 +446,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
             </Card>
           )}
 
-          {/* Step 3: Pricing & Devices */}
+          {/* Step 3: Pricing & Limits */}
           {currentStep === 3 && (
             <Card className="p-6">
               <div className="space-y-6">
@@ -377,27 +455,47 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                     <DollarSign className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Pricing & Devices</h3>
-                    <p className="text-sm text-gray-600">Set package pricing and device limits</p>
+                    <h3 className="text-lg font-semibold text-gray-900">Pricing & Limits</h3>
+                    <p className="text-sm text-gray-600">Set package pricing, data caps, and device limits</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="price" className="text-sm font-medium text-gray-700">
-                      Price of the package *
-                    </Label>
-                    <div className="mt-1 relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Ksh</span>
-                      <Input
-                        id="price"
-                        type="number"
-                        step="0.01"
-                        value={formData.price}
-                        onChange={(e) => handleInputChange('price', e.target.value)}
-                        placeholder="0.00"
-                        className="pl-12"
-                      />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="price" className="text-sm font-medium text-gray-700">
+                        Price *
+                      </Label>
+                      <div className="mt-1 relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">{formData.currency}</span>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          value={formData.price}
+                          onChange={(e) => handleInputChange('price', e.target.value)}
+                          placeholder="0.00"
+                          className="pl-12"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="currency" className="text-sm font-medium text-gray-700">
+                        Currency
+                      </Label>
+                      <select
+                        id="currency"
+                        value={formData.currency}
+                        onChange={(e) => handleInputChange('currency', e.target.value)}
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      >
+                        <option value="KES">KES - Kenyan Shilling</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="UGX">UGX - Ugandan Shilling</option>
+                        <option value="TZS">TZS - Tanzanian Shilling</option>
+                        <option value="NGN">NGN - Nigerian Naira</option>
+                        <option value="ZAR">ZAR - South African Rand</option>
+                      </select>
                     </div>
                   </div>
 
@@ -413,6 +511,70 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                       placeholder="1"
                       className="mt-1"
                     />
+                  </div>
+
+                  {/* Data Limit */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="font-medium text-gray-900">Data Limit</h4>
+                        <p className="text-sm text-gray-600">Cap the total data usage for this plan</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Unlimited</span>
+                        <Switch
+                          checked={formData.unlimitedData}
+                          onCheckedChange={(checked) => handleInputChange('unlimitedData', checked)}
+                        />
+                      </div>
+                    </div>
+                    {!formData.unlimitedData && (
+                      <div className="mt-3">
+                        <Label htmlFor="dataLimit" className="text-sm font-medium text-gray-700">
+                          Data Cap (GB)
+                        </Label>
+                        <Input
+                          id="dataLimit"
+                          type="number"
+                          value={formData.dataLimit}
+                          onChange={(e) => handleInputChange('dataLimit', e.target.value)}
+                          placeholder="e.g. 50"
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Time Limit */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="font-medium text-gray-900">Time Limit</h4>
+                        <p className="text-sm text-gray-600">Cap the total online time for this plan</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Unlimited</span>
+                        <Switch
+                          checked={formData.unlimitedTime}
+                          onCheckedChange={(checked) => handleInputChange('unlimitedTime', checked)}
+                        />
+                      </div>
+                    </div>
+                    {!formData.unlimitedTime && (
+                      <div className="mt-3">
+                        <Label htmlFor="timeLimit" className="text-sm font-medium text-gray-700">
+                          Time Cap (minutes)
+                        </Label>
+                        <Input
+                          id="timeLimit"
+                          type="number"
+                          value={formData.timeLimit}
+                          onChange={(e) => handleInputChange('timeLimit', e.target.value)}
+                          placeholder="e.g. 1440"
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -548,6 +710,67 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                     )}
                   </div>
 
+                  {/* FUP (Fair Usage Policy) Configuration */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="font-medium text-gray-900">Fair Usage Policy (FUP)</h4>
+                        <p className="text-sm text-gray-600">Reduce speed after a data threshold is reached</p>
+                      </div>
+                      <Switch
+                        checked={formData.enableFUP}
+                        onCheckedChange={(checked) => handleInputChange('enableFUP', checked)}
+                      />
+                    </div>
+
+                    {formData.enableFUP && (
+                      <div className="space-y-4 mt-4">
+                        <div>
+                          <Label htmlFor="fupThreshold" className="text-sm font-medium text-gray-700">
+                            Data Threshold (GB)
+                          </Label>
+                          <Input
+                            id="fupThreshold"
+                            type="number"
+                            value={formData.fupThreshold}
+                            onChange={(e) => handleInputChange('fupThreshold', e.target.value)}
+                            placeholder="e.g. 100"
+                            className="mt-1"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Speed will be reduced after this amount of data is used</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="fupDownloadSpeed" className="text-sm font-medium text-gray-700">
+                              Reduced Download Speed (Mbps)
+                            </Label>
+                            <Input
+                              id="fupDownloadSpeed"
+                              type="number"
+                              value={formData.fupDownloadSpeed}
+                              onChange={(e) => handleInputChange('fupDownloadSpeed', e.target.value)}
+                              placeholder="e.g. 2"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="fupUploadSpeed" className="text-sm font-medium text-gray-700">
+                              Reduced Upload Speed (Mbps)
+                            </Label>
+                            <Input
+                              id="fupUploadSpeed"
+                              type="number"
+                              value={formData.fupUploadSpeed}
+                              onChange={(e) => handleInputChange('fupUploadSpeed', e.target.value)}
+                              placeholder="e.g. 1"
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Availability & Visibility */}
                   <div className="border rounded-lg p-4">
                     <h4 className="font-medium text-gray-900 mb-4">Availability & Visibility</h4>
@@ -572,6 +795,46 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                         <Switch
                           checked={formData.isPopular}
                           onCheckedChange={(checked) => handleInputChange('isPopular', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="font-medium text-gray-900">Auto Renewal</Label>
+                          <p className="text-sm text-gray-600">Automatically renew when subscription expires</p>
+                        </div>
+                        <Switch
+                          checked={formData.autoRenewal}
+                          onCheckedChange={(checked) => handleInputChange('autoRenewal', checked)}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="sortOrder" className="text-sm font-medium text-gray-700">
+                          Sort Order
+                        </Label>
+                        <Input
+                          id="sortOrder"
+                          type="number"
+                          value={formData.sortOrder}
+                          onChange={(e) => handleInputChange('sortOrder', e.target.value)}
+                          placeholder="0"
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Lower numbers appear first in lists</p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                          Internal Notes
+                        </Label>
+                        <textarea
+                          id="notes"
+                          value={formData.notes}
+                          onChange={(e) => handleInputChange('notes', e.target.value)}
+                          placeholder="Internal notes about this package (not visible to customers)..."
+                          rows={2}
+                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
                         />
                       </div>
                     </div>

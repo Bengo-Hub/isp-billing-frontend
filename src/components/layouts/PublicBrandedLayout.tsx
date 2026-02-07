@@ -1,43 +1,14 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { brandBg, usePortalBranding } from '@/hooks/use-portal-branding';
 import { Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { ReactNode } from 'react';
 
 interface PublicBrandedLayoutProps {
   children: ReactNode;
   orgSlug?: string;
   showHeader?: boolean;
   backgroundColor?: string;
-}
-
-interface OrganizationConfig {
-  organization_name: string;
-  logo_url?: string;
-  primary_color?: string;
-  portal_title?: string;
-  portal_description?: string;
-}
-
-// Hook to fetch organization config for branding
-function useOrganizationConfig(orgSlug?: string) {
-  return useQuery({
-    queryKey: ['org-config', orgSlug],
-    queryFn: async (): Promise<OrganizationConfig> => {
-      if (!orgSlug) {
-        // Return default config if no org slug provided
-        return {
-          organization_name: 'ISP Billing',
-          primary_color: '#ec4899',
-        };
-      }
-      const { data } = await api.get(`/portal/${orgSlug}/config`);
-      return data;
-    },
-    enabled: true,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
 }
 
 /**
@@ -52,10 +23,9 @@ export function PublicBrandedLayout({
   showHeader = false,
   backgroundColor,
 }: PublicBrandedLayoutProps) {
-  const { data: config, isLoading } = useOrganizationConfig(orgSlug);
+  const { branding, primaryColor, isLoading } = usePortalBranding(orgSlug);
 
-  const primaryColor = config?.primary_color || backgroundColor || '#ec4899';
-  const bgColor = `${primaryColor}10`;
+  const bgColor = backgroundColor || brandBg(primaryColor, 0.06);
 
   if (isLoading && orgSlug) {
     return (
@@ -70,22 +40,22 @@ export function PublicBrandedLayout({
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor }}>
-      {showHeader && config && (
+      {showHeader && (
         <header
           className="py-6 px-4 shadow-sm"
           style={{ backgroundColor: primaryColor }}
         >
           <div className="max-w-4xl mx-auto flex items-center justify-center gap-4">
-            {config.logo_url && (
+            {branding.logoUrl && (
               <img
-                src={config.logo_url}
-                alt={config.organization_name}
+                src={branding.logoUrl}
+                alt={branding.organizationName}
                 className="h-12 object-contain"
               />
             )}
-            {!config.logo_url && (
+            {!branding.logoUrl && (
               <h1 className="text-2xl font-bold text-white">
-                {config.organization_name}
+                {branding.organizationName}
               </h1>
             )}
           </div>
@@ -94,19 +64,17 @@ export function PublicBrandedLayout({
 
       <main className="relative">{children}</main>
 
-      {config && (
-        <footer className="py-6 text-center border-t bg-white/50">
-          <p className="text-sm text-gray-600">
-            &copy; {new Date().getFullYear()} {config.organization_name}. All rights reserved.
-          </p>
-          <p className="text-xs text-gray-500 mt-2">
-            Powered by{' '}
-            <span className="font-medium" style={{ color: primaryColor }}>
-              ISP Billing Platform
-            </span>
-          </p>
-        </footer>
-      )}
+      <footer className="py-6 text-center border-t bg-white/50">
+        <p className="text-sm text-gray-600">
+          &copy; {new Date().getFullYear()} {branding.organizationName}. All rights reserved.
+        </p>
+        <p className="text-xs text-gray-500 mt-2">
+          Powered by{' '}
+          <span className="font-medium" style={{ color: primaryColor }}>
+            Codevertex IT Solutions
+          </span>
+        </p>
+      </footer>
     </div>
   );
 }

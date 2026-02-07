@@ -154,6 +154,12 @@ export const queryKeys = {
     users: (id: string) => [...queryKeys.routers.detail(id), "users"] as const,
   },
 
+  // IP Bindings
+  ipBindings: {
+    all: ["ip-bindings"] as const,
+    byRouter: (routerId: string) => [...queryKeys.ipBindings.all, routerId] as const,
+  },
+
   // Packages/Plans
   packages: {
     all: ["packages"] as const,

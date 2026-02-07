@@ -1,29 +1,30 @@
 'use client';
 
 import { useSettings } from '@/features/settings/api';
-import { useRBACStore, type PermissionModule } from '@/lib/stores/rbac';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useRBACStore, type PermissionModule } from '@/lib/stores/rbac';
 import {
     BarChart3,
     Calendar,
-    ChevronDown,
     CreditCard,
+    Globe,
     LayoutDashboard,
+    LogOut,
     Mail,
     Menu,
     MessageSquare,
     Package,
     Settings,
     Ticket,
+    User,
     Users,
     Wifi,
-    X,
-    LogOut
+    X
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 interface NavItem {
   name: string;
@@ -96,17 +97,49 @@ const navigation: NavigationItem[] = [
   { name: 'Settings', href: '/settings', icon: Settings, module: 'settings', roles: ['superuser', 'admin'] },
 ];
 
+/**
+ * Customer-specific navigation items.
+ * Built dynamically because portal routes include the org slug.
+ */
+function getCustomerNavigation(orgSlug: string, subscriptionType: string): NavigationItem[] {
+  const portalBase = `/portal/${subscriptionType}/${orgSlug}`;
+  return [
+    { name: 'My Dashboard', href: portalBase, icon: LayoutDashboard, module: 'customer_dashboard' as PermissionModule, roles: ['customer'] as const },
+    {
+      section: 'My Account',
+      roles: ['customer'] as const,
+      items: [
+        { name: 'Packages', href: `${portalBase}#packages`, icon: Package, module: 'customer_packages' as PermissionModule, roles: ['customer'] as const },
+        { name: 'Payments', href: `${portalBase}#payments`, icon: CreditCard, module: 'customer_payments' as PermissionModule, roles: ['customer'] as const },
+        { name: 'Usage', href: `${portalBase}#usage`, icon: Globe, module: 'customer_usage' as PermissionModule, roles: ['customer'] as const },
+        { name: 'Profile', href: '/settings', icon: User, module: 'customer_profile' as PermissionModule, roles: ['customer'] as const },
+      ]
+    },
+  ];
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { userRole, canAccessModule } = useRBACStore();
-  const { user, logout } = useAuthStore();
+  const { user, logout, customerPortalInfo } = useAuthStore();
+
+  // Build full navigation: admin nav + customer nav (if applicable)
+  const fullNavigation = useMemo(() => {
+    if (userRole === 'customer' && customerPortalInfo) {
+      return [
+        ...navigation,
+        ...getCustomerNavigation(customerPortalInfo.organization_slug, customerPortalInfo.subscription_type),
+      ];
+    }
+    return navigation;
+  }, [userRole, customerPortalInfo]);
 
   // Filter navigation based on user role and permissions
   const filteredNavigation = useMemo(() => {
     if (!userRole) return [];
 
-    return navigation.filter((item) => {
+    return fullNavigation.filter((item) => {
       // Handle section items
       if ('section' in item) {
         // Check if section is allowed for this role

@@ -3,6 +3,7 @@
  */
 
 import { api } from "@/lib/api";
+import { authLogger } from "@/lib/logger";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 
@@ -93,6 +94,14 @@ export interface User {
 }
 
 /**
+ * 2FA challenge state when login requires additional verification
+ */
+export interface TwoFactorChallenge {
+  tempToken: string;
+  message: string;
+}
+
+/**
  * Auth state interface
  */
 interface AuthState {
@@ -103,6 +112,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  // 2FA challenge state
+  twoFactorChallenge: TwoFactorChallenge | null;
 }
 
 /**
@@ -110,6 +121,8 @@ interface AuthState {
  */
 interface AuthActions {
   login: (username: string, password: string) => Promise<void>;
+  complete2FALogin: (tempToken: string, code: string) => Promise<void>;
+  clear2FAChallenge: () => void;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
@@ -149,6 +162,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      twoFactorChallenge: null,
 
       // Actions
       login: async (username: string, password: string) => {
@@ -166,7 +180,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             },
           });
 
-          console.log('[Auth Store] Login response structure:', {
+          authLogger.debug('[Auth Store] Login response structure:', {
             hasData: !!response.data,
             dataKeys: response.data ? Object.keys(response.data) : [],
             hasUser: !!(response.data as any)?.user,
@@ -175,6 +189,20 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
           // API response is wrapped: { data: { access_token, user, customer_portal, ... } }
           const responseData = (response.data as any).data || response.data;
+
+          // Check if 2FA is required
+          if (responseData.requires_2fa) {
+            authLogger.info('[Auth Store] 2FA required, storing challenge token');
+            set({
+              isLoading: false,
+              twoFactorChallenge: {
+                tempToken: responseData.temp_token,
+                message: responseData.message || 'Enter your authentication code',
+              },
+            });
+            return;
+          }
+
           const { access_token, refresh_token, user: backendUser, customer_portal } = responseData;
 
           // Store tokens in localStorage for API client
@@ -191,10 +219,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             }
           }
 
-          console.log('[Auth Store] Extracted from response:', {
+          authLogger.debug('[Auth Store] Extracted from response:', {
             hasBackendUser: !!backendUser,
             backendUserRole: backendUser?.role,
-            backendUserEmail: backendUser?.email,
             hasAccessToken: !!access_token,
           });
 
@@ -235,7 +262,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
           });
 
-          console.log('[Auth Store] Login successful, state updated:', {
+          authLogger.info('[Auth Store] Login successful, state updated:', {
             hasUser: !!normalizedUser,
             userRole: normalizedUser?.role,
             isAuthenticated: true,
@@ -252,6 +279,87 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           });
           throw error;
         }
+      },
+
+      // Complete login with 2FA verification
+      complete2FALogin: async (tempToken: string, code: string) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await api.post('/auth/2fa/authenticate', {
+            temp_token: tempToken,
+            code: code.trim(),
+          });
+
+          const responseData = (response.data as any).data || response.data;
+          const { access_token, refresh_token, user: backendUser, customer_portal } = responseData;
+
+          // Store tokens in localStorage for API client
+          localStorage.setItem("auth-token", access_token);
+          if (refresh_token) {
+            localStorage.setItem("refresh-token", refresh_token);
+          }
+
+          // Also store in cookies for middleware access
+          if (typeof document !== 'undefined') {
+            document.cookie = `auth-token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            if (refresh_token) {
+              document.cookie = `refresh-token=${refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+            }
+          }
+
+          // Normalize user role
+          const normalizedUser = backendUser
+            ? ({
+                ...backendUser,
+                role: ((): UserRole => {
+                  switch ((backendUser as any).role) {
+                    case 'platform_owner':
+                      return 'superuser';
+                    case 'isp_admin':
+                      return 'admin';
+                    case 'isp_technician':
+                      return 'technician';
+                    default:
+                      return 'customer';
+                  }
+                })(),
+                permissions: normalizePermissions((backendUser as any).permissions ?? []),
+              } as User)
+            : null;
+
+          // Extract customer portal info for customers
+          const customerPortalInfo = customer_portal ? {
+            organization_slug: customer_portal.organization_slug,
+            subscription_type: customer_portal.subscription_type as 'hotspot' | 'pppoe',
+            portal_url: customer_portal.portal_url,
+          } : null;
+
+          set({
+            user: normalizedUser,
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            customerPortalInfo,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            twoFactorChallenge: null,
+          });
+
+          authLogger.info('[Auth Store] 2FA login successful');
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '2FA verification failed';
+          set({
+            isLoading: false,
+            error: message,
+          });
+          throw error;
+        }
+      },
+
+      // Clear 2FA challenge state (e.g., when user cancels)
+      clear2FAChallenge: () => {
+        set({ twoFactorChallenge: null, error: null });
       },
 
       register: async (data: RegisterData) => {
@@ -505,7 +613,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           customerPortalInfo: state.customerPortalInfo,
           isAuthenticated: state.isAuthenticated,
         };
-        console.log('[Auth Store] Partializing state for persist:', {
+        authLogger.debug('[Auth Store] Partializing state for persist:', {
           hasUser: !!partialState.user,
           userRole: partialState.user?.role,
           isAuthenticated: partialState.isAuthenticated,
@@ -515,12 +623,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         return partialState;
       },
       onRehydrateStorage: () => {
-        console.log('[Auth Store] Starting rehydration from localStorage...');
+        authLogger.debug('[Auth Store] Starting rehydration from localStorage...');
         return (state, error) => {
           if (error) {
-            console.error('[Auth Store] Rehydration error:', error);
+            authLogger.error('[Auth Store] Rehydration error:', error);
           } else {
-            console.log('[Auth Store] Rehydration complete:', {
+            authLogger.debug('[Auth Store] Rehydration complete:', {
               isAuthenticated: state?.isAuthenticated,
               hasUser: !!state?.user,
               userRole: state?.user?.role,

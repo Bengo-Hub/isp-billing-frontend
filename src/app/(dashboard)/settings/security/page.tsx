@@ -1,13 +1,13 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useChangePassword, useRevokeAllSessions, useUserSessions } from '@/features/auth/api';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Key, Laptop, Monitor, Shield, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 
@@ -162,37 +162,21 @@ export default function SecuritySettingsPage() {
             </div>
 
             <div className="space-y-6">
-              {/* 2FA Status */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Shield className="h-5 w-5 text-yellow-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-yellow-900">Two-Factor Authentication is Disabled</h3>
-                    <p className="text-sm text-yellow-800 mt-1">
-                      Protect your account by enabling two-factor authentication. You'll need to enter a code from your authenticator app each time you sign in.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Setup 2FA (Pending Backend Implementation) */}
               <div className="space-y-4">
-                <h3 className="font-medium text-gray-900">How to Enable 2FA</h3>
+                <h3 className="font-medium text-gray-900">How It Works</h3>
                 <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
                   <li>Download an authenticator app (Google Authenticator, Authy, etc.)</li>
-                  <li>Click "Enable 2FA" below to generate a QR code</li>
+                  <li>Click the button below to set up or manage 2FA</li>
                   <li>Scan the QR code with your authenticator app</li>
                   <li>Enter the 6-digit code to verify setup</li>
                   <li>Save your backup codes in a safe place</li>
                 </ol>
 
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled
-                >
-                  Enable Two-Factor Authentication (Coming Soon)
-                </Button>
-                <p className="text-xs text-gray-500">Backend implementation in progress</p>
+                <a href="/security/2fa">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    Manage Two-Factor Authentication
+                  </Button>
+                </a>
               </div>
             </div>
           </Card>

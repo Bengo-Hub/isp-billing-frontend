@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { usePlans, type PlanItem } from '@/features/packages/api';
 import { Filter, HelpCircle, Package, Plus, Search, Star } from 'lucide-react';
-import { useState } from 'react';
-import type { PlanItem } from '@/features/packages/api';
+import { useMemo, useState } from 'react';
 
 export default function PackagesPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'hotspot' | 'pppoe' | 'data' | 'trial'>('all');
@@ -28,13 +28,17 @@ export default function PackagesPage() {
     setIsCreateDialogOpen(true);
   };
 
-  const [packageCounts] = useState({
-    all: 10,
-    hotspot: 7,
-    pppoe: 3,
-    data: 0,
-    trial: 0
-  });
+  // Fetch all plans to compute counts
+  const { data: plansData } = usePlans({ page: 1, size: 200 });
+  const plans = plansData?.plans ?? [];
+
+  const packageCounts = useMemo(() => ({
+    all: plans.length,
+    hotspot: plans.filter((p) => p.plan_type === 'hotspot').length,
+    pppoe: plans.filter((p) => p.plan_type === 'pppoe').length,
+    data: plans.filter((p) => p.plan_type === 'data').length,
+    trial: plans.filter((p) => p.plan_type === 'trial').length,
+  }), [plans]);
 
   const tabs = [
     { id: 'all', label: 'All', count: packageCounts.all },

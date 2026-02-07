@@ -1,0 +1,4 @@
+# Never commit actual secrets — only the template (devENV.yml) if needed
+*
+!.gitignore
+!devENV.yml

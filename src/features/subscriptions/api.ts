@@ -421,3 +421,22 @@ export function useBulkDeleteSubscriptions() {
     },
   });
 }
+
+// Sync subscription to router
+export function useSyncSubscription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (subscriptionId: number) => {
+      const response = await api.post(`/subscriptions/${subscriptionId}/sync`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      toast.success('Subscription synced to router successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to sync subscription to router');
+    },
+  });
+}

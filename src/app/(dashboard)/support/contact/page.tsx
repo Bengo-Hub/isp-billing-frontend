@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import RichEditor from '@/components/ui/rich-editor';
+import { useCreateTicket, type TicketPriority } from '@/features/tickets/api';
 import { Clock, Headphones, Mail, MapPin, MessageSquare, Phone, Send, Users } from 'lucide-react';
 import { useState } from 'react';
 
@@ -19,6 +20,7 @@ export default function ContactSupportPage() {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const createTicket = useCreateTicket();
 
   const contactInfo = [
     {
@@ -73,9 +75,16 @@ export default function ContactSupportPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In real app, submit to backend
-    console.log('Submitting contact form:', contactForm);
-    setIsSubmitted(true);
+    createTicket.mutate(
+      {
+        user_id: 0, // Backend resolves from auth token
+        subject: contactForm.subject || `${contactForm.category} inquiry`,
+        description: `Name: ${contactForm.name}\nEmail: ${contactForm.email}\nPhone: ${contactForm.phone}\n\n${contactForm.message}`,
+        priority: contactForm.priority.toUpperCase() as TicketPriority,
+        category: contactForm.category,
+      },
+      { onSuccess: () => setIsSubmitted(true) }
+    );
   };
 
   const handleInputChange = (field: string, value: string) => {

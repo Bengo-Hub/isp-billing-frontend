@@ -3,41 +3,77 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { CheckCircle, Copy, Download, Key, Shield, Smartphone } from 'lucide-react';
+import {
+    use2FAStatus,
+    useDisable2FA,
+    useRegenerateRecoveryCodes,
+    useSetup2FA,
+    useVerify2FA,
+} from '@/features/auth/api';
+import { CheckCircle, Copy, Download, Key, Loader2, Shield, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 
 export default function TwoFactorAuthPage() {
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [setupStep, setSetupStep] = useState<'setup' | 'verify' | 'recovery'>('setup');
-  const [qrCode, setQrCode] = useState('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PC9zdmc+');
-  const [secret, setSecret] = useState('JBSWY3DPEHPK3PXP');
-  const [recoveryCodes] = useState([
-    '12345678',
-    '87654321', 
-    '11223344',
-    '44332211',
-    '55667788',
-    '88776655',
-    '99887766',
-    '66778899'
-  ]);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [copied, setCopied] = useState(false);
+  const { data: status, isLoading: statusLoading } = use2FAStatus();
+  const setup2FA = useSetup2FA();
+  const verify2FA = useVerify2FA();
+  const disable2FA = useDisable2FA();
+  const regenCodes = useRegenerateRecoveryCodes();
 
-  const handleEnable = () => {
-    setSetupStep('setup');
-    // In real app, generate QR code and secret from backend
+  const [setupStep, setSetupStep] = useState<'idle' | 'setup' | 'verify' | 'recovery'>('idle');
+  const [qrCode, setQrCode] = useState('');
+  const [secret, setSecret] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [disablePassword, setDisablePassword] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+
+  const isEnabled = status?.enabled ?? false;
+
+  const handleStartSetup = () => {
+    setup2FA.mutate(undefined, {
+      onSuccess: (data) => {
+        setQrCode(data.qr_code);
+        setSecret(data.secret);
+        setSetupStep('setup');
+      },
+    });
   };
 
   const handleVerify = () => {
-    // In real app, verify code with backend
-    setIsEnabled(true);
-    setSetupStep('recovery');
+    verify2FA.mutate(
+      { code: verificationCode },
+      {
+        onSuccess: (data) => {
+          setRecoveryCodes(data.recovery_codes);
+          setSetupStep('recovery');
+          setVerificationCode('');
+        },
+      },
+    );
   };
 
   const handleDisable = () => {
-    setIsEnabled(false);
-    setSetupStep('setup');
+    disable2FA.mutate(
+      { password: disablePassword },
+      {
+        onSuccess: () => {
+          setShowDisableConfirm(false);
+          setDisablePassword('');
+          setSetupStep('idle');
+          setRecoveryCodes([]);
+        },
+      },
+    );
+  };
+
+  const handleRegenerateCodes = () => {
+    regenCodes.mutate(undefined, {
+      onSuccess: (data) => {
+        setRecoveryCodes(data.recovery_codes);
+      },
+    });
   };
 
   const copyToClipboard = async (text: string) => {
@@ -45,8 +81,8 @@ export default function TwoFactorAuthPage() {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy: ', err);
+    } catch {
+      // Ignore clipboard errors
     }
   };
 
@@ -61,6 +97,14 @@ export default function TwoFactorAuthPage() {
     URL.revokeObjectURL(url);
   };
 
+  if (statusLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -71,8 +115,32 @@ export default function TwoFactorAuthPage() {
         </div>
       </div>
 
-      {!isEnabled ? (
+      {/* Setup Flow (not enabled yet) */}
+      {!isEnabled && setupStep !== 'recovery' && (
         <Card className="p-6">
+          {setupStep === 'idle' && (
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Shield className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Two-Factor Authentication is Disabled
+                  </h3>
+                  <p className="text-gray-600 mt-1">
+                    Protect your account by enabling two-factor authentication. You&apos;ll need to
+                    enter a code from your authenticator app each time you sign in.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={handleStartSetup} disabled={setup2FA.isPending}>
+                {setup2FA.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Set Up Two-Factor Authentication
+              </Button>
+            </div>
+          )}
+
           {setupStep === 'setup' && (
             <div className="space-y-6">
               <div className="flex items-start gap-4">
@@ -89,7 +157,13 @@ export default function TwoFactorAuthPage() {
 
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex-shrink-0">
-                  <img src={qrCode} alt="QR Code" className="w-48 h-48 border border-gray-200 rounded-lg" />
+                  {qrCode && (
+                    <img
+                      src={qrCode}
+                      alt="QR Code"
+                      className="w-48 h-48 border border-gray-200 rounded-lg"
+                    />
+                  )}
                 </div>
                 <div className="flex-1 space-y-4">
                   <div>
@@ -97,22 +171,22 @@ export default function TwoFactorAuthPage() {
                       Manual entry key
                     </label>
                     <div className="flex gap-2">
-                      <Input 
-                        value={secret} 
-                        readOnly 
-                        className="font-mono text-sm"
-                      />
-                      <Button 
-                        variant="outline" 
+                      <Input value={secret} readOnly className="font-mono text-sm" />
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => copyToClipboard(secret)}
                       >
-                        {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {copied ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
                   <Button onClick={() => setSetupStep('verify')} className="w-full">
-                    I've added the account to my authenticator app
+                    I&apos;ve added the account to my authenticator app
                   </Button>
                 </div>
               </div>
@@ -136,7 +210,7 @@ export default function TwoFactorAuthPage() {
               <div className="max-w-xs">
                 <Input
                   value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
                   maxLength={6}
                   className="text-center text-lg tracking-widest"
@@ -144,7 +218,11 @@ export default function TwoFactorAuthPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={handleVerify} disabled={verificationCode.length !== 6}>
+                <Button
+                  onClick={handleVerify}
+                  disabled={verificationCode.length !== 6 || verify2FA.isPending}
+                >
+                  {verify2FA.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Verify and enable 2FA
                 </Button>
                 <Button variant="outline" onClick={() => setSetupStep('setup')}>
@@ -154,61 +232,124 @@ export default function TwoFactorAuthPage() {
             </div>
           )}
         </Card>
-      ) : (
+      )}
+
+      {/* Enabled State / Recovery Codes */}
+      {(isEnabled || setupStep === 'recovery') && (
         <div className="space-y-6">
-          {/* 2FA Enabled Status */}
           <Card className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-green-100 rounded-lg">
                   <CheckCircle className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Two-Factor Authentication Enabled</h3>
-                  <p className="text-gray-600">Your account is now protected with 2FA</p>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Two-Factor Authentication Enabled
+                  </h3>
+                  <p className="text-gray-600">Your account is protected with 2FA</p>
                 </div>
               </div>
-              <Button variant="outline" onClick={handleDisable} className="text-red-600 border-red-300 hover:bg-red-50">
-                Disable 2FA
-              </Button>
+              {!showDisableConfirm ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDisableConfirm(true)}
+                  className="text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  Disable 2FA
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="password"
+                    placeholder="Enter password"
+                    value={disablePassword}
+                    onChange={(e) => setDisablePassword(e.target.value)}
+                    className="w-48"
+                  />
+                  <Button
+                    variant="destructive"
+                    onClick={handleDisable}
+                    disabled={!disablePassword || disable2FA.isPending}
+                    size="sm"
+                  >
+                    {disable2FA.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowDisableConfirm(false);
+                      setDisablePassword('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
 
-          {/* Recovery Codes */}
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <Download className="h-6 w-6 text-yellow-600" />
+          {recoveryCodes.length > 0 && (
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-yellow-100 rounded-lg">
+                    <Download className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">Recovery Codes</h3>
+                    <p className="text-gray-600 mt-1">
+                      Save these recovery codes in a safe place. You can use them to access your
+                      account if you lose your device.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">Recovery Codes</h3>
-                  <p className="text-gray-600 mt-1">
-                    Save these recovery codes in a safe place. You can use them to access your account if you lose your device.
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {recoveryCodes.map((code, index) => (
+                    <div
+                      key={index}
+                      className="p-3 bg-gray-50 rounded-lg text-center font-mono text-sm"
+                    >
+                      {code}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 flex-wrap">
+                  <Button variant="outline" onClick={downloadRecoveryCodes}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Codes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => copyToClipboard(recoveryCodes.join('\n'))}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy All Codes
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {isEnabled && recoveryCodes.length === 0 && (
+            <Card className="p-6">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Recovery Codes</h3>
+                  <p className="text-sm text-gray-600">
+                    Generate new recovery codes if you&apos;ve lost the previous ones.
                   </p>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {recoveryCodes.map((code, index) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg text-center font-mono text-sm">
-                    {code}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={downloadRecoveryCodes}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Codes
-                </Button>
-                <Button variant="outline" onClick={() => copyToClipboard(recoveryCodes.join('\n'))}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy All Codes
+                <Button variant="outline" onClick={handleRegenerateCodes} disabled={regenCodes.isPending}>
+                  {regenCodes.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Regenerate Codes
                 </Button>
               </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
       )}
 

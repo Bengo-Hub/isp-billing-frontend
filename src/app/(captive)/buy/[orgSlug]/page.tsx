@@ -2,16 +2,19 @@
 
 export const dynamic = 'force-dynamic';
 
+import { ConnectLoginModal } from '@/components/portal/ConnectLoginModal';
+import { AcceptedPaymentsRow, PaymentMethodSelector } from '@/components/portal/PaymentProviders';
 import { TermsConditionsModal } from '@/components/portal/TermsConditionsModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PaymentMethodSelector, AcceptedPaymentsRow } from '@/components/portal/PaymentProviders';
 import { useAvailablePaymentGateways } from '@/features/payments/api';
 import { useHotspotPackages, usePaymentStatus, usePortalConfig, usePurchasePackage, useRedeemVoucher } from '@/features/portal/api';
-import { AlertCircle, CheckCircle, Clock, CreditCard, Loader2, Smartphone, Star, Ticket, Wifi, Zap } from 'lucide-react';
+import { usePortalBranding } from '@/hooks/use-portal-branding';
+import { showToast } from '@/lib/utils/toast';
+import { AlertCircle, CheckCircle, Clock, Loader2, LogIn, Star, Ticket, Wifi, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -26,14 +29,16 @@ export default function CaptiveBuyPackagesPage() {
   const [email, setEmail] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
-  const [showVoucherForm, setShowVoucherForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'buy' | 'redeem' | 'connect'>('buy');
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const { data: packages, isLoading: packagesLoading } = useHotspotPackages(orgSlug);
   const { data: availableGateways, isLoading: gatewaysLoading } = useAvailablePaymentGateways();
+  const { primaryColor } = usePortalBranding(orgSlug);
   const purchaseMutation = usePurchasePackage(orgSlug);
   const redeemMutation = useRedeemVoucher(orgSlug);
   const { data: paymentStatus } = usePaymentStatus(orgSlug, paymentReference || undefined);
@@ -108,7 +113,7 @@ export default function CaptiveBuyPackagesPage() {
         setPaymentReference(result.reference);
       }
     } catch {
-      // Error handled by mutation
+      showToast.paymentFailed();
     }
   };
 
@@ -120,12 +125,12 @@ export default function CaptiveBuyPackagesPage() {
         code: voucherCode,
         mac_address: macAddress || undefined,
       });
+      showToast.voucherRedeemed();
     } catch {
-      // Error handled by mutation
+      showToast.error('Invalid voucher code. Please check and try again.');
     }
   };
 
-  const primaryColor = config?.primary_color || '#ec4899';
   const backgroundColor = '#FFF5F5';
 
   if (configLoading || packagesLoading) {
@@ -222,30 +227,39 @@ export default function CaptiveBuyPackagesPage() {
             {/* Navigation Tabs - Hidden on mobile, show as dropdown icon */}
             <div className="hidden sm:flex items-center gap-2 bg-gray-100 p-1 rounded-xl shrink-0">
               <button
-                onClick={() => setShowVoucherForm(false)}
+                onClick={() => setActiveTab('buy')}
                 className={`px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${
-                  !showVoucherForm
+                  activeTab === 'buy'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                style={!showVoucherForm ? { color: primaryColor } : {}}
+                style={activeTab === 'buy' ? { color: primaryColor } : {}}
               >
                 <Wifi className="w-4 h-4 inline mr-1 lg:mr-2" />
                 <span className="hidden md:inline">Buy Packages</span>
                 <span className="md:hidden">Buy</span>
               </button>
               <button
-                onClick={() => setShowVoucherForm(true)}
+                onClick={() => setActiveTab('redeem')}
                 className={`px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${
-                  showVoucherForm
+                  activeTab === 'redeem'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                style={showVoucherForm ? { color: primaryColor } : {}}
+                style={activeTab === 'redeem' ? { color: primaryColor } : {}}
               >
                 <Ticket className="w-4 h-4 inline mr-1 lg:mr-2" />
                 <span className="hidden md:inline">Redeem</span>
                 <span className="md:hidden">Code</span>
+              </button>
+              <button
+                onClick={() => setConnectModalOpen(true)}
+                className="px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap text-white shadow-sm"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <LogIn className="w-4 h-4 inline mr-1 lg:mr-2" />
+                <span className="hidden md:inline">Connect</span>
+                <span className="md:hidden">Go</span>
               </button>
             </div>
           </div>
@@ -253,28 +267,36 @@ export default function CaptiveBuyPackagesPage() {
           {/* Mobile Navigation - Show below on mobile */}
           <div className="sm:hidden mt-3 flex gap-2">
             <button
-              onClick={() => setShowVoucherForm(false)}
-              className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                !showVoucherForm
+              onClick={() => setActiveTab('buy')}
+              className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'buy'
                   ? 'text-white shadow-md'
                   : 'bg-gray-100 text-gray-700'
               }`}
-              style={!showVoucherForm ? { backgroundColor: primaryColor } : {}}
+              style={activeTab === 'buy' ? { backgroundColor: primaryColor } : {}}
             >
-              <Wifi className="w-4 h-4 inline mr-2" />
-              Buy Packages
+              <Wifi className="w-4 h-4 inline mr-1" />
+              Buy
             </button>
             <button
-              onClick={() => setShowVoucherForm(true)}
-              className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                showVoucherForm
+              onClick={() => setActiveTab('redeem')}
+              className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'redeem'
                   ? 'text-white shadow-md'
                   : 'bg-gray-100 text-gray-700'
               }`}
-              style={showVoucherForm ? { backgroundColor: primaryColor } : {}}
+              style={activeTab === 'redeem' ? { backgroundColor: primaryColor } : {}}
             >
-              <Ticket className="w-4 h-4 inline mr-2" />
+              <Ticket className="w-4 h-4 inline mr-1" />
               Redeem
+            </button>
+            <button
+              onClick={() => setConnectModalOpen(true)}
+              className="flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-white shadow-md"
+              style={{ backgroundColor: primaryColor }}
+            >
+              <LogIn className="w-4 h-4 inline mr-1" />
+              Connect
             </button>
           </div>
         </div>
@@ -299,7 +321,7 @@ export default function CaptiveBuyPackagesPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
 
-        {showVoucherForm ? (
+        {activeTab === 'redeem' ? (
           /* Voucher Form - Mobile Optimized */
           <Card className="max-w-md mx-auto p-5 sm:p-6 bg-white">
             <h2 className="text-lg sm:text-xl font-bold text-center mb-5 sm:mb-6">Redeem Voucher</h2>
@@ -556,6 +578,15 @@ export default function CaptiveBuyPackagesPage() {
           <a className="text-xs text-gray-400 link" href="https://codevertexitsolutions.com" target="_blank" rel="noopener noreferrer">Powered by Codevertex IT Solutions</a>
         </div>
       </div>
+
+      <ConnectLoginModal
+        open={connectModalOpen}
+        onOpenChange={setConnectModalOpen}
+        orgSlug={orgSlug}
+        primaryColor={primaryColor}
+        linkLogin={linkLogin}
+        macAddress={macAddress}
+      />
 
       <TermsConditionsModal
         open={termsModalOpen}

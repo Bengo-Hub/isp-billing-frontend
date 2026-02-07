@@ -1,16 +1,8 @@
 'use client';
 
 import { PortalConfig } from '@/features/portal/api';
+import { DEFAULT_BRANDING } from '@/hooks/use-portal-branding';
 import { Wifi } from 'lucide-react';
-
-// Default Codevertex branding (uses same logo as Brand.tsx)
-export const DEFAULT_BRANDING = {
-  organization_name: 'CodeVertex IT Solutions',
-  logo_url: '/images/logo/logo.png',
-  primary_color: '#ec4899',
-  portal_title: 'WiFi Hotspot',
-  portal_description: 'Fast, reliable internet access',
-};
 
 interface PortalBrandingProps {
   config?: PortalConfig | null;
