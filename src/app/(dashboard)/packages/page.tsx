@@ -30,7 +30,7 @@ export default function PackagesPage() {
 
   // Fetch all plans to compute counts
   const { data: plansData } = usePlans({ page: 1, size: 200 });
-  const plans = plansData?.plans ?? [];
+  const plans = plansData?.items ?? [];
 
   const packageCounts = useMemo(() => ({
     all: plans.length,

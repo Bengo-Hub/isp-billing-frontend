@@ -51,7 +51,7 @@ export function useEmails(params?: {
 }) {
   return useQuery({
     queryKey: ['emails', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ emails: Email[]; total: number }> => {
       const { data } = await api.get('/emails', { params });
       return data;
     },
@@ -62,7 +62,7 @@ export function useEmails(params?: {
 export function useEmail(emailId: number) {
   return useQuery({
     queryKey: ['email', emailId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Email> => {
       const { data } = await api.get(`/emails/${emailId}`);
       return data;
     },
@@ -102,9 +102,9 @@ export function useSendEmail() {
 export function useEmailTemplates() {
   return useQuery({
     queryKey: ['email-templates'],
-    queryFn: async () => {
+    queryFn: async (): Promise<EmailTemplate[]> => {
       const { data } = await api.get('/emails/templates');
-      return data;
+      return data.templates || data;
     },
   });
 }

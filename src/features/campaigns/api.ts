@@ -42,7 +42,7 @@ export function useCampaigns(params?: {
 }) {
   return useQuery({
     queryKey: ['campaigns', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ campaigns: Campaign[]; total: number }> => {
       const { data } = await api.get('/campaigns', { params });
       return data;
     },
@@ -53,7 +53,7 @@ export function useCampaigns(params?: {
 export function useCampaign(campaignId: number) {
   return useQuery({
     queryKey: ['campaign', campaignId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Campaign> => {
       const { data } = await api.get(`/campaigns/${campaignId}`);
       return data;
     },

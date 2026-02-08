@@ -72,12 +72,12 @@ export function useTenantSmsBalance() {
 export function useSmsAnalytics(accountId: number, days = 30) {
   return useQuery({
     queryKey: ['sms-analytics', accountId, days],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       try {
         const { data } = await api.get(`/sms-credit/accounts/${accountId}/analytics`, { params: { days } });
         return data;
       } catch {
-        return analyticsFallback;
+        return analyticsFallback as any;
       }
     },
     enabled: !!accountId,
@@ -289,7 +289,7 @@ export function useDeleteSMSTemplate() {
 export function useSMSHistory(params?: { page?: number; size?: number; status?: string }) {
   return useQuery({
     queryKey: ['sms-history', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ items: any[]; total: number }> => {
       const { data } = await api.get('/sms-credit/history', { params });
       return data;
     },

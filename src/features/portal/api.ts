@@ -11,6 +11,8 @@ export interface PortalConfig {
   primary_color: string;
   portal_title?: string;
   portal_description?: string;
+  email?: string;
+  phone?: string;
   show_packages: boolean;
   allow_guest_purchases: boolean;
 }
@@ -34,7 +36,7 @@ export interface HotspotPackage {
 
 export interface PurchaseRequest {
   plan_id: number;
-  phone_number: string;
+  phone_number?: string;
   email?: string;
   payment_method?: string;  // 'mpesa' | 'paystack'
 }
@@ -239,7 +241,13 @@ export interface PPPoELoginResponse {
 }
 
 export interface PPPoEDashboard {
+  user?: {
+    username: string;
+    email?: string;
+    phone_number?: string;
+  };
   current_plan: {
+    id?: number;
     name: string;
     expires_at: string;
     is_expired: boolean;

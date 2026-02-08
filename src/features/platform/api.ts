@@ -186,7 +186,7 @@ export function useOrganizationStats() {
 export function useOrganizationEarnings(organizationId: number, startDate?: string, endDate?: string) {
   return useQuery({
     queryKey: ['platform-organization-earnings', organizationId, startDate, endDate],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       const params: any = {};
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;

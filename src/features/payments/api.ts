@@ -82,7 +82,7 @@ export function usePayment(paymentId: number) {
 export function useInvoices(params: { page?: number; size?: number; user_id?: number; status?: string }) {
   return useQuery({
     queryKey: ['invoices', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ invoices: Invoice[]; total: number; page: number; size: number; pages: number }> => {
       try {
         const { data } = await api.get('/billing/invoices', { params });
         return data;
@@ -107,7 +107,7 @@ export function useInvoice(invoiceId: number) {
 export function useOverdueInvoices(params?: { page?: number; size?: number }) {
   return useQuery({
     queryKey: ['invoices-overdue', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ invoices: Invoice[]; total: number }> => {
       const { data } = await api.get('/billing/invoices/overdue', { params });
       return data;
     },
@@ -117,7 +117,7 @@ export function useOverdueInvoices(params?: { page?: number; size?: number }) {
 export function usePendingInvoices(params?: { page?: number; size?: number }) {
   return useQuery({
     queryKey: ['invoices-pending', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ invoices: Invoice[]; total: number }> => {
       const { data } = await api.get('/billing/invoices/pending', { params });
       return data;
     },
@@ -127,7 +127,7 @@ export function usePendingInvoices(params?: { page?: number; size?: number }) {
 export function usePaidInvoices(params?: { page?: number; size?: number }) {
   return useQuery({
     queryKey: ['invoices-paid', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ invoices: Invoice[]; total: number }> => {
       const { data } = await api.get('/billing/invoices/paid', { params });
       return data;
     },
@@ -348,7 +348,7 @@ export function useVerifyPaystackPayment(reference: string) {
 export function usePaystackBanks(country: string = 'kenya') {
   return useQuery({
     queryKey: ['paystack-banks', country],
-    queryFn: async () => {
+    queryFn: async (): Promise<any[]> => {
       const { data } = await api.get(`/payments/paystack/banks/${country}`);
       return data;
     },
@@ -381,6 +381,7 @@ export interface AvailableGateway {
   description: string;
   is_available: boolean;
   is_selected: boolean;
+  is_primary: boolean;
   supports_payout: boolean;
   supported_currencies: string[];
 }
@@ -446,15 +447,16 @@ export function useInitiateMpesaPayment() {
 export function useMpesaPaymentStatus(checkoutRequestId?: string) {
   return useQuery({
     queryKey: ['mpesa-payment-status', checkoutRequestId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any> | null> => {
       if (!checkoutRequestId) return null;
       const { data } = await api.get(`/mpesa/payment-status/${checkoutRequestId}`);
       return data;
     },
     enabled: !!checkoutRequestId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll every 3 seconds if payment is still pending
-      if (data?.status === 'PENDING' || data?.status === 'PROCESSING') {
+      const status = query.state.data?.status;
+      if (status === 'PENDING' || status === 'PROCESSING') {
         return 3000;
       }
       return false; // Stop polling when complete

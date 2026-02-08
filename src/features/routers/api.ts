@@ -66,7 +66,6 @@ export function useRouters() {
 }
 
 // Router detail type
-// Note: username/password are no longer exposed to frontend - credentials are managed by backend
 export interface RouterDetail {
   id: number;
   name: string;
@@ -74,6 +73,8 @@ export interface RouterDetail {
   router_type: string;
   ip_address: string;
   port: number;
+  username?: string;
+  password?: string;
   location?: string;
   latitude?: string;
   longitude?: string;
@@ -408,7 +409,7 @@ export function useRestoreRouterBackup() {
 export function useListRouterBackups(routerId: number) {
   return useQuery({
     queryKey: [...queryKeys.routers.detail(String(routerId)), 'backups'],
-    queryFn: async () => {
+    queryFn: async (): Promise<any[]> => {
       const { data } = await api.get(`/routers/${routerId}/backups`);
       return data;
     },

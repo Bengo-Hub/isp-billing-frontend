@@ -37,7 +37,7 @@ export function useLeads(params?: {
 }) {
   return useQuery({
     queryKey: ['leads', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ leads: Lead[]; total: number }> => {
       const { data } = await api.get('/leads', { params });
       return data;
     },
@@ -48,7 +48,7 @@ export function useLeads(params?: {
 export function useLead(leadId: number) {
   return useQuery({
     queryKey: ['lead', leadId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Lead> => {
       const { data } = await api.get(`/leads/${leadId}`);
       return data;
     },

@@ -293,6 +293,10 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
             Sign up
           </a>
         </div>
+      </form>
+    </>
+  );
+
   if (inline) {
     return <Card className="w-full max-w-md p-6">{cardContent}</Card>;
   }

@@ -235,7 +235,7 @@ export default function VouchersPage() {
                   required
                 >
                   <option value={0}>Select a plan...</option>
-                  {(plansData?.plans ?? []).map((p) => (
+                  {(plansData?.items ?? []).map((p) => (
                     <option key={p.id} value={p.id}>{p.name} - Ksh {p.price}</option>
                   ))}
                 </select>

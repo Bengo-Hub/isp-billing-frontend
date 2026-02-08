@@ -132,7 +132,7 @@ export function useUserAnalytics(filters?: ReportFilters) {
 export function useComprehensiveDashboard(filters?: ReportFilters) {
   return useQuery({
     queryKey: ['comprehensive-dashboard', filters],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       const { data } = await api.get('/reports/analytics/dashboard', {
         params: filters,
       });
@@ -208,7 +208,7 @@ export function useScheduleReport() {
 export function useReportHistory(params?: { page?: number; size?: number }) {
   return useQuery({
     queryKey: ['report-history', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       const { data } = await api.get('/reports/history', { params });
       return data;
     },
@@ -219,7 +219,7 @@ export function useReportHistory(params?: { page?: number; size?: number }) {
 export function useRevenueReport(filters?: ReportFilters) {
   return useQuery({
     queryKey: ['revenue-report', filters],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       const { data } = await api.get('/reports/revenue', { params: filters });
       return data;
     },
@@ -230,7 +230,7 @@ export function useRevenueReport(filters?: ReportFilters) {
 export function useCustomerReport(filters?: ReportFilters) {
   return useQuery({
     queryKey: ['customer-report', filters],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       const { data } = await api.get('/reports/customers', { params: filters });
       return data;
     },
@@ -241,7 +241,7 @@ export function useCustomerReport(filters?: ReportFilters) {
 export function usePaymentReport(filters?: ReportFilters) {
   return useQuery({
     queryKey: ['payment-report', filters],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       const { data } = await api.get('/reports/payments', { params: filters });
       return data;
     },
@@ -252,7 +252,7 @@ export function usePaymentReport(filters?: ReportFilters) {
 export function useNetworkUsageReport(filters?: ReportFilters) {
   return useQuery({
     queryKey: ['network-usage-report', filters],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, any>> => {
       const { data } = await api.get('/reports/network-usage', { params: filters });
       return data;
     },

@@ -34,6 +34,8 @@ export default function PPPoEPortalPage() {
   const orgSlug = params.org as string;
 
   const [token, setToken] = useState<string | null>(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);

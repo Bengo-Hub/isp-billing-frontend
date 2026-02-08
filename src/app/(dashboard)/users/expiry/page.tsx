@@ -232,7 +232,18 @@ export default function ExpiryDatesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => renewSubscription.mutate(sub.id)}
+                          onClick={() => {
+                            const start = new Date(sub.start_date);
+                            const end = new Date(sub.end_date);
+                            const durationMs = end.getTime() - start.getTime();
+                            const now = new Date();
+                            const renewFrom = end > now ? end : now;
+                            const newEnd = new Date(renewFrom.getTime() + durationMs);
+                            renewSubscription.mutate({
+                              subscriptionId: sub.id,
+                              newEndDate: newEnd.toISOString().split('T')[0],
+                            });
+                          }}
                           disabled={renewSubscription.isPending}
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />

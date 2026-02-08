@@ -184,7 +184,7 @@ export default function RouterDetailsPage() {
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(routerData.password)}>
+                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(routerData.password || '')}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>

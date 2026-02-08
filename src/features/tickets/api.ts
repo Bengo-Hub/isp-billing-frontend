@@ -57,7 +57,7 @@ export function useTickets(params?: {
 }) {
   return useQuery({
     queryKey: ['tickets', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ tickets: SupportTicket[]; total: number }> => {
       const { data } = await api.get('/tickets', { params });
       return data;
     },
@@ -68,7 +68,7 @@ export function useTickets(params?: {
 export function useTicket(ticketId: number) {
   return useQuery({
     queryKey: ['ticket', ticketId],
-    queryFn: async () => {
+    queryFn: async (): Promise<SupportTicket> => {
       const { data } = await api.get(`/tickets/${ticketId}`);
       return data;
     },

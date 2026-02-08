@@ -19,7 +19,7 @@ import {
   Clock,
   Zap
 } from 'lucide-react';
-import { RealtimeLogViewer } from './RealtimeLogViewer';
+import { RealtimeLogViewer, LogEntry } from './RealtimeLogViewer';
 
 interface ServiceSetupStepProps {
   enableHotspot: boolean;
@@ -49,7 +49,7 @@ interface ServiceSetupStepProps {
   sessionId?: string | null;
   progressPercentage?: number;
   currentOperation?: string;
-  onProvisioningComplete?: () => void;
+  onProvisioningComplete?: (logs: LogEntry[]) => void;
   onProgressUpdate?: (percentage: number, operation: string) => void;
 }
 

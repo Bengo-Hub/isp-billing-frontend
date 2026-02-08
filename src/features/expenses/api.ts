@@ -57,7 +57,7 @@ export function useExpenses(params?: {
 }) {
   return useQuery({
     queryKey: ['expenses', params],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ expenses: Expense[]; total: number }> => {
       const { data } = await api.get('/expenses', { params });
       return data;
     },
@@ -68,7 +68,7 @@ export function useExpenses(params?: {
 export function useExpense(expenseId: number) {
   return useQuery({
     queryKey: ['expense', expenseId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Expense> => {
       const { data } = await api.get(`/expenses/${expenseId}`);
       return data;
     },
