@@ -41,11 +41,6 @@ export function PaystackPaymentDialog({
       return;
     }
 
-    if (!email) {
-      toast.error('Please enter your email address');
-      return;
-    }
-
     // Get the current origin for callback URL
     const callbackUrl = `${window.location.origin}/payment/callback`;
 
@@ -53,7 +48,7 @@ export function PaystackPaymentDialog({
       const result = await initiatePayment.mutateAsync({
         invoice_id: invoice.id,
         callback_url: callbackUrl,
-        email: email,
+        email: 'codevertexitsolutions@gmail.com',
         phone: phone || undefined,
       });
 
@@ -116,21 +111,6 @@ export function PaystackPaymentDialog({
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Receipt will be sent to this email
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number (Optional)
                 </label>
                 <Input
@@ -166,7 +146,7 @@ export function PaystackPaymentDialog({
           </Button>
           <Button
             onClick={handlePayment}
-            disabled={initiatePayment.isPending || !email}
+            disabled={initiatePayment.isPending}
             className="bg-pink-600 hover:bg-pink-700"
           >
             {initiatePayment.isPending ? (

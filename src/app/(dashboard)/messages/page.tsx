@@ -59,12 +59,11 @@ export default function MessagesPage() {
     try {
       await topUpMutation.mutateAsync({
         amount: parseFloat(topUpAmount),
-        email: topUpEmail,
+        email: 'codevertexitsolutions@gmail.com',
       });
       // Note: On success, the hook redirects to Paystack checkout
       setTopUpOpen(false);
       setTopUpAmount('');
-      setTopUpEmail('');
     } catch (error: any) {
       toast.error(error?.message || 'Top-up failed');
     }
@@ -280,19 +279,7 @@ export default function MessagesPage() {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="email"
-                  placeholder="Enter email for payment receipt"
-                  value={topUpEmail}
-                  onChange={(e) => setTopUpEmail(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
+              {/* Email handled automatically */}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setTopUpOpen(false)}>
                   Cancel

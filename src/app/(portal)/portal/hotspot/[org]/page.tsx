@@ -107,10 +107,7 @@ export default function HotspotCustomerPortal() {
     if (!selectedPackageId) return;
 
     const isPaystack = selectedPaymentMethod === 'paystack';
-    const email = packageEmails[selectedPackageId];
     const phoneNumber = packagePhoneNumbers[selectedPackageId];
-
-    if (isPaystack && !email) return;
 
     setPurchasingPackageId(selectedPackageId);
 
@@ -118,7 +115,7 @@ export default function HotspotCustomerPortal() {
       const result = await purchaseMutation.mutateAsync({
         plan_id: selectedPackageId,
         phone_number: phoneNumber || undefined,
-        email: email || undefined,
+        email: isPaystack ? 'codevertexitsolutions@gmail.com' : undefined,
         payment_method: selectedPaymentMethod,
       });
 
@@ -379,24 +376,7 @@ export default function HotspotCustomerPortal() {
             {/* Payment Method Selector */}
             <PaymentMethodSelector primaryColor={primaryColor} />
 
-            {/* Email Input for Paystack */}
-            {selectedPaymentMethod === 'paystack' && selectedPackageId && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={packageEmails[selectedPackageId] || ''}
-                  onChange={(e) => setPackageEmails({
-                    ...packageEmails,
-                    [selectedPackageId]: e.target.value,
-                  })}
-                  placeholder="your@email.com"
-                  type="email"
-                />
-                <p className="text-xs text-gray-500 mt-2">Receipt will be sent to this email</p>
-              </div>
-            )}
+            {/* Paystack - email handled automatically */}
 
             {purchaseMutation.isError && (
               <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
@@ -412,7 +392,6 @@ export default function HotspotCustomerPortal() {
               onClick={handlePurchase}
               disabled={
                 !selectedPaymentMethod ||
-                (selectedPaymentMethod === 'paystack' && selectedPackageId && !packageEmails[selectedPackageId]) ||
                 purchaseMutation.isPending
               }
               className="w-full"

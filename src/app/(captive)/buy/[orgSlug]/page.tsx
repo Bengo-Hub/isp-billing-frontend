@@ -97,13 +97,11 @@ export default function CaptiveBuyPackagesPage() {
     const isMpesa = selectedPaymentMethod === 'mpesa_paybill' || selectedPaymentMethod === 'mpesa_till';
 
     if (isMpesa && !phoneNumber) return;
-    if (isPaystack && !email) return;
-
     try {
       const result = await purchaseMutation.mutateAsync({
         plan_id: selectedPackage,
         phone_number: phoneNumber || undefined,
-        email: email || undefined,
+        email: isPaystack ? 'codevertexitsolutions@gmail.com' : undefined,
         payment_method: selectedPaymentMethod,
       });
 
@@ -200,35 +198,30 @@ export default function CaptiveBuyPackagesPage() {
     <div className="min-h-screen" style={{ backgroundColor }}>
       {/* Modern Header/Navbar */}
       <div className="sticky top-0 z-50 bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo and Brand */}
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-              <div className="relative w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 shrink-0">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-2">
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            {/* Logo - fills available space */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="relative h-12 sm:h-14 lg:h-16 flex-1 max-w-[280px] sm:max-w-[340px] lg:max-w-[400px]">
                 <Image
                   src={config?.logo_url || '/images/logo/logo.png'}
                   alt={config?.organization_name || 'WiFi Portal'}
                   fill
-                  className="object-contain"
+                  className="object-contain object-left"
                   unoptimized={!!config?.logo_url}
                   priority
                 />
               </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 truncate">
-                  {config?.organization_name || 'WiFi Portal'}
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-600 truncate hidden sm:block">
-                  {config?.portal_description || 'Fast & Reliable Internet'}
-                </p>
-              </div>
+              <span className="text-[10px] sm:text-xs text-gray-400 font-medium whitespace-nowrap hidden xs:inline">
+                {config?.organization_name ? `${config.organization_name} WiFi Portal` : 'WiFi Portal'}
+              </span>
             </div>
 
-            {/* Navigation Tabs - Hidden on mobile, show as dropdown icon */}
-            <div className="hidden sm:flex items-center gap-2 bg-gray-100 p-1 rounded-xl shrink-0">
+            {/* Navigation Tabs - Desktop */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl shrink-0">
               <button
                 onClick={() => setActiveTab('buy')}
-                className={`px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${
+                className={`px-3 lg:px-5 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${
                   activeTab === 'buy'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -241,7 +234,7 @@ export default function CaptiveBuyPackagesPage() {
               </button>
               <button
                 onClick={() => setActiveTab('redeem')}
-                className={`px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${
+                className={`px-3 lg:px-5 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${
                   activeTab === 'redeem'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -254,7 +247,7 @@ export default function CaptiveBuyPackagesPage() {
               </button>
               <button
                 onClick={() => setConnectModalOpen(true)}
-                className="px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap text-white shadow-sm"
+                className="px-3 lg:px-5 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap text-white shadow-sm"
                 style={{ backgroundColor: primaryColor }}
               >
                 <LogIn className="w-4 h-4 inline mr-1 lg:mr-2" />
@@ -264,38 +257,38 @@ export default function CaptiveBuyPackagesPage() {
             </div>
           </div>
 
-          {/* Mobile Navigation - Show below on mobile */}
-          <div className="sm:hidden mt-3 flex gap-2">
+          {/* Mobile Navigation */}
+          <div className="sm:hidden mt-2 flex gap-1.5">
             <button
               onClick={() => setActiveTab('buy')}
-              className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'buy'
                   ? 'text-white shadow-md'
                   : 'bg-gray-100 text-gray-700'
               }`}
               style={activeTab === 'buy' ? { backgroundColor: primaryColor } : {}}
             >
-              <Wifi className="w-4 h-4 inline mr-1" />
+              <Wifi className="w-3.5 h-3.5 inline mr-1" />
               Buy
             </button>
             <button
               onClick={() => setActiveTab('redeem')}
-              className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'redeem'
                   ? 'text-white shadow-md'
                   : 'bg-gray-100 text-gray-700'
               }`}
               style={activeTab === 'redeem' ? { backgroundColor: primaryColor } : {}}
             >
-              <Ticket className="w-4 h-4 inline mr-1" />
+              <Ticket className="w-3.5 h-3.5 inline mr-1" />
               Redeem
             </button>
             <button
               onClick={() => setConnectModalOpen(true)}
-              className="flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-white shadow-md"
+              className="flex-1 px-2 py-2 rounded-lg text-xs font-medium transition-all text-white shadow-md"
               style={{ backgroundColor: primaryColor }}
             >
-              <LogIn className="w-4 h-4 inline mr-1" />
+              <LogIn className="w-3.5 h-3.5 inline mr-1" />
               Connect
             </button>
           </div>
@@ -308,7 +301,7 @@ export default function CaptiveBuyPackagesPage() {
       }}>
         <div className="relative z-10 max-w-4xl mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2 sm:mb-3 md:mb-4 leading-tight">
-            {config?.portal_title || `${config?.organization_name || 'WiFi'} Portal`}
+            {config?.organization_name ? `${config.organization_name} WiFi Portal` : (config?.portal_title || 'WiFi Portal')}
           </h2>
           <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-white/95 font-medium px-2">
             Choose the perfect internet package for your needs
@@ -500,21 +493,7 @@ export default function CaptiveBuyPackagesPage() {
                   </div>
                 )}
 
-                {/* Paystack Input */}
-                {selectedPaymentMethod === 'paystack' && (
-                  <div>
-                    <Label className="text-sm font-semibold mb-2 block">Email Address</Label>
-                    <Input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your.email@example.com"
-                      type="email"
-                      className="h-11 sm:h-12 text-base"
-                      autoComplete="email"
-                    />
-                    <p className="text-xs text-gray-500 mt-2">Receipt will be sent to this email</p>
-                  </div>
-                )}
+                {/* Paystack - email handled automatically */}
 
                 {purchaseMutation.isError && (
                   <div className="bg-red-50 border border-red-200 p-3 sm:p-4 rounded-lg">
@@ -531,7 +510,6 @@ export default function CaptiveBuyPackagesPage() {
                   disabled={
                     !selectedPaymentMethod ||
                     ((selectedPaymentMethod === 'mpesa_paybill' || selectedPaymentMethod === 'mpesa_till') && !phoneNumber) ||
-                    (selectedPaymentMethod === 'paystack' && !email) ||
                     purchaseMutation.isPending
                   }
                   className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold touch-manipulation"

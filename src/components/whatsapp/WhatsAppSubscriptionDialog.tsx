@@ -135,10 +135,6 @@ export function WhatsAppSubscriptionDialog({
     const isMpesa = selectedPaymentMethod === 'mpesa_paybill' || selectedPaymentMethod === 'mpesa_till';
 
     // Validate required fields
-    if (isPaystack && !email) {
-      toast.error('Please enter your email address');
-      return;
-    }
     if (isMpesa && !phone) {
       toast.error('Please enter your phone number');
       return;
@@ -159,7 +155,7 @@ export function WhatsAppSubscriptionDialog({
         const paymentResult = await initiatePayment.mutateAsync({
           invoice_id: invoiceResult.invoice_id,
           callback_url: callbackUrl,
-          email: email,
+          email: 'codevertexitsolutions@gmail.com',
           phone: phone || undefined,
         });
 
@@ -322,36 +318,19 @@ export function WhatsAppSubscriptionDialog({
 
           {/* Contact Information */}
           <div className="space-y-3">
-            {/* Paystack: Email required, phone optional */}
+            {/* Paystack: phone optional */}
             {selectedPaymentMethod === 'paystack' && (
-              <>
-                <div>
-                  <Label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Invoice and receipt will be sent to this email
-                  </p>
-                </div>
-
-                <div>
-                  <Label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number (Optional)
-                  </Label>
-                  <Input
-                    type="tel"
-                    placeholder="+254..."
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-              </>
+              <div>
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number (Optional)
+                </Label>
+                <Input
+                  type="tel"
+                  placeholder="+254..."
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
             )}
 
             {/* M-PESA: Phone required */}
@@ -414,7 +393,6 @@ export function WhatsAppSubscriptionDialog({
             disabled={
               isPending ||
               !selectedPaymentMethod ||
-              (selectedPaymentMethod === 'paystack' && !email) ||
               ((selectedPaymentMethod === 'mpesa_paybill' || selectedPaymentMethod === 'mpesa_till') && !phone)
             }
             className="bg-pink-600 hover:bg-pink-700"
