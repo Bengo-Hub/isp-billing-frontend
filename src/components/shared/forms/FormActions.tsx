@@ -69,7 +69,7 @@ export function FormActions({
       <Button
         type="submit"
         disabled={disabled || isSubmitting}
-        className="bg-pink-600 hover:bg-pink-700"
+        className="bg-brand-600 hover:bg-brand-700"
       >
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {isSubmitting ? 'Saving...' : submitText}

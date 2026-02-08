@@ -137,7 +137,7 @@ export default function QuickTemplatesDialog({ open, onOpenChange, onSelectTempl
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-pink-600" />
+            <Star className="h-5 w-5 text-brand-600" />
             Quick Templates
           </DialogTitle>
           <DialogDescription>
@@ -153,7 +153,7 @@ export default function QuickTemplatesDialog({ open, onOpenChange, onSelectTempl
                 key={template.id} 
                 className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
                   selectedTemplate === template.id 
-                    ? 'ring-2 ring-pink-500 bg-pink-50' 
+                    ? 'ring-2 ring-brand-500 bg-brand-50' 
                     : 'hover:bg-gray-50'
                 }`}
                 onClick={() => setSelectedTemplate(template.id)}
@@ -209,7 +209,7 @@ export default function QuickTemplatesDialog({ open, onOpenChange, onSelectTempl
           <Button
             onClick={handleUseTemplate}
             disabled={!selectedTemplate}
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
           >
             Use Template
           </Button>

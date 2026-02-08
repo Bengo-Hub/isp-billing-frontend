@@ -129,7 +129,7 @@ export default function EmailsPage() {
       FAILED: { color: 'bg-red-100 text-red-700', icon: XCircle, label: 'Failed' },
       BOUNCED: { color: 'bg-red-100 text-red-700', icon: AlertCircle, label: 'Bounced' },
       OPENED: { color: 'bg-purple-100 text-purple-700', icon: Eye, label: 'Opened' },
-      CLICKED: { color: 'bg-pink-100 text-pink-700', icon: Eye, label: 'Clicked' },
+      CLICKED: { color: 'bg-brand-100 text-brand-700', icon: Eye, label: 'Clicked' },
     };
 
     const { color, icon: Icon, label } = config[status] || config.PENDING;
@@ -155,7 +155,7 @@ export default function EmailsPage() {
             Templates
           </Button>
           <Button
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
             onClick={() => {
               resetForm();
               setShowComposeModal(true);
@@ -276,7 +276,7 @@ export default function EmailsPage() {
                       {!searchTerm && filterStatus === 'all' && (
                         <Button
                           variant="outline"
-                          className="text-pink-600 border-pink-600"
+                          className="text-brand-600 border-brand-600"
                           onClick={() => {
                             resetForm();
                             setShowComposeModal(true);
@@ -463,7 +463,7 @@ export default function EmailsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                   disabled={sendEmail.isPending}
                 >
                   <Send className="h-4 w-4 mr-2" />
@@ -486,13 +486,13 @@ export default function EmailsPage() {
             ) : templates && templates.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {templates.map((template: any) => (
-                  <Card key={template.id} className="p-4 hover:bg-gray-50 cursor-pointer border-2 hover:border-pink-300">
+                  <Card key={template.id} className="p-4 hover:bg-gray-50 cursor-pointer border-2 hover:border-brand-300">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-medium text-gray-900">{template.name}</h3>
                         <p className="text-xs text-gray-500 mt-1">{template.subject}</p>
                       </div>
-                      <FileText className="h-5 w-5 text-pink-600" />
+                      <FileText className="h-5 w-5 text-brand-600" />
                     </div>
                   </Card>
                 ))}
@@ -551,7 +551,7 @@ export default function EmailsPage() {
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-pink-600 hover:bg-pink-700"
+                    className="bg-brand-600 hover:bg-brand-700"
                     disabled={createTemplate.isPending}
                   >
                     <Plus className="h-4 w-4 mr-2" />

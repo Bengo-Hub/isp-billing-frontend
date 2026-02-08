@@ -98,7 +98,7 @@ export default function ShopEquipmentPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <ShoppingCart className="h-8 w-8 text-pink-600" />
+        <ShoppingCart className="h-8 w-8 text-brand-600" />
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Shop Equipment</h1>
           <p className="text-gray-600">Professional networking equipment for your ISP business</p>
@@ -124,7 +124,7 @@ export default function ShopEquipmentPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               {categories.map(category => (
                 <option key={category.id} value={category.id}>
@@ -199,7 +199,7 @@ export default function ShopEquipmentPage() {
                   <Button 
                     size="sm" 
                     disabled={!item.inStock}
-                    className="bg-pink-600 hover:bg-pink-700"
+                    className="bg-brand-600 hover:bg-brand-700"
                   >
                     <ShoppingBag className="h-4 w-4 mr-1" />
                     {item.inStock ? 'Add to Cart' : 'Out of Stock'}

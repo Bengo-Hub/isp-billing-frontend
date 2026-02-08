@@ -60,7 +60,7 @@ function ResetPasswordForm() {
       <header className="border-b bg-white/95 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <Wifi className="h-6 w-6 text-pink-600" />
+            <Wifi className="h-6 w-6 text-brand-600" />
             <span className="text-xl font-bold text-gray-900">Codevertex IT Solutions</span>
           </Link>
         </div>
@@ -70,8 +70,8 @@ function ResetPasswordForm() {
       <main className="container mx-auto px-4 py-12">
         <div className="mx-auto max-w-md">
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mb-4">
-              <Key className="h-8 w-8 text-pink-600" />
+            <div className="mx-auto w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mb-4">
+              <Key className="h-8 w-8 text-brand-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset Your Password</h1>
             <p className="text-gray-600">
@@ -125,7 +125,7 @@ function ResetPasswordForm() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-pink-600 hover:bg-pink-700"
+                className="w-full bg-brand-600 hover:bg-brand-700"
                 disabled={isPending || !token}
               >
                 {isPending ? 'Resetting...' : 'Reset Password'}
@@ -135,7 +135,7 @@ function ResetPasswordForm() {
             <div className="mt-6 text-center text-sm text-gray-600">
               <p>
                 Remember your password?{' '}
-                <Link href="/login" className="font-medium text-pink-600 hover:text-pink-700">
+                <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
                   Sign in
                 </Link>
               </p>

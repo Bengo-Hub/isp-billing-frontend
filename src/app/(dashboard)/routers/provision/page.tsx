@@ -549,7 +549,7 @@ export default function ProvisionPage() {
                 </button>
                 <button
                   onClick={handleCloseCompletionModal}
-                  className="px-6 py-2 text-sm font-medium text-white bg-pink-600 rounded-lg hover:bg-pink-700 transition-colors"
+                  className="px-6 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
                 >
                   Continue
                 </button>

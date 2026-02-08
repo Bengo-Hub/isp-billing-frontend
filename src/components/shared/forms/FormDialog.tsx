@@ -85,7 +85,7 @@ export function FormDialog({
   title,
   description,
   icon: Icon,
-  iconColor = 'text-pink-600',
+  iconColor = 'text-brand-600',
   children,
   onSubmit,
   submitText = 'Save',

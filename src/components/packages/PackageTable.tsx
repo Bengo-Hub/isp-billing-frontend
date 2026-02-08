@@ -264,7 +264,7 @@ export default function PackageTable({
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">Per page</span>
-          <select className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+          <select className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
             <option value="10">10</option>
             <option value="25">25</option>
             <option value="50">50</option>

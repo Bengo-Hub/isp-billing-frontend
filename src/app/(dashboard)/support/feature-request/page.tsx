@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -81,9 +81,9 @@ export default function FeatureRequestPage() {
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       <div className="flex items-center gap-3">
         {activeTab === 'feature' ? (
-          <Lightbulb className="h-8 w-8 text-pink-600" />
+          <Lightbulb className="h-8 w-8 text-brand-600" />
         ) : (
-          <Bug className="h-8 w-8 text-pink-600" />
+          <Bug className="h-8 w-8 text-brand-600" />
         )}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -100,7 +100,7 @@ export default function FeatureRequestPage() {
         <button
           onClick={() => setActiveTab('feature')}
           className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-            activeTab === 'feature' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            activeTab === 'feature' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
           <Lightbulb className="h-4 w-4" />
@@ -109,7 +109,7 @@ export default function FeatureRequestPage() {
         <button
           onClick={() => setActiveTab('bug')}
           className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-            activeTab === 'bug' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            activeTab === 'bug' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
           <Bug className="h-4 w-4" />
@@ -158,7 +158,7 @@ export default function FeatureRequestPage() {
               className="w-full h-28 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm resize-none"
             />
           </div>
-          <Button type="submit" className="bg-pink-600 hover:bg-pink-700" disabled={createTicket.isPending}>
+          <Button type="submit" className="bg-brand-600 hover:bg-brand-700" disabled={createTicket.isPending}>
             <Send className="h-4 w-4 mr-2" />
             {createTicket.isPending ? 'Submitting...' : 'Submit'}
           </Button>

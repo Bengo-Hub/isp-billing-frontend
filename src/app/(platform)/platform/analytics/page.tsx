@@ -40,8 +40,8 @@ export default function PlatformAnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="p-6">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-pink-50 rounded-lg">
-              <Building2 className="w-5 h-5 text-pink-600" />
+            <div className="p-3 bg-brand-50 rounded-lg">
+              <Building2 className="w-5 h-5 text-brand-600" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Total Organizations</p>
@@ -95,7 +95,7 @@ export default function PlatformAnalyticsPage() {
               return (
                 <div
                   key={i}
-                  className="flex-1 bg-pink-500 rounded-t hover:bg-pink-600 transition-colors cursor-pointer"
+                  className="flex-1 bg-brand-500 rounded-t hover:bg-brand-600 transition-colors cursor-pointer"
                   style={{ height: `${Math.max(height, 2)}%` }}
                   title={`${day.date}: KES ${day.revenue.toLocaleString()}`}
                 />
@@ -156,7 +156,7 @@ export default function PlatformAnalyticsPage() {
           {data?.top_organizations && data.top_organizations.length > 0 ? (
             data.top_organizations.map((org, i) => (
               <div key={org.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center text-sm font-medium text-pink-600">
+                <div className="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center text-sm font-medium text-brand-600">
                   {i + 1}
                 </div>
                 <div className="flex-1">

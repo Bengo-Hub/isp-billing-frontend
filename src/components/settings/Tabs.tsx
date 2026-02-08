@@ -55,7 +55,7 @@ export default function SettingsTabs() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
-        <Button className="bg-pink-600 hover:bg-pink-700 w-full sm:w-auto" form={`form-${active}`} type="submit">Save changes</Button>
+        <Button className="bg-brand-600 hover:bg-brand-700 w-full sm:w-auto" form={`form-${active}`} type="submit">Save changes</Button>
       </div>
 
       {/* Responsive tabs - horizontal scroll on mobile */}
@@ -63,7 +63,7 @@ export default function SettingsTabs() {
         {tabs.map((t) => (
           <button 
             key={t.id} 
-            className={`py-3 -mb-px border-b-2 text-sm flex items-center gap-2 whitespace-nowrap ${active === t.id ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`} 
+            className={`py-3 -mb-px border-b-2 text-sm flex items-center gap-2 whitespace-nowrap ${active === t.id ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`} 
             onClick={() => setActive(t.id)}
           >
             {t.label}
@@ -94,7 +94,7 @@ function GeneralTab() {
   const [logo, setLogo] = useState<string>(data['system.logo_url'] || DEFAULT_LOGO);
   const [terms, setTerms] = useState<string>(data['system.terms_text'] ?? '');
   const [isUploading, setIsUploading] = useState(false);
-  const [primaryColor, setPrimaryColor] = useState<string>(data['system.primary_color'] || '#ec4899');
+  const [primaryColor, setPrimaryColor] = useState<string>(data['system.primary_color'] || '#801066');
 
   // Sync logo from settings when data loads
   useState(() => {
@@ -213,7 +213,7 @@ function GeneralTab() {
                       type="text"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      placeholder="#ec4899"
+                      placeholder="#801066"
                       className="font-mono"
                     />
                   </div>
@@ -1414,7 +1414,7 @@ function NotificationsTab() {
               name="mt"
               type="checkbox"
               defaultChecked={!!data['notifications.mikrotik_status_enabled']}
-              className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
+              className="w-5 h-5 text-brand-600 rounded focus:ring-brand-500"
             />
           </div>
 
@@ -1477,7 +1477,7 @@ function NotificationsTab() {
                   name="exp_hs"
                   type="checkbox"
                   defaultChecked={!!data['notifications.expiry_hotspot']}
-                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                  className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
                 />
                 <span className="text-sm text-gray-700">Send expiry notifications to Hotspot users</span>
               </label>
@@ -1486,7 +1486,7 @@ function NotificationsTab() {
                   name="exp_pppoe"
                   type="checkbox"
                   defaultChecked={!!data['notifications.expiry_pppoe']}
-                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                  className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
                 />
                 <span className="text-sm text-gray-700">Send expiry notifications to PPPoE users</span>
               </label>
@@ -1495,7 +1495,7 @@ function NotificationsTab() {
                   name="rem_hs"
                   type="checkbox"
                   defaultChecked={!!data['notifications.reminder_hotspot']}
-                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                  className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
                 />
                 <span className="text-sm text-gray-700">Send reminder notifications to Hotspot users</span>
               </label>
@@ -1504,7 +1504,7 @@ function NotificationsTab() {
                   name="rem_pppoe"
                   type="checkbox"
                   defaultChecked={!!data['notifications.reminder_pppoe']}
-                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                  className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
                 />
                 <span className="text-sm text-gray-700">Send reminder notifications to PPPoE users</span>
               </label>
@@ -1520,7 +1520,7 @@ function NotificationsTab() {
                   name="email_enable"
                   type="checkbox"
                   defaultChecked={!!data['notifications.email_subscription_enable']}
-                  className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
+                  className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
                 />
                 <span className="text-xs text-gray-600">Enable</span>
               </label>

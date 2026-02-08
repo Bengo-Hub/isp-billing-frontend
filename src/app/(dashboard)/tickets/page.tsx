@@ -191,7 +191,7 @@ export default function TicketsPage() {
           <p className="text-sm text-gray-600 mt-1">Manage customer support requests</p>
         </div>
         <Button
-          className="bg-pink-600 hover:bg-pink-700"
+          className="bg-brand-600 hover:bg-brand-700"
           onClick={() => {
             resetForm();
             setShowCreateModal(true);
@@ -325,7 +325,7 @@ export default function TicketsPage() {
                       {!searchTerm && filterStatus === 'all' && (
                         <Button
                           variant="outline"
-                          className="text-pink-600 border-pink-600"
+                          className="text-brand-600 border-brand-600"
                           onClick={() => {
                             resetForm();
                             setShowCreateModal(true);
@@ -358,7 +358,7 @@ export default function TicketsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-pink-600 hover:text-pink-700"
+                        className="text-brand-600 hover:text-brand-700"
                         onClick={() => viewTicketDetail(ticket)}
                       >
                         View
@@ -481,7 +481,7 @@ export default function TicketsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                   disabled={createTicket.isPending}
                 >
                   {createTicket.isPending ? 'Creating...' : 'Create Ticket'}

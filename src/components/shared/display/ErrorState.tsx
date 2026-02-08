@@ -136,7 +136,7 @@ export function ErrorState({
             <Button
               onClick={onRetry}
               disabled={isRetrying}
-              className="bg-pink-600 hover:bg-pink-700"
+              className="bg-brand-600 hover:bg-brand-700"
             >
               {isRetrying ? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

@@ -34,7 +34,7 @@ function StatCard({
   color?: 'pink' | 'green' | 'blue' | 'orange' | 'red';
 }) {
   const colorClasses = {
-    pink: 'bg-pink-50 text-pink-600',
+    pink: 'bg-brand-50 text-brand-600',
     green: 'bg-green-50 text-green-600',
     blue: 'bg-blue-50 text-blue-600',
     orange: 'bg-orange-50 text-orange-600',
@@ -256,7 +256,7 @@ export default function PlatformDashboard() {
                     return (
                       <div
                         key={i}
-                        className="flex-1 bg-pink-500 rounded-t transition-all hover:bg-pink-600"
+                        className="flex-1 bg-brand-500 rounded-t transition-all hover:bg-brand-600"
                         style={{ height: `${Math.max(height, 2)}%` }}
                         title={`${day.date}: ${formatCurrency(day.revenue)}`}
                       />
@@ -275,7 +275,7 @@ export default function PlatformDashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Top Organizations</h3>
-            <Link href="/platform/organizations" className="text-sm text-pink-600 hover:underline">
+            <Link href="/platform/organizations" className="text-sm text-brand-600 hover:underline">
               View all
             </Link>
           </div>

@@ -123,7 +123,7 @@ export default function RoutersPage() {
             <Monitor className="h-4 w-4 mr-2" />
             Tutorial
           </Button>
-          <Button className="bg-pink-600 hover:bg-pink-700" onClick={() => router.push('/routers/provision')}>
+          <Button className="bg-brand-600 hover:bg-brand-700" onClick={() => router.push('/routers/provision')}>
             <Monitor className="h-4 w-4 mr-2" />
             Link a MikroTik
           </Button>
@@ -136,7 +136,7 @@ export default function RoutersPage() {
           onClick={() => setStatusFilter('all')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             statusFilter === 'all' 
-              ? 'text-gray-700 border-b-2 border-pink-500' 
+              ? 'text-gray-700 border-b-2 border-brand-500' 
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -147,7 +147,7 @@ export default function RoutersPage() {
           onClick={() => setStatusFilter('online')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             statusFilter === 'online' 
-              ? 'text-green-700 border-b-2 border-pink-500' 
+              ? 'text-green-700 border-b-2 border-brand-500' 
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -158,7 +158,7 @@ export default function RoutersPage() {
           onClick={() => setStatusFilter('offline')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             statusFilter === 'offline' 
-              ? 'text-red-700 border-b-2 border-pink-500' 
+              ? 'text-red-700 border-b-2 border-brand-500' 
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -227,7 +227,7 @@ export default function RoutersPage() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className="bg-pink-100 text-pink-800">
+                  <Badge className="bg-brand-100 text-brand-800">
                     {r.free_memory_formatted || (r.free_memory != null ? `${(r.free_memory / 1024 / 1024).toFixed(1)}MiB` : '-')}
                   </Badge>
                 </TableCell>

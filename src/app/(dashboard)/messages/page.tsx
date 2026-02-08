@@ -112,7 +112,7 @@ export default function MessagesPage() {
             </svg>
             Top Up SMS
           </Button>
-          <Button className="bg-pink-600 hover:bg-pink-700 gap-2" onClick={() => setCreateMessageOpen(true)}>
+          <Button className="bg-brand-600 hover:bg-brand-700 gap-2" onClick={() => setCreateMessageOpen(true)}>
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
@@ -147,7 +147,7 @@ export default function MessagesPage() {
                       value="sms"
                       checked={messageChannel === 'sms'}
                       onChange={() => setMessageChannel('sms')}
-                      className="w-4 h-4 text-pink-600 border-gray-300 focus:ring-pink-500"
+                      className="w-4 h-4 text-brand-600 border-gray-300 focus:ring-brand-500"
                     />
                     <span className="text-sm text-gray-700">SMS</span>
                   </label>
@@ -165,7 +165,7 @@ export default function MessagesPage() {
                       value="all_users"
                       checked={recipientType === 'all_users'}
                       onChange={() => setRecipientType('all_users')}
-                      className="w-4 h-4 text-pink-600 border-gray-300 focus:ring-pink-500"
+                      className="w-4 h-4 text-brand-600 border-gray-300 focus:ring-brand-500"
                     />
                     <span className="text-sm text-gray-700">All users</span>
                   </label>
@@ -176,7 +176,7 @@ export default function MessagesPage() {
                       value="groups"
                       checked={recipientType === 'groups'}
                       onChange={() => setRecipientType('groups')}
-                      className="w-4 h-4 text-pink-600 border-gray-300 focus:ring-pink-500"
+                      className="w-4 h-4 text-brand-600 border-gray-300 focus:ring-brand-500"
                     />
                     <span className="text-sm text-gray-700">Groups / Segments</span>
                   </label>
@@ -187,7 +187,7 @@ export default function MessagesPage() {
                       value="mikrotiks"
                       checked={recipientType === 'mikrotiks'}
                       onChange={() => setRecipientType('mikrotiks')}
-                      className="w-4 h-4 text-pink-600 border-gray-300 focus:ring-pink-500"
+                      className="w-4 h-4 text-brand-600 border-gray-300 focus:ring-brand-500"
                     />
                     <span className="text-sm text-gray-700">Mikrotiks</span>
                   </label>
@@ -198,7 +198,7 @@ export default function MessagesPage() {
                       value="specific_users"
                       checked={recipientType === 'specific_users'}
                       onChange={() => setRecipientType('specific_users')}
-                      className="w-4 h-4 text-pink-600 border-gray-300 focus:ring-pink-500"
+                      className="w-4 h-4 text-brand-600 border-gray-300 focus:ring-brand-500"
                     />
                     <span className="text-sm text-gray-700">Specific users</span>
                   </label>
@@ -212,7 +212,7 @@ export default function MessagesPage() {
                   <select
                     value={selectedUsers}
                     onChange={(e) => setSelectedUsers(e.target.value)}
-                    className="mt-1 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="mt-1 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="">Select a user</option>
                     {usersWithPhone.map((user) => (
@@ -235,10 +235,10 @@ export default function MessagesPage() {
                   onChange={(e) => setMessageContent(e.target.value)}
                   required
                   rows={4}
-                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   placeholder="Type your message here..."
                 />
-                <p className="text-sm text-pink-600 mt-2">
+                <p className="text-sm text-brand-600 mt-2">
                   Use the following variables to personalize your message:
                 </p>
                 <p className="text-sm text-gray-500">
@@ -247,7 +247,7 @@ export default function MessagesPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button type="submit" className="bg-pink-600 hover:bg-pink-700">
+                <Button type="submit" className="bg-brand-600 hover:bg-brand-700">
                   Send message
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setCreateMessageOpen(false)}>
@@ -286,7 +286,7 @@ export default function MessagesPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                   disabled={topUpMutation.isPending}
                 >
                   {topUpMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -346,7 +346,7 @@ export default function MessagesPage() {
           onClick={() => { setActiveChannel('all'); setPage(1); }}
           className={`flex items-center gap-2 py-3 px-1 -mb-px border-b-2 text-sm font-medium transition-colors ${
             activeChannel === 'all'
-              ? 'border-pink-500 text-pink-600'
+              ? 'border-brand-500 text-brand-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -360,7 +360,7 @@ export default function MessagesPage() {
           onClick={() => { setActiveChannel('sms'); setPage(1); }}
           className={`flex items-center gap-2 py-3 px-1 -mb-px border-b-2 text-sm font-medium transition-colors ${
             activeChannel === 'sms'
-              ? 'border-pink-500 text-pink-600'
+              ? 'border-brand-500 text-brand-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -391,7 +391,7 @@ export default function MessagesPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
           </div>
         ) : (
           <>
@@ -421,7 +421,7 @@ export default function MessagesPage() {
                       <td className="px-4 py-4 text-sm text-gray-900">{msg.user || '-'}</td>
                       <td className="px-4 py-4 text-sm text-gray-500">{msg.phone}</td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-100 text-brand-800">
                           {msg.channel}
                         </span>
                       </td>
@@ -440,7 +440,7 @@ export default function MessagesPage() {
                       <td className="px-4 py-4">
                         <button
                           onClick={() => setViewMessage(msg)}
-                          className="text-sm text-pink-600 hover:text-pink-700 flex items-center gap-1"
+                          className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1"
                         >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />

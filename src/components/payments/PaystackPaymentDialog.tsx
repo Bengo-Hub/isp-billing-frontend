@@ -75,7 +75,7 @@ export function PaystackPaymentDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-pink-600" />
+            <CreditCard className="h-5 w-5 text-brand-600" />
             Pay with Paystack
           </DialogTitle>
           <DialogDescription>
@@ -93,7 +93,7 @@ export function PaystackPaymentDialog({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Amount:</span>
-                <span className="font-semibold text-lg text-pink-600">
+                <span className="font-semibold text-lg text-brand-600">
                   {formatCurrency(invoice.total)}
                 </span>
               </div>
@@ -147,7 +147,7 @@ export function PaystackPaymentDialog({
           <Button
             onClick={handlePayment}
             disabled={initiatePayment.isPending}
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
           >
             {initiatePayment.isPending ? (
               <>

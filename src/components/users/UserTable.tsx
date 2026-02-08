@@ -29,7 +29,7 @@ export default function UserTable() {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Badge className="bg-pink-100 text-pink-800">Admin</Badge>;
+        return <Badge className="bg-brand-100 text-brand-800">Admin</Badge>;
       case 'technician':
         return <Badge className="bg-blue-100 text-blue-800">Technician</Badge>;
       case 'customer':
@@ -58,7 +58,7 @@ export default function UserTable() {
           <select
             value={role || ''}
             onChange={(e) => setRole(e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Roles</option>
             <option value="admin">Admin</option>
@@ -68,7 +68,7 @@ export default function UserTable() {
           <select
             value={status || ''}
             onChange={(e) => setStatus(e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>

@@ -76,7 +76,7 @@ export default function EditPackageDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-pink-600" />
+            <Package className="h-5 w-5 text-brand-600" />
             Edit Package
           </DialogTitle>
           <DialogDescription>
@@ -211,7 +211,7 @@ export default function EditPackageDialog({
           <Button
             onClick={handleSubmit}
             disabled={updatePlan.isPending}
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
           >
             {updatePlan.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes

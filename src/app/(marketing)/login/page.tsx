@@ -33,7 +33,7 @@ export default function LoginPage() {
         {[...Array(15)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-2 h-2 bg-[#801066]/20 dark:bg-[#801066]/30 rounded-full"
+            className="absolute w-2 h-2 bg-primary/20 dark:bg-primary/30 rounded-full"
             initial={{ 
               x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000), 
               y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000)
@@ -54,7 +54,7 @@ export default function LoginPage() {
       <div className="flex min-h-screen relative z-10">
         {/* Left Column - Marketing Content */}
         <motion.div 
-          className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#801066] via-[#6d0d57] to-[#acacb3] p-12 flex-col justify-center relative overflow-hidden"
+          className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-700 via-brand-900 to-gray-400 p-12 flex-col justify-center relative overflow-hidden"
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
@@ -186,7 +186,7 @@ export default function LoginPage() {
               transition={{ delay: 0.8 }}
             >
               <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <Shield className="w-4 h-4 text-[#801066]" />
+                <Shield className="w-4 h-4 text-primary" />
                 <span>Your data is encrypted and secure</span>
               </div>
             </motion.div>

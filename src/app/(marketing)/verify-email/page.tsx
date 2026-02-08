@@ -39,7 +39,7 @@ function VerifyEmailContent() {
       <header className="border-b bg-white/95 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <Wifi className="h-6 w-6 text-pink-600" />
+            <Wifi className="h-6 w-6 text-brand-600" />
             <span className="text-xl font-bold text-gray-900">Codevertex IT Solutions</span>
           </Link>
         </div>
@@ -63,7 +63,7 @@ function VerifyEmailContent() {
 
               <Card className="p-8">
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
                 </div>
               </Card>
             </>
@@ -91,7 +91,7 @@ function VerifyEmailContent() {
                   </div>
 
                   <Link href="/login">
-                    <Button className="w-full bg-pink-600 hover:bg-pink-700">
+                    <Button className="w-full bg-brand-600 hover:bg-brand-700">
                       Continue to Login
                     </Button>
                   </Link>
@@ -124,7 +124,7 @@ function VerifyEmailContent() {
                   <Button
                     onClick={() => resendVerification()}
                     disabled={isResending}
-                    className="w-full bg-pink-600 hover:bg-pink-700"
+                    className="w-full bg-brand-600 hover:bg-brand-700"
                   >
                     {isResending ? 'Sending...' : 'Resend Verification Email'}
                   </Button>
@@ -181,7 +181,7 @@ function VerifyEmailContent() {
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>
               Need help?{' '}
-              <Link href="/contact" className="text-pink-600 hover:text-pink-700">
+              <Link href="/contact" className="text-brand-600 hover:text-brand-700">
                 Contact support
               </Link>
             </p>
@@ -196,7 +196,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
       </div>
     }>
       <VerifyEmailContent />

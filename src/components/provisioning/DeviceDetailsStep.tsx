@@ -284,7 +284,7 @@ export function DeviceDetailsStep({
           <Button
             onClick={onNext}
             disabled={!bothStagesVerified || isScanningDevice}
-            className="bg-pink-600 hover:bg-pink-700 disabled:bg-gray-300 disabled:text-gray-500"
+            className="bg-brand-600 hover:bg-brand-700 disabled:bg-gray-300 disabled:text-gray-500"
           >
             {isScanningDevice ? (
               <>

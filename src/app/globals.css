@@ -2,48 +2,50 @@
 
 /**
  * Theme configuration for Tailwind CSS v4
- * Using CSS-based theming with CSS custom properties
+ * Brand colors derived from CodeVertex logo (purple #801066)
+ * Background palette inspired by centipidbilling.com
+ * Supports light / dark / system modes
  */
 
-/* Custom properties for theming */
+/* ──────────────────── Light mode ──────────────────── */
 :root {
-  /* Base colors - Light mode */
-  --background: 48 100% 96%;
-  --foreground: 222.2 47.4% 11.2%;
+  /* Backgrounds – cool blue-white (from website) */
+  --background: 210 50% 97%;
+  --foreground: 209 49% 11%;
 
-  /* Card and surface colors */
+  /* Surfaces */
   --card: 0 0% 100%;
-  --card-foreground: 222.2 47.4% 11.2%;
+  --card-foreground: 209 49% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 47.4% 11.2%;
+  --popover-foreground: 209 49% 11%;
 
-  /* Primary color - Brand pink */
-  --primary: 330 81% 60%;
-  --primary-foreground: 210 40% 98%;
+  /* Primary – logo purple #801066 (hue 316) */
+  --primary: 316 72% 42%;
+  --primary-foreground: 0 0% 100%;
 
-  /* Secondary colors */
-  --secondary: 210 16% 96%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  /* Secondary */
+  --secondary: 210 20% 96%;
+  --secondary-foreground: 209 49% 11%;
 
-  /* Muted colors */
-  --muted: 210 16% 96%;
-  --muted-foreground: 215 20% 47%;
+  /* Muted */
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
 
-  /* Accent colors */
-  --accent: 210 16% 96%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  /* Accent */
+  --accent: 210 20% 96%;
+  --accent-foreground: 209 49% 11%;
 
-  /* Destructive colors */
-  --destructive: 0 84.2% 60.2%;
+  /* Destructive */
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  /* Border and input colors */
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 330 81% 60%;
+  /* Borders & inputs */
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 316 72% 42%;
 
-  /* Chart colors */
-  --chart-1: 330 81% 60%;
+  /* Chart palette */
+  --chart-1: 316 72% 42%;
   --chart-2: 199 89% 48%;
   --chart-3: 173 58% 45%;
   --chart-4: 43 74% 66%;
@@ -52,97 +54,130 @@
   /* Radius */
   --radius: 0.5rem;
 
-  /* Custom colors */
-  --creamy-white: 48 100% 96%;
+  /* Sidebar */
+  --sidebar: 210 50% 97%;
+  --sidebar-foreground: 209 49% 11%;
+  --sidebar-border: 214 32% 91%;
+  --sidebar-active: 316 72% 95%;
+  --sidebar-active-foreground: 316 78% 25%;
+  --sidebar-active-border: 316 72% 42%;
 
-  /* Success and warning */
+  /* Semantic */
   --success: 142 71% 45%;
   --success-foreground: 0 0% 100%;
   --warning: 38 92% 50%;
   --warning-foreground: 0 0% 100%;
 }
 
-/* Dark mode colors */
+/* ──────────────────── Dark mode ──────────────────── */
 .dark {
-  --background: 222.2 84% 4.9%;
+  /* Backgrounds – navy (from website #0e1c29) */
+  --background: 209 49% 11%;
   --foreground: 210 40% 98%;
 
-  --card: 222.2 84% 4.9%;
+  /* Surfaces */
+  --card: 210 40% 14%;
   --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
+  --popover: 210 40% 14%;
   --popover-foreground: 210 40% 98%;
 
-  --primary: 210 100% 66%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  /* Primary – lighter brand purple for contrast */
+  --primary: 316 72% 65%;
+  --primary-foreground: 209 49% 11%;
 
-  --secondary: 217.2 32.6% 17.5%;
+  /* Secondary */
+  --secondary: 210 35% 18%;
   --secondary-foreground: 210 40% 98%;
 
-  --muted: 217.2 32.6% 17.5%;
+  /* Muted */
+  --muted: 210 35% 18%;
   --muted-foreground: 215 20% 65%;
 
-  --accent: 217.2 32.6% 17.5%;
+  /* Accent */
+  --accent: 210 35% 18%;
   --accent-foreground: 210 40% 98%;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 85.7% 97.3%;
+  /* Destructive */
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 86% 97%;
 
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 210 100% 66%;
+  /* Borders & inputs */
+  --border: 210 35% 20%;
+  --input: 210 35% 20%;
+  --ring: 316 72% 65%;
 
-  --chart-1: 210 100% 66%;
+  /* Chart palette (brighter for dark bg) */
+  --chart-1: 316 72% 65%;
   --chart-2: 199 89% 58%;
   --chart-3: 173 58% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
+  /* Sidebar */
+  --sidebar: 209 49% 9%;
+  --sidebar-foreground: 210 40% 85%;
+  --sidebar-border: 210 35% 18%;
+  --sidebar-active: 316 72% 15%;
+  --sidebar-active-foreground: 316 72% 80%;
+  --sidebar-active-border: 316 72% 55%;
+
+  /* Semantic */
   --success: 142 71% 35%;
   --warning: 38 92% 40%;
 }
 
-/* Tailwind v4 theme extension using @theme */
-@theme {
-  /* Colors mapped from CSS variables */
+/* ──────────────────── Tailwind v4 theme extension ──────────────────── */
+@theme extend {
+  /* Semantic token colors */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
-
   --color-warning: hsl(var(--warning));
   --color-warning-foreground: hsl(var(--warning-foreground));
-
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
+
+  /* Sidebar tokens */
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-active: hsl(var(--sidebar-active));
+  --color-sidebar-active-foreground: hsl(var(--sidebar-active-foreground));
+  --color-sidebar-active-border: hsl(var(--sidebar-active-border));
+
+  /* Brand scale – derived from logo purple (#801066, hue ~316) */
+  --color-brand-50: hsl(316 72% 97%);
+  --color-brand-100: hsl(316 72% 93%);
+  --color-brand-200: hsl(316 72% 85%);
+  --color-brand-300: hsl(316 72% 72%);
+  --color-brand-400: hsl(316 72% 58%);
+  --color-brand-500: hsl(316 72% 45%);
+  --color-brand-600: hsl(316 72% 38%);
+  --color-brand-700: hsl(316 78% 28%);
+  --color-brand-800: hsl(316 78% 22%);
+  --color-brand-900: hsl(316 78% 15%);
+  --color-brand-950: hsl(316 78% 10%);
 
   /* Border radius */
   --radius-lg: var(--radius);
@@ -150,7 +185,7 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
-/* Base layer styles */
+/* ──────────────────── Base layer ──────────────────── */
 @layer base {
   * {
     border-color: hsl(var(--border));
@@ -162,21 +197,18 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
 
-  /* Focus styles */
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
   }
 }
 
-/* Utility layer for custom utilities */
+/* ──────────────────── Utilities ──────────────────── */
 @layer utilities {
-  /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -186,7 +218,6 @@
     display: none;
   }
 
-  /* Custom animations */
   .animate-fade-in {
     animation: fade-in 0.3s ease-in-out;
   }
@@ -196,12 +227,8 @@
   }
 
   @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   @keyframes slide-up {

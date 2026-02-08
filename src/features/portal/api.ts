@@ -15,6 +15,7 @@ export interface PortalConfig {
   phone?: string;
   show_packages: boolean;
   allow_guest_purchases: boolean;
+  redirect_url?: string;
 }
 
 export interface HotspotPackage {

@@ -103,7 +103,7 @@ export function WhatsAppPricingSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
       </div>
     );
   }
@@ -118,7 +118,7 @@ export function WhatsAppPricingSettings() {
             Configure WhatsApp subscription pricing and payment collection settings
           </p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving} className="bg-pink-600 hover:bg-pink-700">
+        <Button onClick={handleSave} disabled={isSaving} className="bg-brand-600 hover:bg-brand-700">
           {isSaving ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -136,7 +136,7 @@ export function WhatsAppPricingSettings() {
       {/* Pricing Settings */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <DollarSign className="w-5 h-5 text-pink-600" />
+          <DollarSign className="w-5 h-5 text-brand-600" />
           <h3 className="text-lg font-semibold">Subscription Pricing</h3>
         </div>
 
@@ -184,7 +184,7 @@ export function WhatsAppPricingSettings() {
       {/* Payment Collection Settings */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-5 h-5 text-pink-600" />
+          <CreditCard className="w-5 h-5 text-brand-600" />
           <h3 className="text-lg font-semibold">Payment Collection</h3>
         </div>
 

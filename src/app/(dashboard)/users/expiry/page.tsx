@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -91,7 +91,7 @@ export default function ExpiryDatesPage() {
     return (
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
         <div className="flex items-center gap-2">
-          <Calendar className="h-6 w-6 text-pink-600" />
+          <Calendar className="h-6 w-6 text-brand-600" />
           <h1 className="text-2xl font-bold text-gray-900">Expiry Dates</h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -107,7 +107,7 @@ export default function ExpiryDatesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Calendar className="h-6 w-6 text-pink-600" />
+          <Calendar className="h-6 w-6 text-brand-600" />
           <h1 className="text-2xl font-bold text-gray-900">Expiry Dates</h1>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -119,7 +119,7 @@ export default function ExpiryDatesPage() {
             <Mail className="h-4 w-4 mr-2" />
             Send Email ({selectedIds.length})
           </Button>
-          <Button size="sm" className="bg-pink-600 hover:bg-pink-700">
+          <Button size="sm" className="bg-brand-600 hover:bg-brand-700">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -212,7 +212,7 @@ export default function ExpiryDatesPage() {
                       <td className="py-3">
                         <input type="checkbox" className="rounded border-gray-300" checked={selectedIds.includes(sub.id)} onChange={() => toggleSelect(sub.id)} />
                       </td>
-                      <td className="py-3 font-medium text-pink-600">{sub.username}</td>
+                      <td className="py-3 font-medium text-brand-600">{sub.username}</td>
                       <td className="py-3 text-sm hidden md:table-cell">{sub.plan_name ?? `Plan #${sub.plan_id}`}</td>
                       <td className="py-3 hidden sm:table-cell">
                         <Badge variant="outline" className="capitalize">{sub.subscription_type}</Badge>

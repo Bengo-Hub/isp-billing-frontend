@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -83,7 +83,7 @@ export default function VouchersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Ticket className="h-6 w-6 text-pink-600" />
+          <Ticket className="h-6 w-6 text-brand-600" />
           <h1 className="text-2xl font-bold text-gray-900">Vouchers</h1>
         </div>
         <div className="flex gap-2">
@@ -91,7 +91,7 @@ export default function VouchersPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button size="sm" className="bg-pink-600 hover:bg-pink-700" onClick={() => setShowCreateModal(true)}>
+          <Button size="sm" className="bg-brand-600 hover:bg-brand-700" onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Generate Vouchers
           </Button>
@@ -100,7 +100,7 @@ export default function VouchersPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-5 bg-linear-to-br from-pink-400 to-pink-500 text-white">
+        <Card className="p-5 bg-linear-to-br from-brand-400 to-brand-500 text-white">
           <div className="text-sm opacity-90 mb-1">Total</div>
           <div className="text-2xl font-bold">{stats?.total_vouchers ?? 0}</div>
         </Card>
@@ -170,8 +170,8 @@ export default function VouchersPage() {
                   <tr key={v.id} className="border-b hover:bg-gray-50">
                     <td className="py-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-pink-600">{v.code}</span>
-                        <button onClick={() => copyCode(v.code)} className="text-gray-400 hover:text-pink-600">
+                        <span className="font-mono font-medium text-brand-600">{v.code}</span>
+                        <button onClick={() => copyCode(v.code)} className="text-gray-400 hover:text-brand-600">
                           <Copy className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -255,7 +255,7 @@ export default function VouchersPage() {
               </div>
               <div className="flex items-center gap-3 justify-end pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                <Button type="submit" className="bg-pink-600 hover:bg-pink-700" disabled={generateVouchers.isPending}>
+                <Button type="submit" className="bg-brand-600 hover:bg-brand-700" disabled={generateVouchers.isPending}>
                   {generateVouchers.isPending ? 'Generating...' : 'Generate'}
                 </Button>
               </div>

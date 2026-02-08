@@ -74,8 +74,8 @@ export function PageHeader({
             </Button>
           )}
           {Icon && (
-            <div className="p-2 bg-pink-100 rounded-lg">
-              <Icon className="h-5 w-5 text-pink-600" />
+            <div className="p-2 bg-brand-100 rounded-lg">
+              <Icon className="h-5 w-5 text-brand-600" />
             </div>
           )}
           <div>
@@ -105,7 +105,7 @@ export function PageHeader({
             <Button
               variant={action.variant || 'default'}
               onClick={action.onClick}
-              className={action.variant === 'default' || !action.variant ? 'bg-pink-600 hover:bg-pink-700' : ''}
+              className={action.variant === 'default' || !action.variant ? 'bg-brand-600 hover:bg-brand-700' : ''}
             >
               {action.icon && <action.icon className="h-4 w-4 mr-2" />}
               {action.label}

@@ -2,11 +2,44 @@ import { api } from '@/lib/api';
 import { getDevFallback } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 
+export type BillingCycle = {
+  is_trial: boolean;
+  trial_days_remaining: number;
+  is_subscription_active: boolean;
+  subscription_days_remaining: number;
+  subscription_ends_at: string | null;
+  trial_ends_at: string | null;
+  status: string | null;
+};
+
 export type DashboardAnalytics = {
   subscriptions: Record<string, any>;
   billing: Record<string, any>;
   routers: Record<string, any>;
   tickets: Record<string, any>;
+  billing_cycle: BillingCycle | null;
+  generated_at: string;
+};
+
+export type DashboardCharts = {
+  payments_chart: Array<{ month: string; payments: number; expenses: number }>;
+  active_users_chart: Array<{ day: string; hotspot: number; pppoe: number }>;
+  retention_chart: Array<{ month: string; newC: number; returning: number; churned: number }>;
+  data_usage_chart: Array<{ date: string; hotspot: number; pppoe: number }>;
+  package_utilization_chart: Array<{ name: string; value: number }>;
+  revenue_forecast_chart: Array<{ month: string; revenue?: number; forecast?: number }>;
+  sms_sent_chart: Array<{ day: string; sent: number }>;
+  network_usage_chart: Array<{ day: string; download: number; upload: number }>;
+  registrations_chart: Array<{ day: string; users: number }>;
+  most_active_users: Array<{ username: string; data: string; phone: string }>;
+  package_performance: Array<{
+    name: string;
+    price: string;
+    active: number;
+    monthlyRevenue: string;
+    avgUsage: string;
+    arpu: string;
+  }>;
   generated_at: string;
 };
 
@@ -37,6 +70,7 @@ const fallback: DashboardAnalytics = {
     resolved_tickets: 7,
     closed_tickets: 1,
   },
+  billing_cycle: null,
   generated_at: new Date().toISOString(),
 };
 
@@ -53,6 +87,19 @@ export function useDashboardAnalytics(options?: { refetchInterval?: number; refe
       }
     },
     staleTime: 30_000,
+    refetchInterval: options?.refetchInterval,
+    refetchIntervalInBackground: options?.refetchIntervalInBackground,
+  });
+}
+
+export function useDashboardCharts(options?: { refetchInterval?: number; refetchIntervalInBackground?: boolean }) {
+  return useQuery({
+    queryKey: ['dashboard-charts'],
+    queryFn: async (): Promise<DashboardCharts> => {
+      const { data } = await api.get('/reports/analytics/dashboard-charts');
+      return data;
+    },
+    staleTime: 60_000,
     refetchInterval: options?.refetchInterval,
     refetchIntervalInBackground: options?.refetchIntervalInBackground,
   });

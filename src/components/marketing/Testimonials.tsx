@@ -38,7 +38,7 @@ export function Testimonials() {
   ];
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-gray-50 dark:bg-gray-800">
+    <section className="py-12 md:py-16 lg:py-20 bg-muted">
       <div className="container mx-auto px-4">
         <motion.div 
           ref={ref}
@@ -48,20 +48,20 @@ export function Testimonials() {
           transition={{ duration: 0.8 }}
         >
           <motion.div 
-            className="inline-flex items-center gap-2 bg-[#801066]/10 dark:bg-[#801066]/20 text-[#801066] dark:text-[#801066] px-4 py-2 rounded-full text-sm font-medium mb-4"
+            className="inline-flex items-center gap-2 bg-primary/10 dark:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <motion.div 
-              className="w-2 h-2 bg-[#801066] rounded-full"
+              className="w-2 h-2 bg-primary rounded-full"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
             Customer Stories
           </motion.div>
           <motion.h2 
-            className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4"
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -69,7 +69,7 @@ export function Testimonials() {
             What other Internet Providers Say
           </motion.h2>
           <motion.p 
-            className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-8 md:mb-12"
+            className="text-base md:text-lg lg:text-xl text-muted-foreground mb-8 md:mb-12"
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -83,7 +83,7 @@ export function Testimonials() {
           {testimonials.map((testimonial, index) => (
             <motion.div 
               key={index}
-              className="bg-white dark:bg-gray-900 rounded-lg p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700 relative overflow-hidden group"
+              className="bg-card rounded-lg p-6 md:p-8 shadow-lg border border-border relative overflow-hidden group"
               initial={{ opacity: 0, y: 50 }}
               animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
               transition={{ duration: 0.6, delay: 0.8 + index * 0.2 }}
@@ -95,7 +95,7 @@ export function Testimonials() {
             >
               {/* Quote icon */}
               <motion.div 
-                className="absolute top-4 right-4 text-[#801066]/20 dark:text-[#801066]/30"
+                className="absolute top-4 right-4 text-primary/20 dark:text-primary/30"
                 initial={{ opacity: 0, scale: 0 }}
                 animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
                 transition={{ duration: 0.6, delay: 1 + index * 0.2 }}
@@ -124,7 +124,7 @@ export function Testimonials() {
               
               {/* Testimonial content */}
               <motion.p 
-                className="text-gray-600 dark:text-gray-300 mb-6 text-sm md:text-base leading-relaxed"
+                className="text-muted-foreground mb-6 text-sm md:text-base leading-relaxed"
                 initial={{ opacity: 0, y: 20 }}
                 animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 transition={{ duration: 0.6, delay: 1.6 + index * 0.2 }}
@@ -140,17 +140,17 @@ export function Testimonials() {
                 transition={{ duration: 0.6, delay: 1.8 + index * 0.2 }}
               >
                 <motion.div 
-                  className="w-10 h-10 bg-gradient-to-br from-[#801066] to-[#acacb3] rounded-full flex items-center justify-center text-white font-bold text-sm"
+                  className="w-10 h-10 bg-gradient-to-br from-brand-700 to-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   transition={{ duration: 0.3 }}
                 >
                   {testimonial.avatar}
                 </motion.div>
                 <div>
-                  <h4 className="font-bold text-gray-900 dark:text-white text-sm md:text-base">
+                  <h4 className="font-bold text-foreground text-sm md:text-base">
                     {testimonial.name}
                   </h4>
-                  <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">
+                  <p className="text-muted-foreground text-xs md:text-sm">
                     {testimonial.role} at {testimonial.company}
                   </p>
                 </div>
@@ -158,7 +158,7 @@ export function Testimonials() {
               
               {/* Hover effect overlay */}
               <motion.div 
-                className="absolute inset-0 bg-gradient-to-br from-[#801066]/5 to-[#acacb3]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute inset-0 bg-gradient-to-br from-brand-700/5 to-gray-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
               />

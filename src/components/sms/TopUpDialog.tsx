@@ -67,7 +67,7 @@ export default function TopUpDialog({ accountId }: { accountId: number }) {
           </div>
         </div>
         <DialogFooter className="gap-2">
-          <Button onClick={() => submit('mpesa')} disabled={isPending} className="bg-pink-600 hover:bg-pink-700">
+          <Button onClick={() => submit('mpesa')} disabled={isPending} className="bg-brand-600 hover:bg-brand-700">
             {isPending ? <Spinner /> : 'Pay with MPESA'}
           </Button>
           <Button onClick={() => submit('manual')} variant="outline" disabled={manualPending}>

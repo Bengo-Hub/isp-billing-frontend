@@ -12,7 +12,7 @@ import type { UserItem } from '@/features/users/api';
 type TabType = 'management' | 'active-connections';
 
 export default function UsersPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('management');
+  const [activeTab, setActiveTab] = useState<TabType>('active-connections');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
@@ -33,17 +33,17 @@ export default function UsersPage() {
 
   const tabs = [
     {
-      id: 'management' as const,
-      label: 'User Management',
-      icon: Users,
-      description: 'Manage system users and permissions'
-    },
-    {
       id: 'active-connections' as const,
       label: 'Active Connections',
       icon: Wifi,
       description: 'View currently connected users'
-    }
+    },
+    {
+      id: 'management' as const,
+      label: 'Customer Management',
+      icon: Users,
+      description: 'Manage customer accounts and subscriptions'
+    },
   ];
 
   return (
@@ -59,7 +59,7 @@ export default function UsersPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`pb-4 px-2 border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-pink-500 text-pink-600'
+                    ? 'border-brand-500 text-brand-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >

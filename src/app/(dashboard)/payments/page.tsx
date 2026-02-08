@@ -45,7 +45,7 @@ export default function PaymentsPage() {
             Pay Online
           </Button>
           <Button
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
             onClick={() => setShowRecordModal(true)}
           >
             <CreditCard className="h-4 w-4 mr-2" />
@@ -56,7 +56,7 @@ export default function PaymentsPage() {
 
       {/* Earnings Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
+        <Card className="p-6 bg-gradient-to-br from-brand-400 to-brand-500 text-white">
           <div className="text-sm opacity-90 mb-2">Daily Earnings</div>
           <div className="flex items-center gap-2">
             <div className="text-3xl font-bold">
@@ -69,7 +69,7 @@ export default function PaymentsPage() {
           <div className="text-xs opacity-75 mt-2">Total earnings today</div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
+        <Card className="p-6 bg-gradient-to-br from-brand-400 to-brand-500 text-white">
           <div className="text-sm opacity-90 mb-2">Weekly Earnings</div>
           <div className="flex items-center gap-2">
             <div className="text-3xl font-bold">
@@ -82,7 +82,7 @@ export default function PaymentsPage() {
           <div className="text-xs opacity-75 mt-2">Total earnings this week</div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
+        <Card className="p-6 bg-gradient-to-br from-brand-400 to-brand-500 text-white">
           <div className="text-sm opacity-90 mb-2">Monthly Earnings</div>
           <div className="flex items-center gap-2">
             <div className="text-3xl font-bold">
@@ -102,7 +102,7 @@ export default function PaymentsPage() {
           onClick={() => setActiveTab('payments')}
           className={`pb-3 border-b-2 text-sm font-medium flex items-center gap-2 ${
             activeTab === 'payments'
-              ? 'border-pink-600 text-pink-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -113,7 +113,7 @@ export default function PaymentsPage() {
           onClick={() => setActiveTab('invoices')}
           className={`pb-3 border-b-2 text-sm font-medium flex items-center gap-2 ${
             activeTab === 'invoices'
-              ? 'border-pink-600 text-pink-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -165,7 +165,7 @@ export default function PaymentsPage() {
                       <td className="py-3">
                         <input type="checkbox" className="rounded border-gray-300" />
                       </td>
-                      <td className="py-3 font-medium text-pink-600">#{payment.id}</td>
+                      <td className="py-3 font-medium text-brand-600">#{payment.id}</td>
                       <td className="py-3 text-sm">{payment.user_id}</td>
                       <td className="py-3 text-sm font-medium">Ksh {payment.amount.toFixed(2)}</td>
                       <td className="py-3">
@@ -218,7 +218,7 @@ export default function PaymentsPage() {
                 <tbody>
                   {pendingInvoices.map((invoice: Invoice) => (
                     <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 font-medium text-pink-600">{invoice.invoice_number}</td>
+                      <td className="py-3 font-medium text-brand-600">{invoice.invoice_number}</td>
                       <td className="py-3 text-sm">{invoice.user_id}</td>
                       <td className="py-3 text-sm font-medium">Ksh {invoice.total.toFixed(2)}</td>
                       <td className="py-3 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
@@ -236,7 +236,7 @@ export default function PaymentsPage() {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            className="bg-pink-600 hover:bg-pink-700"
+                            className="bg-brand-600 hover:bg-brand-700"
                             onClick={() => {
                               setSelectedInvoice(invoice);
                               setShowPaystackModal(true);
@@ -359,7 +359,7 @@ export default function PaymentsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                 >
                   Create
                 </Button>

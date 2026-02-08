@@ -300,7 +300,7 @@ export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialo
             </Button>
             <Button
               type="submit"
-              className="bg-pink-600 hover:bg-pink-700"
+              className="bg-brand-600 hover:bg-brand-700"
               disabled={createUser.isPending}
             >
               {createUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

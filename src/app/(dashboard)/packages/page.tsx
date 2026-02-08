@@ -44,7 +44,7 @@ export default function PackagesPage() {
     { id: 'all', label: 'All', count: packageCounts.all },
     { id: 'hotspot', label: 'Hotspot', count: packageCounts.hotspot },
     { id: 'pppoe', label: 'PPPOE', count: packageCounts.pppoe },
-    { id: 'data', label: 'Data Plans (Beta)', count: packageCounts.data },
+    { id: 'data', label: 'Data Plans', count: packageCounts.data },
     { id: 'trial', label: 'Free Trial', count: packageCounts.trial }
   ];
 
@@ -68,7 +68,7 @@ export default function PackagesPage() {
             Package Guide
           </Button>
           <Button 
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
             onClick={() => setIsCreateDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -85,7 +85,7 @@ export default function PackagesPage() {
             onClick={() => setActiveTab(tab.id as any)}
             className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
               activeTab === tab.id
-                ? 'border-pink-500 text-pink-600'
+                ? 'border-brand-500 text-brand-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >

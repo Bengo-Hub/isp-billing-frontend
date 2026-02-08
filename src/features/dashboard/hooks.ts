@@ -14,7 +14,7 @@ export interface SystemLogEntry {
 }
 
 interface SystemLogsResponse {
-  logs: SystemLogEntry[];
+  items: SystemLogEntry[];
   total: number;
   page: number;
   size: number;
@@ -22,16 +22,16 @@ interface SystemLogsResponse {
 
 /**
  * Fetch recent system activity logs for the dashboard widget.
- * Uses the GET /support/system endpoint with a small page size.
+ * Uses the GET /logs/system endpoint with a small page size.
  */
 export function useRecentActivity(limit = 10) {
   return useQuery({
     queryKey: ['recent-activity', limit],
     queryFn: async (): Promise<SystemLogEntry[]> => {
-      const { data } = await api.get<SystemLogsResponse>('/support/system', {
+      const { data } = await api.get<SystemLogsResponse>('/logs/system', {
         params: { page: 1, size: limit },
       });
-      return data.logs ?? [];
+      return data.items ?? [];
     },
     refetchInterval: 60000, // Refresh every 60 seconds
   });

@@ -1,6 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -15,6 +14,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { useAuth } from '@/lib/auth';
 import { Bell, ChevronDown, Filter, KeyRound, LogOut, Search, Settings, ShieldCheck, UserCog, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -30,21 +30,21 @@ export function DashboardHeader() {
   };
 
   return (
-    <header className="h-16 border-b bg-white flex items-center justify-between px-6">
-      <div className="flex items-center gap-4 flex-1">
+    <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between px-3 sm:px-6">
+      <div className="flex items-center gap-4 flex-1 hidden sm:flex">
         <div className="relative max-w-md w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search users, packages, payments..."
-            className="pl-10 bg-gray-50 border-gray-200"
+            className="pl-10 bg-muted border-border"
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Expiry: 10 Nov 2025</Badge>
-        <Button variant="outline" size="sm" className="gap-1">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <ThemeToggle />
+        <Button variant="outline" size="sm" className="gap-1 hidden sm:flex">
           <Filter className="h-4 w-4" /> Filters
         </Button>
         <Button variant="ghost" size="sm" className="relative">

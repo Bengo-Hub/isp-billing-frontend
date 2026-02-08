@@ -31,7 +31,7 @@ export default function PortalLayout({
   portalType,
   logoUrl,
   organizationName,
-  primaryColor = '#ec4899',
+  primaryColor = '#801066',
   userName,
   userType,
   onSignOut,

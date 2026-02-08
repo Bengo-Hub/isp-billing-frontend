@@ -283,7 +283,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-pink-600" />
+            <Package className="h-5 w-5 text-brand-600" />
             Create Package
           </DialogTitle>
           <DialogDescription>
@@ -299,7 +299,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                     step <= currentStep
-                      ? 'bg-pink-600 text-white'
+                      ? 'bg-brand-600 text-white'
                       : 'bg-gray-200 text-gray-600'
                   }`}
                 >
@@ -308,7 +308,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                 {step < 4 && (
                   <div
                     className={`w-12 h-1 mx-1 ${
-                      step < currentStep ? 'bg-pink-600' : 'bg-gray-200'
+                      step < currentStep ? 'bg-brand-600' : 'bg-gray-200'
                     }`}
                   />
                 )}
@@ -339,7 +339,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                       id="type"
                       value={formData.type}
                       onChange={(e) => handleInputChange('type', e.target.value)}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       <option value="">Select an option</option>
                       {packageTypes.map(type => (
@@ -373,7 +373,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       placeholder="Brief description of this package..."
                       rows={2}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                     />
                   </div>
 
@@ -385,7 +385,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                       id="duration"
                       value={formData.duration}
                       onChange={(e) => handleInputChange('duration', e.target.value)}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       <option value="">Select an option</option>
                       {durations.map(duration => (
@@ -487,7 +487,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                         id="currency"
                         value={formData.currency}
                         onChange={(e) => handleInputChange('currency', e.target.value)}
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       >
                         <option value="KES">KES - Kenyan Shilling</option>
                         <option value="USD">USD - US Dollar</option>
@@ -834,7 +834,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                           onChange={(e) => handleInputChange('notes', e.target.value)}
                           placeholder="Internal notes about this package (not visible to customers)..."
                           rows={2}
-                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                         />
                       </div>
                     </div>

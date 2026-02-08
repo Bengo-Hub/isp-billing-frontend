@@ -23,7 +23,7 @@ export default function NewOrganizationPage() {
     country: 'Kenya',
     city: '',
     address: '',
-    primary_color: '#ec4899',
+    primary_color: '#801066',
     secondary_color: '#8b5cf6',
     default_currency: 'KES',
     timezone: 'Africa/Nairobi',
@@ -88,7 +88,7 @@ export default function NewOrganizationPage() {
         {/* Basic Info */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Building className="w-5 h-5 text-pink-600" />
+            <Building className="w-5 h-5 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Basic Information</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -124,7 +124,7 @@ export default function NewOrganizationPage() {
                 required
                 value={formData.organization_type}
                 onChange={(e) => setFormData(prev => ({ ...prev, organization_type: e.target.value as OrganizationType }))}
-                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="hotspot">Hotspot</option>
                 <option value="pppoe">PPPoE</option>
@@ -159,7 +159,7 @@ export default function NewOrganizationPage() {
         {/* Location */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <MapPin className="w-5 h-5 text-pink-600" />
+            <MapPin className="w-5 h-5 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Location</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -199,7 +199,7 @@ export default function NewOrganizationPage() {
         {/* Branding */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Palette className="w-5 h-5 text-pink-600" />
+            <Palette className="w-5 h-5 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Branding</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -217,7 +217,7 @@ export default function NewOrganizationPage() {
                 <Input
                   value={formData.primary_color}
                   onChange={(e) => setFormData(prev => ({ ...prev, primary_color: e.target.value }))}
-                  placeholder="#ec4899"
+                  placeholder="#801066"
                 />
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function NewOrganizationPage() {
         {/* Regional Settings */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Settings className="w-5 h-5 text-pink-600" />
+            <Settings className="w-5 h-5 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Regional Settings</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,7 +256,7 @@ export default function NewOrganizationPage() {
               <select
                 value={formData.default_currency}
                 onChange={(e) => setFormData(prev => ({ ...prev, default_currency: e.target.value }))}
-                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="KES">KES - Kenyan Shilling</option>
                 <option value="USD">USD - US Dollar</option>
@@ -273,7 +273,7 @@ export default function NewOrganizationPage() {
               <select
                 value={formData.timezone}
                 onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="Africa/Nairobi">Africa/Nairobi (EAT)</option>
                 <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
@@ -288,7 +288,7 @@ export default function NewOrganizationPage() {
         {/* Notifications */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Bell className="w-5 h-5 text-pink-600" />
+            <Bell className="w-5 h-5 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Notification Settings</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -333,7 +333,7 @@ export default function NewOrganizationPage() {
         {/* Subscription & Limits */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Award className="w-5 h-5 text-pink-600" />
+            <Award className="w-5 h-5 text-brand-600" />
             <h2 className="font-semibold text-gray-900">Subscription & Limits</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -344,7 +344,7 @@ export default function NewOrganizationPage() {
               <select
                 value={formData.subscription_tier_id || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, subscription_tier_id: e.target.value ? parseInt(e.target.value) : undefined }))}
-                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">No Tier (Custom Limits)</option>
                 {availableTiers.map((tier) => (
@@ -410,7 +410,7 @@ export default function NewOrganizationPage() {
           <Link href="/platform/organizations">
             <Button variant="outline" type="button">Cancel</Button>
           </Link>
-          <Button type="submit" className="bg-pink-600 hover:bg-pink-700" disabled={createOrg.isPending}>
+          <Button type="submit" className="bg-brand-600 hover:bg-brand-700" disabled={createOrg.isPending}>
             {createOrg.isPending ? 'Creating...' : 'Create Organization'}
           </Button>
         </div>

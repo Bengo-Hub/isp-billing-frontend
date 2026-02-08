@@ -274,6 +274,68 @@ export function useReactivateOrganization() {
   });
 }
 
+export function useExtendOrganization() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ organizationId, days, reason }: { organizationId: number; days: number; reason?: string }) => {
+      const params = new URLSearchParams({ days: String(days) });
+      if (reason) params.set('reason', reason);
+      const response = await api.post(`/platform/organizations/${organizationId}/extend?${params}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-organization'] });
+      toast.success('Subscription extended');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to extend subscription');
+    },
+  });
+}
+
+export function useToggleLicenceBypass() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ organizationId, enable, reason }: { organizationId: number; enable: boolean; reason?: string }) => {
+      const params = new URLSearchParams({ enable: String(enable) });
+      if (reason) params.set('reason', reason);
+      const response = await api.post(`/platform/organizations/${organizationId}/bypass?${params}`);
+      return response.data;
+    },
+    onSuccess: (_data: any, vars: { organizationId: number; enable: boolean; reason?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ['platform-organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-organization'] });
+      toast.success(`Licence bypass ${vars.enable ? 'enabled' : 'disabled'}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to toggle licence bypass');
+    },
+  });
+}
+
+export function useActivateOrganization() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ organizationId, months }: { organizationId: number; months: number }) => {
+      const response = await api.post(`/platform/organizations/${organizationId}/activate?subscription_months=${months}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-organization'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-organization-stats'] });
+      toast.success('Organization activated');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to activate organization');
+    },
+  });
+}
+
 // =========================================================================
 // Analytics Hooks
 // =========================================================================

@@ -191,7 +191,7 @@ export default function AllUsersTable() {
             Import Users
           </Button>
           <Button
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
             onClick={() => setIsCreateDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -202,8 +202,8 @@ export default function AllUsersTable() {
 
       {/* Bulk Actions */}
       {selectedUsers.length > 0 && (
-        <div className="flex items-center gap-3 mb-4 p-3 bg-pink-50 rounded-lg">
-          <span className="text-sm text-pink-800 font-medium">
+        <div className="flex items-center gap-3 mb-4 p-3 bg-brand-50 rounded-lg">
+          <span className="text-sm text-brand-800 font-medium">
             {selectedUsers.length} selected
           </span>
           <Button size="sm" variant="outline" onClick={handleBulkActivate} disabled={bulkActivateMutation.isPending}>
@@ -229,7 +229,7 @@ export default function AllUsersTable() {
             onClick={() => { setActiveTab(tab); setPage(1); }}
             className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
               activeTab === tab
-                ? 'border-pink-500 text-pink-600'
+                ? 'border-brand-500 text-brand-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -251,7 +251,7 @@ export default function AllUsersTable() {
               placeholder="Search by username, phone..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>

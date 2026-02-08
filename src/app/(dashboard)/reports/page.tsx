@@ -120,7 +120,7 @@ export default function ReportsPage() {
             </Select>
           </div>
           <div className="flex items-end">
-            <Button className="w-full bg-pink-600 hover:bg-pink-700">
+            <Button className="w-full bg-brand-600 hover:bg-brand-700">
               Apply Filters
             </Button>
           </div>

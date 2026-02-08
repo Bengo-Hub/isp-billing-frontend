@@ -88,7 +88,7 @@ export default function ExpensesPage() {
             Export
           </Button>
           <Button
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -99,7 +99,7 @@ export default function ExpensesPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
+        <Card className="p-6 bg-gradient-to-br from-brand-400 to-brand-500 text-white">
           <div className="text-sm opacity-90 mb-2">Today's Expenses</div>
           <div className="flex items-center gap-2">
             <div className="text-3xl font-bold">
@@ -112,7 +112,7 @@ export default function ExpensesPage() {
           <div className="text-xs opacity-75 mt-2">Total expenses today</div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
+        <Card className="p-6 bg-gradient-to-br from-brand-400 to-brand-500 text-white">
           <div className="text-sm opacity-90 mb-2">This Month</div>
           <div className="flex items-center gap-2">
             <div className="text-3xl font-bold">
@@ -125,7 +125,7 @@ export default function ExpensesPage() {
           <div className="text-xs opacity-75 mt-2">Total expenses this month</div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-pink-400 to-pink-500 text-white">
+        <Card className="p-6 bg-gradient-to-br from-brand-400 to-brand-500 text-white">
           <div className="text-sm opacity-90 mb-2">Total Expenses</div>
           <div className="flex items-center gap-2">
             <div className="text-3xl font-bold">
@@ -368,7 +368,7 @@ export default function ExpensesPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                   disabled={createExpense.isPending}
                 >
                   {createExpense.isPending ? 'Adding...' : 'Add Expense'}

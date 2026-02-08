@@ -81,8 +81,8 @@ export default function SecuritySettingsPage() {
         <TabsContent value="password">
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
-                <Key className="h-6 w-6 text-pink-600" />
+              <div className="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center">
+                <Key className="h-6 w-6 text-brand-600" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
@@ -139,7 +139,7 @@ export default function SecuritySettingsPage() {
 
               <Button
                 type="submit"
-                className="bg-pink-600 hover:bg-pink-700"
+                className="bg-brand-600 hover:bg-brand-700"
                 disabled={isChangingPassword}
               >
                 {isChangingPassword ? 'Updating...' : 'Update Password'}

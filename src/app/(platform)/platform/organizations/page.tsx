@@ -8,6 +8,9 @@ import {
   useOrganizations,
   useSuspendOrganization,
   useReactivateOrganization,
+  useExtendOrganization,
+  useToggleLicenceBypass,
+  useActivateOrganization,
   Organization,
   OrganizationStatus,
   OrganizationType,
@@ -24,6 +27,10 @@ import {
   AlertTriangle,
   Users,
   Router,
+  CalendarPlus,
+  ShieldOff,
+  Shield,
+  Zap,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -51,6 +58,9 @@ const statusIcons: Record<OrganizationStatus, any> = {
 function OrganizationRow({ org }: { org: Organization }) {
   const suspend = useSuspendOrganization();
   const reactivate = useReactivateOrganization();
+  const extend = useExtendOrganization();
+  const bypass = useToggleLicenceBypass();
+  const activate = useActivateOrganization();
 
   const StatusIcon = statusIcons[org.status];
 
@@ -72,15 +82,39 @@ function OrganizationRow({ org }: { org: Organization }) {
     reactivate.mutate(org.id);
   };
 
+  const handleExtend = () => {
+    const days = prompt('How many days to extend?', '30');
+    if (days && !isNaN(Number(days))) {
+      const reason = prompt('Reason for extension (optional):') || undefined;
+      extend.mutate({ organizationId: org.id, days: Number(days), reason });
+    }
+  };
+
+  const handleBypass = () => {
+    const currentlyBypassed = (org as any).licence_bypass;
+    const action = currentlyBypassed ? 'disable' : 'enable';
+    if (confirm(`${action === 'enable' ? 'Enable' : 'Disable'} licence bypass for ${org.name}?`)) {
+      const reason = action === 'enable' ? (prompt('Reason for bypass:') || 'Admin override') : undefined;
+      bypass.mutate({ organizationId: org.id, enable: !currentlyBypassed, reason });
+    }
+  };
+
+  const handleActivate = () => {
+    const months = prompt('How many months of subscription?', '1');
+    if (months && !isNaN(Number(months))) {
+      activate.mutate({ organizationId: org.id, months: Number(months) });
+    }
+  };
+
   return (
     <tr className="border-b hover:bg-gray-50">
       <td className="py-4 px-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center">
             {org.logo_url ? (
               <img src={org.logo_url} alt={org.name} className="w-10 h-10 rounded-lg object-cover" />
             ) : (
-              <Building2 className="w-5 h-5 text-pink-600" />
+              <Building2 className="w-5 h-5 text-brand-600" />
             )}
           </div>
           <div>
@@ -132,6 +166,23 @@ function OrganizationRow({ org }: { org: Organization }) {
                 View Details
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExtend}>
+              <CalendarPlus className="w-4 h-4 mr-2" />
+              Extend Subscription
+            </DropdownMenuItem>
+            {(org.status === 'trial' || org.status === 'suspended' || org.status === 'pending_payment') && (
+              <DropdownMenuItem onClick={handleActivate} className="text-green-600">
+                <Zap className="w-4 h-4 mr-2" />
+                Activate Subscription
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={handleBypass}>
+              {(org as any).licence_bypass ? (
+                <><Shield className="w-4 h-4 mr-2" />Disable Bypass</>
+              ) : (
+                <><ShieldOff className="w-4 h-4 mr-2" />Enable Bypass</>
+              )}
+            </DropdownMenuItem>
             {org.status === 'active' || org.status === 'trial' ? (
               <DropdownMenuItem onClick={handleSuspend} className="text-red-600">
                 <Ban className="w-4 h-4 mr-2" />
@@ -172,7 +223,7 @@ export default function OrganizationsPage() {
           <p className="text-gray-600">Manage ISP providers on your platform</p>
         </div>
         <Link href="/platform/organizations/new">
-          <Button className="bg-pink-600 hover:bg-pink-700">
+          <Button className="bg-brand-600 hover:bg-brand-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Organization
           </Button>
@@ -259,7 +310,7 @@ export default function OrganizationsPage() {
                     <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">No organizations found</p>
                     <Link href="/platform/organizations/new">
-                      <Button variant="link" className="text-pink-600 mt-2">
+                      <Button variant="link" className="text-brand-600 mt-2">
                         Add your first organization
                       </Button>
                     </Link>

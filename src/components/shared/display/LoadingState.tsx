@@ -38,7 +38,7 @@ const sizeClasses = {
 
 const colorClasses = {
   default: 'text-gray-400',
-  primary: 'text-pink-600',
+  primary: 'text-brand-600',
   white: 'text-white',
 };
 

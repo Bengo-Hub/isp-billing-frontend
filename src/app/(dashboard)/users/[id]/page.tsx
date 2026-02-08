@@ -122,7 +122,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
       </div>
     );
   }
@@ -172,7 +172,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
             </Button>
           )}
           <div className="relative">
-            <Button size="sm" className="bg-pink-600 hover:bg-pink-700" onClick={() => setShowActions(!showActions)}>
+            <Button size="sm" className="bg-brand-600 hover:bg-brand-700" onClick={() => setShowActions(!showActions)}>
               <MoreVertical className="h-4 w-4 mr-1" /> Actions
             </Button>
             {showActions && (
@@ -180,13 +180,13 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
                 <div className="fixed inset-0 z-10" onClick={() => setShowActions(false)} />
                 <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-900 rounded-lg shadow-lg border dark:border-gray-700 z-20 py-1">
                   <button className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm">
-                    <Edit className="h-4 w-4 text-pink-600" /> Edit User
+                    <Edit className="h-4 w-4 text-brand-600" /> Edit User
                   </button>
                   <button className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-pink-600" /> Send Credentials
+                    <Mail className="h-4 w-4 text-brand-600" /> Send Credentials
                   </button>
                   <button className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm">
-                    <Send className="h-4 w-4 text-pink-600" /> Send Voucher
+                    <Send className="h-4 w-4 text-brand-600" /> Send Voucher
                   </button>
                   <hr className="my-1 dark:border-gray-700" />
                   <button onClick={() => { setShowActions(false); if (confirm('Delete this user?')) { deleteMutation.mutate(numericId, { onSuccess: () => router.push('/users') }); } }} className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm text-red-600">
@@ -200,7 +200,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 bg-linear-to-br from-pink-500 to-pink-600 text-white">
+        <Card className="p-4 bg-linear-to-br from-brand-500 to-brand-600 text-white">
           <p className="text-xs opacity-80 mb-1">Subscriptions</p>
           <p className="text-xl font-bold">{(subscriptions ?? []).length}</p>
           <p className="text-xs opacity-70">{activeSubs.length} active</p>
@@ -225,7 +225,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
       <div className="border-b dark:border-gray-700">
         <div className="flex gap-4 sm:gap-6 overflow-x-auto -mb-px">
           {TABS.map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`pb-3 px-1 border-b-2 text-sm whitespace-nowrap transition-colors ${activeTab === tab.id ? 'border-pink-600 text-pink-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`pb-3 px-1 border-b-2 text-sm whitespace-nowrap transition-colors ${activeTab === tab.id ? 'border-brand-600 text-brand-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
               {tab.label}
             </button>
           ))}
@@ -326,7 +326,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">SMS History</h3>
-            <Button size="sm" className="bg-pink-600 hover:bg-pink-700"><Send className="h-4 w-4 mr-1" /> Send SMS</Button>
+            <Button size="sm" className="bg-brand-600 hover:bg-brand-700"><Send className="h-4 w-4 mr-1" /> Send SMS</Button>
           </div>
           <div className="py-12 text-center">
             <Mail className="h-8 w-8 text-gray-300 mx-auto mb-2" />

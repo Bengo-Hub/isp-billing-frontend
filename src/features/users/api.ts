@@ -11,7 +11,7 @@ export type UserItem = {
   last_name: string;
   full_name?: string;
   phone?: string;
-  role: 'admin' | 'technician' | 'customer';
+  role: 'platform_owner' | 'isp_admin' | 'isp_technician' | 'admin' | 'technician' | 'customer';
   status: 'active' | 'suspended' | 'inactive';
   is_active?: boolean;
   is_verified?: boolean;
@@ -250,5 +250,91 @@ export function useBulkDeactivateUsers() {
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to deactivate users');
     },
+  });
+}
+
+// =========================================================================
+// Admin Set Password & API Token
+// =========================================================================
+
+export function useAdminSetPassword() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: number; newPassword: string }) => {
+      const response = await api.post(`/users/${userId}/set-password`, {
+        new_password: newPassword,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
+      toast.success('Password updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to update password');
+    },
+  });
+}
+
+export function useGenerateApiToken() {
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await api.post<{
+        token: string;
+        user_id: number;
+        username: string;
+        expires_in_days: number;
+      }>(`/users/${userId}/generate-api-token`);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('API token generated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to generate API token');
+    },
+  });
+}
+
+// =========================================================================
+// Scoped User Hooks (staff, customers, platform)
+// =========================================================================
+
+type UserListResponse = { users: UserItem[]; total: number; page: number; size: number; pages: number };
+
+export function useStaffUsers(params: { page?: number; size?: number; role?: string; status?: string; search?: string; organization_id?: number }) {
+  return useQuery({
+    queryKey: ['staff-users', params],
+    queryFn: async (): Promise<UserListResponse> => {
+      const { data } = await api.get('/users/staff/', { params });
+      return data;
+    },
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
+  });
+}
+
+export function useCustomerUsers(params: { page?: number; size?: number; status?: string; search?: string; organization_id?: number }) {
+  return useQuery({
+    queryKey: ['customer-users', params],
+    queryFn: async (): Promise<UserListResponse> => {
+      const { data } = await api.get('/users/customers/', { params });
+      return data;
+    },
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
+  });
+}
+
+export function usePlatformUsers(params: { page?: number; size?: number; status?: string; search?: string }) {
+  return useQuery({
+    queryKey: ['platform-users', params],
+    queryFn: async (): Promise<UserListResponse> => {
+      const { data } = await api.get('/platform/users/', { params });
+      return data;
+    },
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
   });
 }

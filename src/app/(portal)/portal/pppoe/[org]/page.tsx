@@ -110,7 +110,7 @@ export default function PPPoEPortalPage() {
     return `${gb.toFixed(2)} GB`;
   };
 
-  const primaryColor = config?.primary_color || '#ec4899';
+  const primaryColor = config?.primary_color || '#801066';
 
   if (configLoading) {
     return (

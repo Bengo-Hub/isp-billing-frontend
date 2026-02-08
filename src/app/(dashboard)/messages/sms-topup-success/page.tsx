@@ -54,7 +54,7 @@ function SMSTopUpSuccessContent() {
       <Card className="max-w-md w-full p-8 text-center">
         {status === 'loading' && (
           <>
-            <Loader2 className="w-16 h-16 mx-auto text-pink-600 animate-spin mb-4" />
+            <Loader2 className="w-16 h-16 mx-auto text-brand-600 animate-spin mb-4" />
             <h1 className="text-xl font-semibold text-gray-900 mb-2">Processing Payment</h1>
             <p className="text-gray-500">{message}</p>
           </>
@@ -76,7 +76,7 @@ function SMSTopUpSuccessContent() {
             )}
             <div className="flex flex-col gap-3">
               <Link href="/messages">
-                <Button className="w-full bg-pink-600 hover:bg-pink-700">
+                <Button className="w-full bg-brand-600 hover:bg-brand-700">
                   Go to Messages
                 </Button>
               </Link>
@@ -98,7 +98,7 @@ function SMSTopUpSuccessContent() {
             <p className="text-gray-500 mb-6">{message}</p>
             <div className="flex flex-col gap-3">
               <Link href="/messages">
-                <Button className="w-full bg-pink-600 hover:bg-pink-700">
+                <Button className="w-full bg-brand-600 hover:bg-brand-700">
                   Try Again
                 </Button>
               </Link>
@@ -125,7 +125,7 @@ export default function SMSTopUpSuccessPage() {
   return (
     <Suspense fallback={
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
       </div>
     }>
       <SMSTopUpSuccessContent />

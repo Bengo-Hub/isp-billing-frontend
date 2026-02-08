@@ -8,17 +8,21 @@ import {
     PackagePerformanceTable,
     PackageUtilizationChart,
     PaymentsChart,
+    RegistrationsChart,
     RetentionChart,
     RevenueForecastChart,
     SentSMSChart
 } from '@/components/dashboard/Charts';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDashboardAnalytics } from '@/features/dashboard/api';
+import type { BillingCycle } from '@/features/dashboard/api';
+import { useDashboardAnalytics, useDashboardCharts } from '@/features/dashboard/api';
 import { useRecentActivity } from '@/features/dashboard/hooks';
 import { useTenantSmsBalance } from '@/features/sms/api';
-import { Activity, MessageSquare, Users, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, CalendarClock, MessageSquare, Users, Wallet } from 'lucide-react';
+import Link from 'next/link';
 
 const LOG_LEVEL_COLORS: Record<string, string> = {
   success: 'bg-green-500',
@@ -36,6 +40,67 @@ function timeAgo(dateStr?: string) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+function BillingCycleBanner({ cycle }: { cycle: BillingCycle | null | undefined }) {
+  if (!cycle) return null;
+
+  const expiryDate = cycle.is_trial ? cycle.trial_ends_at : cycle.subscription_ends_at;
+  const daysLeft = cycle.is_trial ? cycle.trial_days_remaining : cycle.subscription_days_remaining;
+  const formatted = expiryDate
+    ? new Date(expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
+
+  const isExpiringSoon = daysLeft <= 7 && daysLeft > 0;
+  const isExpired = !cycle.is_subscription_active;
+
+  let bgColor = 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800';
+  let textColor = 'text-blue-800 dark:text-blue-300';
+  let badgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300';
+  let btnClass = 'bg-blue-600 hover:bg-blue-700 text-white';
+  let label = 'Active';
+
+  if (cycle.is_trial) {
+    bgColor = 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800';
+    textColor = 'text-amber-800 dark:text-amber-300';
+    badgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300';
+    btnClass = 'bg-amber-600 hover:bg-amber-700 text-white';
+    label = 'Trial';
+  } else if (isExpired) {
+    bgColor = 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800';
+    textColor = 'text-red-800 dark:text-red-300';
+    badgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300';
+    btnClass = 'bg-red-600 hover:bg-red-700 text-white';
+    label = 'Expired';
+  } else if (isExpiringSoon) {
+    bgColor = 'bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800';
+    textColor = 'text-orange-800 dark:text-orange-300';
+    badgeClass = 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300';
+    btnClass = 'bg-orange-600 hover:bg-orange-700 text-white';
+    label = 'Expiring Soon';
+  }
+
+  return (
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border ${bgColor} mb-4 sm:mb-6`}>
+      <div className="flex items-center gap-2">
+        <CalendarClock className={`h-4 w-4 sm:h-5 sm:w-5 ${textColor} shrink-0`} />
+        <span className={`text-sm font-semibold ${textColor}`}>Billing Cycle</span>
+        <Badge className={`text-xs ${badgeClass}`}>{label}</Badge>
+      </div>
+      <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm ${textColor} flex-1`}>
+        {formatted && <span>Expires: <strong>{formatted}</strong></span>}
+        {daysLeft > 0 && <span>{daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining</span>}
+        {isExpired && <span className="font-medium">Please renew your subscription</span>}
+      </div>
+      <Link
+        href="/billing/subscription"
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium ${btnClass} transition-colors shrink-0`}
+      >
+        {isExpired ? 'Renew Now' : 'Manage Billing'}
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </div>
+  );
 }
 
 function RecentActivityCard() {
@@ -66,10 +131,16 @@ function RecentActivityCard() {
 }
 
 export default function DashboardPage() {
-  // Enable real-time updates with 30-second polling
+  // Fetch summary stats with 60-second polling
   const { data, isLoading, error } = useDashboardAnalytics({
-    refetchInterval: 60000, // Refresh every 60 seconds
-    refetchIntervalInBackground: true, // Continue polling when tab is not active
+    refetchInterval: 60000,
+    refetchIntervalInBackground: true,
+  });
+
+  // Fetch chart data with 60-second polling
+  const { data: charts } = useDashboardCharts({
+    refetchInterval: 60000,
+    refetchIntervalInBackground: true,
   });
 
   // Fetch SMS balance for current user's organization
@@ -77,14 +148,14 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
+      <div className="p-3 sm:p-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-24 sm:h-32" />
           ))}
         </div>
       </div>
@@ -93,24 +164,27 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
-        <Card className="p-6">
-          <p className="text-red-600">Error loading dashboard: {String(error)}</p>
+      <div className="p-3 sm:p-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Dashboard</h1>
+        <Card className="p-4 sm:p-6">
+          <p className="text-red-600 text-sm sm:text-base">Error loading dashboard: {String(error)}</p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
+    <div className="p-3 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
       </div>
 
+      {/* Billing Cycle Banner */}
+      <BillingCycleBanner cycle={data?.billing_cycle} />
+
       {/* Top stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
         <StatsCard title="Amount this month" value={`Ksh ${data?.billing?.total_revenue?.toLocaleString() ?? 0}`} icon={Wallet} />
         <StatsCard title="SMS balance" value={`Ksh ${smsBalance?.current_balance?.toLocaleString() ?? 0}`} icon={MessageSquare} />
         <StatsCard title="Total clients" value={data?.subscriptions?.total_subscriptions ?? 0} icon={Users} />
@@ -118,28 +192,32 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <PaymentsChart />
-        <ActiveUsersChart />
-        <RetentionChart />
-        <DataUsageChart />
-        <PackageUtilizationChart />
-        <RevenueForecastChart />
-        <SentSMSChart />
-        <NetworkUsageChart />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-6">
+        <PaymentsChart data={charts?.payments_chart} />
+        <ActiveUsersChart data={charts?.active_users_chart} />
+        <RetentionChart data={charts?.retention_chart} />
+        <DataUsageChart data={charts?.data_usage_chart} />
+        <PackageUtilizationChart data={charts?.package_utilization_chart} />
+        <RevenueForecastChart data={charts?.revenue_forecast_chart} />
+        <SentSMSChart data={charts?.sms_sent_chart} />
+        <NetworkUsageChart data={charts?.network_usage_chart} />
       </div>
 
-      {/* Bottom grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Registrations + Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-6">
+        <RegistrationsChart data={charts?.registrations_chart} />
         <RecentActivityCard />
-
-        <MostActiveUsersTable />
       </div>
 
-      <div className="mt-6">
-        <PackagePerformanceTable />
+      {/* Most Active Users */}
+      <div className="mb-4 sm:mb-6">
+        <MostActiveUsersTable data={charts?.most_active_users} />
+      </div>
+
+      {/* Package Performance */}
+      <div className="overflow-x-auto">
+        <PackagePerformanceTable data={charts?.package_performance} />
       </div>
     </div>
   );
 }
-

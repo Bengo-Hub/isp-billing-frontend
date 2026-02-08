@@ -52,7 +52,7 @@ export default function PackageDetailDialog({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-pink-600" />
+            <Package className="h-5 w-5 text-brand-600" />
             Package Details
           </DialogTitle>
           <DialogDescription>

@@ -647,7 +647,7 @@ export default function PlatformSettingsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-pink-50 text-pink-600'
+                      ? 'bg-brand-50 text-brand-600'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -688,7 +688,7 @@ export default function PlatformSettingsPage() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button className="bg-pink-600 hover:bg-pink-700">Save Changes</Button>
+                <Button className="bg-brand-600 hover:bg-brand-700">Save Changes</Button>
               </div>
             </div>
           )}
@@ -708,7 +708,7 @@ export default function PlatformSettingsPage() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button className="bg-pink-600 hover:bg-pink-700">Save Changes</Button>
+                <Button className="bg-brand-600 hover:bg-brand-700">Save Changes</Button>
               </div>
             </div>
           )}
@@ -765,12 +765,12 @@ export default function PlatformSettingsPage() {
                   onClick={() => setActiveSmsProvider('pricing')}
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeSmsProvider === 'pricing'
-                      ? 'border-pink-600 text-pink-600'
+                      ? 'border-brand-600 text-brand-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  <div className="w-6 h-6 rounded bg-pink-100 flex items-center justify-center">
-                    <CreditCard className="w-3 h-3 text-pink-600" />
+                  <div className="w-6 h-6 rounded bg-brand-100 flex items-center justify-center">
+                    <CreditCard className="w-3 h-3 text-brand-600" />
                   </div>
                   SMS Pricing & Payments
                 </button>
@@ -1510,11 +1510,11 @@ export default function PlatformSettingsPage() {
 
               {/* SMS Pricing & Payment Settings */}
               {activeSmsProvider === 'pricing' && (
-                <Card className="p-6 border-l-4 border-l-pink-500">
+                <Card className="p-6 border-l-4 border-l-brand-500">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-pink-100 flex items-center justify-center">
-                        <CreditCard className="w-6 h-6 text-pink-600" />
+                      <div className="w-12 h-12 rounded-lg bg-brand-100 flex items-center justify-center">
+                        <CreditCard className="w-6 h-6 text-brand-600" />
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900">SMS Pricing & Payment Collection</div>
@@ -1533,7 +1533,7 @@ export default function PlatformSettingsPage() {
                     {/* SMS Pricing Section */}
                     <div>
                       <div className="flex items-center gap-2 mb-4">
-                        <DollarSign className="w-5 h-5 text-pink-600" />
+                        <DollarSign className="w-5 h-5 text-brand-600" />
                         <h3 className="font-semibold text-gray-900">SMS Pricing</h3>
                       </div>
                       <p className="text-sm text-gray-500 mb-4">
@@ -1587,7 +1587,7 @@ export default function PlatformSettingsPage() {
                     {/* Payment Collection Section */}
                     <div className="border-t pt-6">
                       <div className="flex items-center gap-2 mb-4">
-                        <CreditCard className="w-5 h-5 text-pink-600" />
+                        <CreditCard className="w-5 h-5 text-brand-600" />
                         <h3 className="font-semibold text-gray-900">Payment Collection Account</h3>
                       </div>
                       <p className="text-sm text-gray-500 mb-4">
@@ -1773,7 +1773,7 @@ export default function PlatformSettingsPage() {
 
                   <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
                     <Button
-                      className="bg-pink-600 hover:bg-pink-700"
+                      className="bg-brand-600 hover:bg-brand-700"
                       onClick={handleSaveSmsPricing}
                       disabled={isSavingSmsPricing}
                     >
@@ -2212,7 +2212,7 @@ export default function PlatformSettingsPage() {
               </div>
               <div className="flex justify-end gap-3">
                 <Button variant="outline">Send Test Email</Button>
-                <Button className="bg-pink-600 hover:bg-pink-700">Save Changes</Button>
+                <Button className="bg-brand-600 hover:bg-brand-700">Save Changes</Button>
               </div>
             </div>
           )}
@@ -2243,7 +2243,7 @@ export default function PlatformSettingsPage() {
                 </label>
               </div>
               <div className="flex justify-end">
-                <Button className="bg-pink-600 hover:bg-pink-700">Save Changes</Button>
+                <Button className="bg-brand-600 hover:bg-brand-700">Save Changes</Button>
               </div>
             </div>
           )}
@@ -2270,7 +2270,7 @@ export default function PlatformSettingsPage() {
                 </label>
               </div>
               <div className="flex justify-end">
-                <Button className="bg-pink-600 hover:bg-pink-700">Save Changes</Button>
+                <Button className="bg-brand-600 hover:bg-brand-700">Save Changes</Button>
               </div>
             </div>
           )}

@@ -9,7 +9,7 @@ export type SettingsMap = Record<string, any>;
 const fallbackByCategory: Record<SettingsCategory, SettingsMap> = {
   system: {
     'system.company_name': 'Codevertex IT Solutions',
-    'system.primary_color': '#ec4899',
+    'system.primary_color': '#801066',
     'system.font': 'Inter',
     'system.support_email': 'support@codevertexitsolutions.com',
     'system.support_phone': '+254 743 793901',

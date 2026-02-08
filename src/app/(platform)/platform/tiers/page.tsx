@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check, CreditCard, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import { useSubscriptionTiers, useSeedDefaultTiers, type SubscriptionTier } from '@/features/platform/api';
+import { TierEditDialog } from '@/components/platform/TierEditDialog';
 
 export default function SubscriptionTiersPage() {
   const { data: allTiers, isLoading, error } = useSubscriptionTiers();
   const seedDefaultTiers = useSeedDefaultTiers();
+  const [editTier, setEditTier] = useState<SubscriptionTier | null>(null);
 
   // Separate hotspot and pppoe tiers
   const hotspotTiers = allTiers?.filter(tier => tier.tier_type === 'hotspot') || [];
@@ -21,6 +24,11 @@ export default function SubscriptionTiersPage() {
       features.push(`Up to ${tier.max_routers} routers`);
     } else if (tier.max_routers === -1) {
       features.push('Unlimited routers');
+    }
+
+    // Trial days
+    if (tier.trial_days > 0) {
+      features.push(`${tier.trial_days}-day free trial`);
     }
 
     // Features from object
@@ -58,7 +66,7 @@ export default function SubscriptionTiersPage() {
           <Button
             onClick={() => seedDefaultTiers.mutate()}
             disabled={seedDefaultTiers.isPending}
-            className="mt-4 bg-pink-600 hover:bg-pink-700"
+            className="mt-4 bg-brand-600 hover:bg-brand-700"
           >
             {seedDefaultTiers.isPending ? (
               <>
@@ -87,7 +95,7 @@ export default function SubscriptionTiersPage() {
               onClick={() => seedDefaultTiers.mutate()}
               disabled={seedDefaultTiers.isPending}
               variant="outline"
-              className="border-pink-600 text-pink-600 hover:bg-pink-50"
+              className="border-brand-600 text-brand-600 hover:bg-brand-50"
             >
               {seedDefaultTiers.isPending ? (
                 <>
@@ -99,7 +107,7 @@ export default function SubscriptionTiersPage() {
               )}
             </Button>
           )}
-          <Button className="bg-pink-600 hover:bg-pink-700">
+          <Button className="bg-brand-600 hover:bg-brand-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Tier
           </Button>
@@ -109,7 +117,7 @@ export default function SubscriptionTiersPage() {
       {isLoading ? (
         <Card className="p-12">
           <div className="flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
             <p className="text-gray-600">Loading subscription tiers...</p>
           </div>
         </Card>
@@ -121,7 +129,7 @@ export default function SubscriptionTiersPage() {
             <Button
               onClick={() => seedDefaultTiers.mutate()}
               disabled={seedDefaultTiers.isPending}
-              className="mt-2 bg-pink-600 hover:bg-pink-700"
+              className="mt-2 bg-brand-600 hover:bg-brand-700"
             >
               {seedDefaultTiers.isPending ? (
                 <>
@@ -148,7 +156,7 @@ export default function SubscriptionTiersPage() {
                     {tier.badge_text && (
                       <div
                         className="absolute top-0 right-0 text-white text-xs px-3 py-1 rounded-bl-lg"
-                        style={{ backgroundColor: tier.badge_color || '#ec4899' }}
+                        style={{ backgroundColor: tier.badge_color || '#801066' }}
                       >
                         {tier.badge_text}
                       </div>
@@ -158,8 +166,8 @@ export default function SubscriptionTiersPage() {
                         <h3 className="font-semibold text-lg text-gray-900">{tier.name}</h3>
                         <p className="text-sm text-gray-500">{tier.description}</p>
                       </div>
-                      <div className="p-2 bg-pink-50 rounded-lg">
-                        <CreditCard className="w-5 h-5 text-pink-600" />
+                      <div className="p-2 bg-brand-50 rounded-lg">
+                        <CreditCard className="w-5 h-5 text-brand-600" />
                       </div>
                     </div>
 
@@ -185,7 +193,7 @@ export default function SubscriptionTiersPage() {
                     </ul>
 
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1">Edit</Button>
+                      <Button variant="outline" className="flex-1" onClick={() => setEditTier(tier)}>Edit</Button>
                       <Button variant="outline" className="text-gray-500">
                         <span className="sr-only">More options</span>
                         •••
@@ -239,6 +247,12 @@ export default function SubscriptionTiersPage() {
           </Card>
         </>
       )}
+
+      <TierEditDialog
+        open={!!editTier}
+        onOpenChange={(open) => { if (!open) setEditTier(null); }}
+        tier={editTier}
+      />
     </div>
   );
 }

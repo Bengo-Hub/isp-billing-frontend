@@ -15,7 +15,7 @@ export default function NotFound() {
             <Button variant="outline">Go to Home</Button>
           </Link>
           <Link href="/dashboard">
-            <Button className="bg-pink-600 hover:bg-pink-700">Go to Dashboard</Button>
+            <Button className="bg-brand-600 hover:bg-brand-700">Go to Dashboard</Button>
           </Link>
         </div>
       </div>

@@ -32,7 +32,7 @@ export function Integrations() {
     {
       category: 'Network Management',
       icon: Router,
-      color: 'from-[#801066] to-[#6d0d57]',
+      color: 'from-brand-700 to-brand-900',
       items: [
         { name: 'Mikrotik RouterOS', description: 'Full RouterOS v6 & v7 support', status: 'active' },
         { name: 'PPPoE Servers', description: 'Point-to-Point Protocol over Ethernet', status: 'active' },
@@ -44,7 +44,7 @@ export function Integrations() {
     {
       category: 'Communication',
       icon: MessageSquare,
-      color: 'from-[#acacb3] to-[#801066]',
+      color: 'from-gray-400 to-brand-700',
       items: [
         { name: 'SMS Gateway', description: 'Bulk SMS notifications', status: 'active' },
         { name: 'Email Integration', description: 'Automated email alerts', status: 'active' },
@@ -66,11 +66,11 @@ export function Integrations() {
   ];
 
   return (
-    <section id="integrations" className="py-12 md:py-16 lg:py-20 bg-white dark:bg-gray-900 relative overflow-hidden">
+    <section id="integrations" className="py-12 md:py-16 lg:py-20 bg-card relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0">
         <motion.div 
-          className="absolute top-0 right-0 w-96 h-96 bg-[#801066]/10 dark:bg-[#801066]/5 rounded-full mix-blend-multiply filter blur-xl opacity-20"
+          className="absolute top-0 right-0 w-96 h-96 bg-primary/10 dark:bg-primary/5 rounded-full mix-blend-multiply filter blur-xl opacity-20"
           animate={{ 
             scale: [1, 1.1, 1],
             rotate: [0, 180, 360]
@@ -82,7 +82,7 @@ export function Integrations() {
           }}
         />
         <motion.div 
-          className="absolute bottom-0 left-0 w-96 h-96 bg-[#acacb3]/10 dark:bg-[#acacb3]/5 rounded-full mix-blend-multiply filter blur-xl opacity-20"
+          className="absolute bottom-0 left-0 w-96 h-96 bg-gray-400/10 dark:bg-gray-400/5 rounded-full mix-blend-multiply filter blur-xl opacity-20"
           animate={{ 
             scale: [1.1, 1, 1.1],
             rotate: [360, 180, 0]
@@ -104,20 +104,20 @@ export function Integrations() {
           transition={{ duration: 0.8 }}
         >
           <motion.div 
-            className="inline-flex items-center gap-2 bg-[#801066]/10 dark:bg-[#801066]/20 text-[#801066] dark:text-[#801066] px-4 py-2 rounded-full text-sm font-medium mb-4"
+            className="inline-flex items-center gap-2 bg-primary/10 dark:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <motion.div 
-              className="w-2 h-2 bg-[#801066] rounded-full"
+              className="w-2 h-2 bg-primary rounded-full"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
             Seamless Integrations
           </motion.div>
           <motion.h2 
-            className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4"
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -125,7 +125,7 @@ export function Integrations() {
             CodeVertex Integrates with
           </motion.h2>
           <motion.p 
-            className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-8"
+            className="text-base md:text-lg lg:text-xl text-muted-foreground mb-8"
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -139,7 +139,7 @@ export function Integrations() {
           {integrations.map((category, categoryIndex) => (
             <motion.div 
               key={categoryIndex}
-              className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700 relative overflow-hidden group"
+              className="bg-card rounded-lg p-6 shadow-lg border border-border relative overflow-hidden group"
               initial={{ opacity: 0, y: 50 }}
               animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
               transition={{ duration: 0.8, delay: 0.8 + categoryIndex * 0.2 }}
@@ -165,14 +165,14 @@ export function Integrations() {
                   >
                     <category.icon className="w-6 h-6 text-white" />
                   </motion.div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">{category.category}</h3>
+                  <h3 className="text-xl font-bold text-foreground">{category.category}</h3>
                 </div>
                 
                 <div className="space-y-3">
                   {category.items.map((item, itemIndex) => (
                     <motion.div 
                       key={itemIndex}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group/item"
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg group/item"
                       initial={{ opacity: 0, x: -20 }}
                       animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
                       transition={{ duration: 0.6, delay: 1 + itemIndex * 0.1 }}
@@ -180,14 +180,14 @@ export function Integrations() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900 dark:text-white">{item.name}</span>
+                          <span className="font-medium text-foreground">{item.name}</span>
                           <motion.span 
                             className="w-2 h-2 bg-green-500 rounded-full"
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 2, repeat: Infinity, delay: itemIndex * 0.5 }}
                           />
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{item.description}</p>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
                       </div>
                       <motion.div
                         className="text-green-600 dark:text-green-400 text-sm font-medium"
@@ -205,17 +205,17 @@ export function Integrations() {
         
         {/* Integration network diagram */}
         <motion.div 
-          className="mt-16 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-lg p-8 shadow-lg border border-gray-200 dark:border-gray-600"
+          className="mt-16 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-lg p-8 shadow-lg border border-border"
           initial={{ opacity: 0, y: 50 }}
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
           transition={{ duration: 0.8, delay: 1.6 }}
         >
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 text-center">Integration Network</h3>
+          <h3 className="text-xl font-bold text-foreground mb-6 text-center">Integration Network</h3>
           <div className="flex flex-wrap justify-center items-center gap-8">
             {[
               { icon: CreditCard, name: 'Payments', color: 'text-green-600' },
-              { icon: Router, name: 'Network', color: 'text-[#801066]' },
-              { icon: MessageSquare, name: 'SMS', color: 'text-[#acacb3]' },
+              { icon: Router, name: 'Network', color: 'text-primary' },
+              { icon: MessageSquare, name: 'SMS', color: 'text-gray-400' },
               { icon: Shield, name: 'Security', color: 'text-red-600' }
             ].map((integration, index) => (
               <motion.div 
@@ -227,13 +227,13 @@ export function Integrations() {
                 whileHover={{ scale: 1.1 }}
               >
                 <motion.div 
-                  className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center border-2 border-gray-200 dark:border-gray-600"
+                  className="w-16 h-16 bg-card rounded-full shadow-lg flex items-center justify-center border-2 border-border"
                   whileHover={{ rotate: 360 }}
                   transition={{ duration: 0.6 }}
                 >
                   <integration.icon className={`w-8 h-8 ${integration.color}`} />
                 </motion.div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{integration.name}</span>
+                <span className="text-sm font-medium text-muted-foreground">{integration.name}</span>
               </motion.div>
             ))}
           </div>
@@ -249,7 +249,7 @@ export function Integrations() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Button variant="outline" className="border-[#801066] text-[#801066] hover:bg-[#801066]/10 dark:border-[#801066] dark:text-[#801066] dark:hover:bg-[#801066]/10 text-base md:text-lg h-10 md:h-12 px-6 md:px-8 shadow-lg">
+            <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 dark:border-primary dark:text-primary dark:hover:bg-primary/10 text-base md:text-lg h-10 md:h-12 px-6 md:px-8 shadow-lg">
               Explore All Integrations
             </Button>
           </motion.div>

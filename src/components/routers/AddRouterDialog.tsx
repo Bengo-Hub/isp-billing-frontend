@@ -96,9 +96,9 @@ export default function AddRouterDialog({ open, onOpenChange }: { open: boolean;
         <div className="flex items-center justify-between pt-4">
           <Button variant="outline" onClick={back} disabled={step === 1}>Back</Button>
           {step < 2 ? (
-            <Button className="bg-pink-600 hover:bg-pink-700" onClick={next}>Next</Button>
+            <Button className="bg-brand-600 hover:bg-brand-700" onClick={next}>Next</Button>
           ) : (
-            <Button className="bg-pink-600 hover:bg-pink-700" onClick={submit} disabled={isPending}>Save & Provision</Button>
+            <Button className="bg-brand-600 hover:bg-brand-700" onClick={submit} disabled={isPending}>Save & Provision</Button>
           )}
         </div>
       </DialogContent>

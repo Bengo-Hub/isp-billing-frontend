@@ -19,7 +19,7 @@ export default function HotspotLoginPage() {
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
 
-  const primaryColor = config?.primary_color || '#ec4899';
+  const primaryColor = config?.primary_color || '#801066';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

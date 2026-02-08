@@ -88,7 +88,7 @@ export default function FileUpload({
       <div
         className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           dragActive 
-            ? 'border-pink-500 bg-pink-50' 
+            ? 'border-brand-500 bg-brand-50' 
             : 'border-gray-300 hover:border-gray-400'
         } ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
         onDragEnter={disabled ? undefined : handleDrag}
@@ -133,7 +133,7 @@ export default function FileUpload({
             </div>
             <div>
               <p className="text-sm text-gray-600">
-                <span className="font-medium text-pink-600 hover:text-pink-500 cursor-pointer">
+                <span className="font-medium text-brand-600 hover:text-brand-500 cursor-pointer">
                   Click to upload
                 </span>{' '}
                 or drag and drop

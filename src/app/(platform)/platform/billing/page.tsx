@@ -127,7 +127,7 @@ export default function PlatformBillingPage() {
         <Button
           onClick={() => generateInvoices.mutate()}
           disabled={generateInvoices.isPending}
-          className="bg-pink-600 hover:bg-pink-700"
+          className="bg-brand-600 hover:bg-brand-700"
         >
           {generateInvoices.isPending ? (
             <>
@@ -479,7 +479,7 @@ export default function PlatformBillingPage() {
             <Button
               onClick={handleRefund}
               disabled={!refundReason || refundPayment.isPending}
-              className="bg-pink-600 hover:bg-pink-700"
+              className="bg-brand-600 hover:bg-brand-700"
             >
               {refundPayment.isPending ? (
                 <>

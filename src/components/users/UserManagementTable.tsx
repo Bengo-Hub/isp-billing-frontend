@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  useUsers,
+  useCustomerUsers,
   useDeleteUser,
   useActivateUser,
   useDeactivateUser,
@@ -31,7 +31,7 @@ import {
   RefreshCw,
   UserPlus,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 
@@ -48,15 +48,13 @@ export default function UserManagementTable({
 }: UserManagementTableProps) {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const { data, isLoading, error, refetch } = useUsers({
+  const { data, isLoading, error, refetch } = useCustomerUsers({
     page,
     size: pageSize,
-    role: roleFilter === 'all' ? undefined : roleFilter,
     status: statusFilter === 'all' ? undefined : statusFilter,
     search: searchQuery || undefined,
   });
@@ -112,19 +110,6 @@ export default function UserManagementTable({
     }
   };
 
-  const getRoleBadge = (role: string) => {
-    const roleColors: Record<string, string> = {
-      admin: 'bg-purple-100 text-purple-800',
-      technician: 'bg-blue-100 text-blue-800',
-      customer: 'bg-green-100 text-green-800',
-    };
-    return (
-      <Badge className={roleColors[role] || 'bg-gray-100 text-gray-800'}>
-        {role.charAt(0).toUpperCase() + role.slice(1)}
-      </Badge>
-    );
-  };
-
   const getStatusBadge = (status: string) => {
     const statusColors: Record<string, string> = {
       active: 'bg-green-100 text-green-800',
@@ -165,8 +150,8 @@ export default function UserManagementTable({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage system users and their permissions.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Customer Management</h1>
+          <p className="text-gray-600 mt-1">Manage customer accounts and subscriptions.</p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => refetch()}>
@@ -174,7 +159,7 @@ export default function UserManagementTable({
             Refresh
           </Button>
           {onCreateUser && (
-            <Button onClick={onCreateUser} className="bg-pink-600 hover:bg-pink-700">
+            <Button onClick={onCreateUser} className="bg-brand-600 hover:bg-brand-700">
               <UserPlus className="h-4 w-4 mr-2" />
               Add User
             </Button>
@@ -197,19 +182,9 @@ export default function UserManagementTable({
         </div>
         <div className="flex gap-3">
           <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="technician">Technician</option>
-            <option value="customer">Customer</option>
-          </select>
-          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -246,9 +221,6 @@ export default function UserManagementTable({
                       Contact
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">
-                      Role
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">
                       Status
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">
@@ -283,9 +255,6 @@ export default function UserManagementTable({
                             <div className="text-gray-600">{user.phone}</div>
                           )}
                         </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        {getRoleBadge(user.role)}
                       </td>
                       <td className="py-4 px-4">
                         {getStatusBadge(user.status)}
@@ -349,7 +318,7 @@ export default function UserManagementTable({
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">No users found</p>
-              {searchQuery || roleFilter !== 'all' || statusFilter !== 'all' ? (
+              {searchQuery || statusFilter !== 'all' ? (
                 <p className="text-sm text-gray-400 mt-1">
                   Try adjusting your search or filters
                 </p>
@@ -377,7 +346,7 @@ export default function UserManagementTable({
                       setPageSize(Number(e.target.value));
                       setPage(1);
                     }}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>

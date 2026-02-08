@@ -121,7 +121,7 @@ export default function ContactPage() {
               </div>
               <a 
                 href="mailto:info@codevertexitsolutions.com"
-                className="text-[#801066] dark:text-[#801066] hover:text-[#6d0d57] font-medium"
+                className="text-[#801066] dark:text-[#801066] hover:text-[#5a0b48] font-medium"
               >
                 info@codevertexitsolutions.com
               </a>
@@ -256,7 +256,7 @@ export default function ContactPage() {
               >
                 <Button 
                   type="submit" 
-                  className="w-full bg-[#801066] hover:bg-[#6d0d57] text-white py-3"
+                  className="w-full bg-[#801066] hover:bg-[#5a0b48] text-white py-3"
                 >
                   Send your message
                 </Button>

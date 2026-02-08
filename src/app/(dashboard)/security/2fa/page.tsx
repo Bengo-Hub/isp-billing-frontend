@@ -100,7 +100,7 @@ export default function TwoFactorAuthPage() {
   if (statusLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
       </div>
     );
   }
@@ -108,7 +108,7 @@ export default function TwoFactorAuthPage() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <Shield className="h-8 w-8 text-pink-600" />
+        <Shield className="h-8 w-8 text-brand-600" />
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h1>
           <p className="text-gray-600">Add an extra layer of security to your account</p>
@@ -358,19 +358,19 @@ export default function TwoFactorAuthPage() {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Security Tips</h3>
         <ul className="space-y-2 text-gray-600">
           <li className="flex items-start gap-2">
-            <div className="w-2 h-2 bg-pink-500 rounded-full mt-2 flex-shrink-0" />
+            <div className="w-2 h-2 bg-brand-500 rounded-full mt-2 flex-shrink-0" />
             Use a dedicated authenticator app like Google Authenticator or Authy
           </li>
           <li className="flex items-start gap-2">
-            <div className="w-2 h-2 bg-pink-500 rounded-full mt-2 flex-shrink-0" />
+            <div className="w-2 h-2 bg-brand-500 rounded-full mt-2 flex-shrink-0" />
             Store your recovery codes in a secure location, separate from your device
           </li>
           <li className="flex items-start gap-2">
-            <div className="w-2 h-2 bg-pink-500 rounded-full mt-2 flex-shrink-0" />
+            <div className="w-2 h-2 bg-brand-500 rounded-full mt-2 flex-shrink-0" />
             Never share your recovery codes or authenticator app codes with anyone
           </li>
           <li className="flex items-start gap-2">
-            <div className="w-2 h-2 bg-pink-500 rounded-full mt-2 flex-shrink-0" />
+            <div className="w-2 h-2 bg-brand-500 rounded-full mt-2 flex-shrink-0" />
             If you lose access to your device, use recovery codes to regain access
           </li>
         </ul>

@@ -178,7 +178,7 @@ export default function LeadsPage() {
       CONTACTED: { color: 'bg-purple-100 text-purple-700', label: 'Contacted' },
       QUALIFIED: { color: 'bg-yellow-100 text-yellow-700', label: 'Qualified' },
       PROPOSAL: { color: 'bg-orange-100 text-orange-700', label: 'Proposal' },
-      NEGOTIATION: { color: 'bg-pink-100 text-pink-700', label: 'Negotiation' },
+      NEGOTIATION: { color: 'bg-brand-100 text-brand-700', label: 'Negotiation' },
       CONVERTED: { color: 'bg-green-100 text-green-700', label: 'Converted' },
       LOST: { color: 'bg-gray-100 text-gray-700', label: 'Lost' },
     };
@@ -200,7 +200,7 @@ export default function LeadsPage() {
           <p className="text-sm text-gray-600 mt-1">Manage potential customers and prospects</p>
         </div>
         <Button
-          className="bg-pink-600 hover:bg-pink-700"
+          className="bg-brand-600 hover:bg-brand-700"
           onClick={() => {
             resetForm();
             setShowCreateModal(true);
@@ -308,7 +308,7 @@ export default function LeadsPage() {
                       <p className="text-xs text-gray-500 mb-4">Start capturing potential customers</p>
                       <Button
                         variant="outline"
-                        className="text-pink-600 border-pink-600"
+                        className="text-brand-600 border-brand-600"
                         onClick={() => {
                           resetForm();
                           setShowCreateModal(true);
@@ -325,8 +325,8 @@ export default function LeadsPage() {
                   <tr key={lead.id} className="border-b hover:bg-gray-50">
                     <td className="py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
-                          <User className="h-4 w-4 text-pink-600" />
+                        <div className="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
+                          <User className="h-4 w-4 text-brand-600" />
                         </div>
                         <div>
                           <div className="font-medium text-gray-900">{lead.name}</div>
@@ -549,7 +549,7 @@ export default function LeadsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                   disabled={createLead.isPending}
                 >
                   {createLead.isPending ? 'Adding...' : 'Add Lead'}
@@ -678,7 +678,7 @@ export default function LeadsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-brand-600 hover:bg-brand-700"
                   disabled={updateLead.isPending}
                 >
                   {updateLead.isPending ? 'Saving...' : 'Save Changes'}

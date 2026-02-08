@@ -2,6 +2,7 @@
 
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { RBACProvider } from '@/components/rbac/RBACProvider';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import {
@@ -44,20 +45,20 @@ function PlatformSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - always dark for platform admin */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-brand-950 text-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-brand-900">
             <Link href="/platform" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-lg">ISP Platform</span>
+              <span className="font-bold text-lg text-white">ISP Platform</span>
             </Link>
             <button onClick={onClose} className="lg:hidden">
               <X className="w-6 h-6" />
@@ -79,8 +80,8 @@ function PlatformSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                       onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         isActive
-                          ? 'bg-pink-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                          ? 'bg-brand-600 text-white'
+                          : 'text-gray-300 hover:bg-brand-900 hover:text-white'
                       }`}
                     >
                       <Icon className="w-5 h-5" />
@@ -93,10 +94,10 @@ function PlatformSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-800">
+          <div className="p-4 border-t border-brand-900">
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+              className="w-full justify-start text-gray-300 hover:text-white hover:bg-brand-900"
               onClick={() => logout()}
             >
               <LogOut className="w-5 h-5 mr-3" />
@@ -113,28 +114,29 @@ function PlatformHeader({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-4">
         <button onClick={onMenuClick} className="lg:hidden">
-          <Menu className="w-6 h-6 text-gray-600" />
+          <Menu className="w-6 h-6 text-muted-foreground" />
         </button>
         <div className="hidden sm:block">
-          <span className="text-sm text-gray-500">Platform Administration</span>
+          <span className="text-sm text-muted-foreground">Platform Administration</span>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+        <ThemeToggle />
+        <button className="relative p-2 text-muted-foreground hover:bg-accent rounded-lg">
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-pink-500 rounded-full" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full" />
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
-            <Users className="w-4 h-4 text-pink-600" />
+          <div className="w-8 h-8 bg-brand-100 dark:bg-brand-900 rounded-full flex items-center justify-center">
+            <Users className="w-4 h-4 text-brand-600 dark:text-brand-300" />
           </div>
           <div className="hidden sm:block">
-            <div className="text-sm font-medium text-gray-900">{user?.name || 'Platform Admin'}</div>
-            <div className="text-xs text-gray-500">Platform Owner</div>
+            <div className="text-sm font-medium text-foreground">{user?.name || 'Platform Admin'}</div>
+            <div className="text-xs text-muted-foreground">Platform Owner</div>
           </div>
         </div>
       </div>
@@ -148,7 +150,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   return (
     <RBACProvider>
       <AuthGuard requiredRole="platform_owner">
-        <div className="flex min-h-screen bg-gray-50">
+        <div className="flex min-h-screen bg-background">
           <PlatformSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <div className="flex-1 flex flex-col lg:ml-64">
             <PlatformHeader onMenuClick={() => setSidebarOpen(true)} />

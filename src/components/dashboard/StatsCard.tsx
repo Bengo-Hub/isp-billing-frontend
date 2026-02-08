@@ -24,14 +24,14 @@ export function StatsCard({
   iconColor = 'text-blue-600',
 }: StatsCardProps) {
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+    <Card className="p-3 sm:p-6">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-gray-600 mb-0.5 sm:mb-1 truncate">{title}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{value}</p>
           {trend && (
             <p
-              className={`text-xs mt-2 ${
+              className={`text-xs mt-1 sm:mt-2 ${
                 trend.isPositive ? 'text-green-600' : 'text-red-600'
               }`}
             >
@@ -39,8 +39,8 @@ export function StatsCard({
             </p>
           )}
         </div>
-        <div className={`h-12 w-12 rounded-lg ${iconBgColor} flex items-center justify-center`}>
-          <Icon className={`h-6 w-6 ${iconColor}`} />
+        <div className={`h-9 w-9 sm:h-12 sm:w-12 rounded-lg ${iconBgColor} flex items-center justify-center shrink-0`}>
+          <Icon className={`h-4 w-4 sm:h-6 sm:w-6 ${iconColor}`} />
         </div>
       </div>
     </Card>

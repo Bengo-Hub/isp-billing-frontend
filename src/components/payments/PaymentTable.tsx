@@ -65,7 +65,7 @@ export default function PaymentTable() {
               placeholder="Search by ID, user..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -73,7 +73,7 @@ export default function PaymentTable() {
           <select
             value={status || ''}
             onChange={(e) => setStatus(e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Status</option>
             <option value="completed">Completed</option>
@@ -84,7 +84,7 @@ export default function PaymentTable() {
           <select
             value={method || ''}
             onChange={(e) => setMethod(e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Methods</option>
             <option value="mpesa">M-Pesa</option>
@@ -94,7 +94,7 @@ export default function PaymentTable() {
           <select
             value={dateRange || ''}
             onChange={(e) => setDateRange(e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Time</option>
             <option value="today">Today</option>

@@ -19,7 +19,7 @@ export default function PPPoELoginPage() {
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const loginMutation = usePPPoELogin(orgSlug);
 
-  const primaryColor = config?.primary_color || '#ec4899';
+  const primaryColor = config?.primary_color || '#801066';
 
   // Redirect to dashboard if already logged in
   useEffect(() => {

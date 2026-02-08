@@ -66,7 +66,7 @@ const variantConfig = {
     icon: HelpCircle,
     iconBg: 'bg-gray-100',
     iconColor: 'text-gray-600',
-    buttonClass: 'bg-pink-600 hover:bg-pink-700 focus:ring-pink-600',
+    buttonClass: 'bg-brand-600 hover:bg-brand-700 focus:ring-brand-600',
     defaultConfirmText: 'Confirm',
   },
 };

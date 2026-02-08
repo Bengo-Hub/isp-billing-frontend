@@ -17,28 +17,28 @@ export function WhyChoose() {
       icon: Shield,
       title: 'Enterprise Security',
       description: 'Bank-grade encryption and security protocols',
-      color: 'from-[#801066] to-[#6d0d57]',
+      color: 'from-brand-700 to-brand-900',
       delay: 0.1
     },
     {
       icon: Zap,
       title: 'Lightning Fast',
       description: 'Optimized for high-performance operations',
-      color: 'from-[#acacb3] to-[#801066]',
+      color: 'from-gray-400 to-brand-700',
       delay: 0.2
     },
     {
       icon: TrendingUp,
       title: 'Scalable Growth',
       description: 'Grows seamlessly with your business',
-      color: 'from-[#801066] to-[#acacb3]',
+      color: 'from-brand-700 to-gray-400',
       delay: 0.3
     },
     {
       icon: Users,
       title: '24/7 Support',
       description: 'Dedicated support team always available',
-      color: 'from-[#6d0d57] to-[#801066]',
+      color: 'from-brand-900 to-brand-700',
       delay: 0.4
     }
   ];
@@ -51,11 +51,11 @@ export function WhyChoose() {
   ];
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
+    <section className="py-12 md:py-16 lg:py-20 bg-background relative overflow-hidden">
       {/* Magical background elements */}
       <div className="absolute inset-0">
         <motion.div 
-          className="absolute top-0 left-0 w-96 h-96 bg-[#801066]/10 dark:bg-[#801066]/5 rounded-full mix-blend-multiply filter blur-xl opacity-30"
+          className="absolute top-0 left-0 w-96 h-96 bg-primary/10 dark:bg-primary/5 rounded-full mix-blend-multiply filter blur-xl opacity-30"
           animate={{ 
             scale: [1, 1.2, 1],
             rotate: [0, 180, 360],
@@ -69,7 +69,7 @@ export function WhyChoose() {
           }}
         />
         <motion.div 
-          className="absolute bottom-0 right-0 w-96 h-96 bg-[#acacb3]/10 dark:bg-[#acacb3]/5 rounded-full mix-blend-multiply filter blur-xl opacity-30"
+          className="absolute bottom-0 right-0 w-96 h-96 bg-gray-400/10 dark:bg-gray-400/5 rounded-full mix-blend-multiply filter blur-xl opacity-30"
           animate={{ 
             scale: [1.2, 1, 1.2],
             rotate: [360, 180, 0],
@@ -83,7 +83,7 @@ export function WhyChoose() {
           }}
         />
         <motion.div 
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-[#801066]/5 to-[#acacb3]/5 dark:from-[#801066]/3 dark:to-[#acacb3]/3 rounded-full mix-blend-multiply filter blur-xl opacity-20"
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-brand-700/5 to-gray-400/5 dark:from-brand-700/3 dark:to-gray-400/3 rounded-full mix-blend-multiply filter blur-xl opacity-20"
           animate={{ 
             scale: [1, 1.3, 1],
             rotate: [0, 360, 0]
@@ -105,13 +105,13 @@ export function WhyChoose() {
           transition={{ duration: 0.8 }}
         >
           <motion.div 
-            className="inline-flex items-center gap-2 bg-[#801066]/10 dark:bg-[#801066]/20 text-[#801066] dark:text-[#801066] px-4 py-2 rounded-full text-sm font-medium mb-4"
+            className="inline-flex items-center gap-2 bg-primary/10 dark:bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <motion.div 
-              className="w-2 h-2 bg-[#801066] rounded-full"
+              className="w-2 h-2 bg-primary rounded-full"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
@@ -119,7 +119,7 @@ export function WhyChoose() {
             Why Choose CodeVertex?
           </motion.div>
           <motion.h2 
-            className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4"
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -127,7 +127,7 @@ export function WhyChoose() {
             The Smart Choice for Modern ISPs
           </motion.h2>
           <motion.p 
-            className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-300 max-w-4xl mx-auto mb-8"
+            className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-4xl mx-auto mb-8"
             initial={{ opacity: 0, y: 30 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -147,7 +147,7 @@ export function WhyChoose() {
           {stats.map((stat, index) => (
             <motion.div 
               key={index}
-              className="text-center p-4 md:p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+              className="text-center p-4 md:p-6 bg-card/80 backdrop-blur-sm rounded-lg shadow-lg border border-border"
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
               transition={{ duration: 0.6, delay: 1 + index * 0.1 }}
@@ -158,21 +158,21 @@ export function WhyChoose() {
               }}
             >
               <motion.div 
-                className="w-12 h-12 bg-gradient-to-br from-[#801066] to-[#6d0d57] rounded-full flex items-center justify-center mx-auto mb-3"
+                className="w-12 h-12 bg-gradient-to-br from-brand-700 to-brand-900 rounded-full flex items-center justify-center mx-auto mb-3"
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.6 }}
               >
                 <stat.icon className="w-6 h-6 text-white" />
               </motion.div>
               <motion.div 
-                className="text-2xl md:text-3xl font-bold text-[#801066] dark:text-[#801066] mb-1"
+                className="text-2xl md:text-3xl font-bold text-primary mb-1"
                 initial={{ scale: 0.8 }}
                 animate={inView ? { scale: 1 } : { scale: 0.8 }}
                 transition={{ duration: 0.6, delay: 1.2 + index * 0.1 }}
               >
                 {stat.value}
               </motion.div>
-              <div className="text-sm md:text-base text-gray-600 dark:text-gray-300 font-medium">
+              <div className="text-sm md:text-base text-muted-foreground font-medium">
                 {stat.label}
               </div>
             </motion.div>
@@ -190,7 +190,7 @@ export function WhyChoose() {
               {features.map((feature, index) => (
                 <motion.div 
                   key={index}
-                  className="p-4 md:p-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 group"
+                  className="p-4 md:p-6 bg-card/80 backdrop-blur-sm rounded-lg shadow-lg border border-border group"
                   initial={{ opacity: 0, y: 30 }}
                   animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                   transition={{ duration: 0.6, delay: 1.4 + feature.delay }}
@@ -207,10 +207,10 @@ export function WhyChoose() {
                   >
                     <feature.icon className="w-5 h-5 text-white" />
                   </motion.div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm md:text-base">
+                  <h3 className="font-semibold text-foreground mb-2 text-sm md:text-base">
                     {feature.title}
                   </h3>
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     {feature.description}
                   </p>
                 </motion.div>
@@ -236,7 +236,7 @@ export function WhyChoose() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="lg" className="bg-[#801066] hover:bg-[#6d0d57] text-white text-base md:text-lg h-12 md:h-14 px-6 md:px-8 w-full sm:w-auto shadow-lg">
+                  <Button size="lg" className="bg-primary hover:bg-brand-800 text-white text-base md:text-lg h-12 md:h-14 px-6 md:px-8 w-full sm:w-auto shadow-lg">
                     Get Started - Free
                     <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
                   </Button>
@@ -247,7 +247,7 @@ export function WhyChoose() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="lg" variant="outline" className="text-[#801066] border-[#801066] hover:bg-[#801066]/10 dark:text-[#801066] dark:border-[#801066] dark:hover:bg-[#801066]/10 text-base md:text-lg h-12 md:h-14 px-6 md:px-8 w-full sm:w-auto shadow-lg">
+                  <Button size="lg" variant="outline" className="text-primary border-primary hover:bg-primary/10 dark:text-primary dark:border-primary dark:hover:bg-primary/10 text-base md:text-lg h-12 md:h-14 px-6 md:px-8 w-full sm:w-auto shadow-lg">
                     <Play className="mr-2 h-4 w-4 md:h-5 md:w-5" />
                     View Demo
                   </Button>
@@ -257,7 +257,7 @@ export function WhyChoose() {
             
             {/* Testimonial quote */}
             <motion.div 
-              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+              className="bg-card/80 backdrop-blur-sm rounded-lg p-6 shadow-lg border border-border"
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
               transition={{ duration: 0.8, delay: 1.8 }}
@@ -274,11 +274,11 @@ export function WhyChoose() {
                   </motion.div>
                 ))}
               </div>
-              <blockquote className="text-sm md:text-base text-gray-700 dark:text-gray-300 italic mb-3">
+              <blockquote className="text-sm md:text-base text-muted-foreground italic mb-3">
                 "CodeVertex transformed our ISP operations. The automated billing and real-time analytics 
                 helped us increase revenue by 40% in just 6 months."
               </blockquote>
-              <div className="text-sm font-medium text-gray-900 dark:text-white">
+              <div className="text-sm font-medium text-foreground">
                 - Sarah Johnson, CEO TechNet ISP
               </div>
             </motion.div>

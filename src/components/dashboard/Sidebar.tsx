@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useRBACStore, type PermissionModule } from '@/lib/stores/rbac';
 import {
     BarChart3,
+    Building2,
     Calendar,
     CreditCard,
     Globe,
@@ -15,6 +16,7 @@ import {
     MessageSquare,
     Package,
     Settings,
+    Shield,
     Ticket,
     User,
     Users,
@@ -48,11 +50,11 @@ const navigation: NavigationItem[] = [
 
   // Users Section - ISP Admin, Technicians
   {
-    section: 'Users',
+    section: 'Customers',
     roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'Active Users', href: '/users', icon: BarChart3, module: 'users' },
-      { name: 'Users', href: '/users/all', icon: Users, module: 'users' },
+      { name: 'Active Connections', href: '/users', icon: Wifi, module: 'users' },
+      { name: 'Customers', href: '/users/all', icon: Users, module: 'users' },
       { name: 'Expiry Dates', href: '/users/expiry', icon: Calendar, module: 'users' },
       { name: 'IP Bindings', href: '/ip-bindings', icon: Wifi, module: 'users' },
       { name: 'Tickets', href: '/tickets', icon: Ticket, module: 'users' },
@@ -92,9 +94,28 @@ const navigation: NavigationItem[] = [
     ]
   },
 
-  // Reports & Settings - ISP Admin
+  // Reports & Admin - ISP Admin
   { name: 'Reports', href: '/reports', icon: BarChart3, module: 'reports', roles: ['superuser', 'admin'] },
-  { name: 'Settings', href: '/settings', icon: Settings, module: 'settings', roles: ['superuser', 'admin'] },
+  {
+    section: 'Administration',
+    roles: ['superuser', 'admin'],
+    items: [
+      { name: 'System Users', href: '/users/system', icon: Shield, module: 'users', roles: ['superuser', 'admin'] },
+      { name: 'Settings', href: '/settings', icon: Settings, module: 'settings', roles: ['superuser', 'admin'] },
+    ]
+  },
+
+  // Platform Administration - Superuser only
+  {
+    section: 'Platform',
+    roles: ['superuser'],
+    items: [
+      { name: 'Platform Admin', href: '/platform', icon: Building2, roles: ['superuser'] },
+      { name: 'ISP Providers', href: '/platform/organizations', icon: Shield, roles: ['superuser'] },
+      { name: 'Platform Users', href: '/platform/users', icon: Users, roles: ['superuser'] },
+      { name: 'Platform Settings', href: '/platform/settings', icon: Settings, roles: ['superuser'] },
+    ]
+  },
 ];
 
 /**
@@ -195,7 +216,7 @@ export function Sidebar() {
       {/* Mobile menu button */}
       <button
         type="button"
-        className="lg:hidden fixed top-4 left-4 z-50 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-pink-500"
+        className="lg:hidden fixed top-4 left-4 z-50 inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       >
         <span className="sr-only">Open sidebar</span>
@@ -209,17 +230,17 @@ export function Sidebar() {
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="lg:hidden fixed inset-0 z-40 bg-gray-600 bg-opacity-75"
+          className="lg:hidden fixed inset-0 z-40 bg-black/60"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 bg-creamy-white text-gray-900 min-h-screen flex flex-col border-r border-gray-200 ${
+      <aside className={`w-64 bg-sidebar text-sidebar-foreground min-h-screen flex flex-col border-r border-sidebar-border ${
         isMobileMenuOpen ? 'fixed inset-y-0 z-50' : 'hidden lg:flex lg:fixed lg:inset-y-0'
       }`}>
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-sidebar-border">
           <LogoArea />
         </div>
 
@@ -230,7 +251,7 @@ export function Sidebar() {
             if ('section' in item) {
               return (
                 <div key={item.section} className="space-y-1">
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {item.section}
                   </div>
                   {item.items?.map((subItem) => {
@@ -244,14 +265,14 @@ export function Sidebar() {
                         onClick={() => setIsMobileMenuOpen(false)}
                         className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                           isActive
-                            ? 'bg-pink-100 text-pink-900 border-r-2 border-pink-500'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            ? 'bg-sidebar-active text-sidebar-active-foreground border-r-2 border-sidebar-active-border'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                         }`}
                       >
                         <Icon className="h-5 w-5" />
                         {subItem.name}
                         {subItem.count !== undefined && (
-                          <span className="ml-auto bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                          <span className="ml-auto bg-muted text-muted-foreground text-xs px-2 py-1 rounded-full">
                             {subItem.count}
                           </span>
                         )}
@@ -273,8 +294,8 @@ export function Sidebar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-pink-100 text-pink-900 border-r-2 border-pink-500'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-sidebar-active text-sidebar-active-foreground border-r-2 border-sidebar-active-border'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -285,25 +306,25 @@ export function Sidebar() {
         </nav>
 
         {/* User Info */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 w-full px-4 py-3 rounded-lg">
-            <div className="h-8 w-8 rounded-full bg-pink-600 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-sm font-medium text-primary-foreground">
                 {user?.first_name?.[0] || user?.username?.[0] || 'U'}
                 {user?.last_name?.[0] || ''}
               </span>
             </div>
             <div className="flex-1 text-left min-w-0">
-              <div className="text-sm font-medium text-gray-900 truncate">
+              <div className="text-sm font-medium text-foreground truncate">
                 {user?.first_name && user?.last_name
                   ? `${user.first_name} ${user.last_name}`
                   : user?.username || 'User'}
               </div>
-              <div className="text-xs text-gray-500 capitalize">{userRole || 'User'}</div>
+              <div className="text-xs text-muted-foreground capitalize">{userRole || 'User'}</div>
             </div>
             <button
               onClick={logout}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors"
+              className="p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-red-600 transition-colors"
               title="Logout"
             >
               <LogOut className="h-4 w-4" />
@@ -318,7 +339,7 @@ export function Sidebar() {
 function LogoArea() {
   const { data = {} as any } = useSettings('system');
   const [imageError, setImageError] = useState(false);
-  const customLogoUrl = (data['system.logo_url'] as string) || '';
+  const customLogoUrl = ((data['system.logo_url'] as string) || '').replace(/^"|"$/g, '');
 
   // Validate URL - must be absolute URL or relative path starting with /
   const isValidUrl = (url: string): boolean => {
@@ -357,8 +378,8 @@ function LogoArea() {
         </div>
       ) : (
         <div>
-          <div className="font-bold text-gray-900">CodeVertex ISP Billing</div>
-          <div className="text-xs text-gray-500">Admin Portal</div>
+          <div className="font-bold text-foreground">CodeVertex ISP Billing</div>
+          <div className="text-xs text-muted-foreground">Admin Portal</div>
         </div>
       )}
     </Link>

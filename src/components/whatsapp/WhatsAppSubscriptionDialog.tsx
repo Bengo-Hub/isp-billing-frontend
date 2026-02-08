@@ -201,7 +201,7 @@ export function WhatsAppSubscriptionDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-pink-600" />
+            <CreditCard className="h-5 w-5 text-brand-600" />
             WhatsApp API Subscription
           </DialogTitle>
           <DialogDescription>
@@ -245,14 +245,14 @@ export function WhatsAppSubscriptionDialog({
           ) : null}
 
           {/* Subscription Plan Details */}
-          <div className="p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg border border-pink-200">
+          <div className="p-4 bg-gradient-to-br from-brand-50 to-purple-50 rounded-lg border border-brand-200">
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h3 className="font-semibold text-gray-900">{selectedPlan.provider}</h3>
                 <p className="text-sm text-gray-600">WhatsApp Messaging API</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-pink-600">
+                <div className="text-2xl font-bold text-brand-600">
                   {formatCurrency(selectedPlan.monthly_fee, selectedPlan.currency)}
                 </div>
                 <div className="text-xs text-gray-600">per month</div>
@@ -282,7 +282,7 @@ export function WhatsAppSubscriptionDialog({
                     key={gateway.gateway_type}
                     className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
                       selectedPaymentMethod === gateway.gateway_type
-                        ? 'border-pink-600 bg-pink-50'
+                        ? 'border-brand-600 bg-brand-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                     onClick={() => setSelectedPaymentMethod(gateway.gateway_type)}
@@ -293,7 +293,7 @@ export function WhatsAppSubscriptionDialog({
                       value={gateway.gateway_type}
                       checked={selectedPaymentMethod === gateway.gateway_type}
                       onChange={() => setSelectedPaymentMethod(gateway.gateway_type)}
-                      className="w-4 h-4 text-pink-600"
+                      className="w-4 h-4 text-brand-600"
                     />
                     {gateway.gateway_type === 'paystack' && <CreditCard className="w-5 h-5 text-blue-600" />}
                     {(gateway.gateway_type === 'mpesa_paybill' || gateway.gateway_type === 'mpesa_till') && (
@@ -395,7 +395,7 @@ export function WhatsAppSubscriptionDialog({
               !selectedPaymentMethod ||
               ((selectedPaymentMethod === 'mpesa_paybill' || selectedPaymentMethod === 'mpesa_till') && !phone)
             }
-            className="bg-pink-600 hover:bg-pink-700"
+            className="bg-brand-600 hover:bg-brand-700"
           >
             {isPending ? (
               <>
