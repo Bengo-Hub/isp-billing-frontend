@@ -88,7 +88,7 @@ trivy fs . --exit-code "$TRIVY_ECODE" --format table || true
 # =============================================================================
 info "Building Docker image"
 DOCKER_BUILDKIT=1 docker build . -t "${IMAGE_REPO}:${GIT_COMMIT_ID}" \
-  --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://ispbillingapi.codevertexitsolutions.com}" \
+  --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://ispbillingapi.codevertexitsolutions.com/api/v1}" \
   --build-arg NEXT_PUBLIC_WS_BASE_URL="${NEXT_PUBLIC_WS_BASE_URL:-wss://ispbillingapi.codevertexitsolutions.com}" \
   --build-arg NEXT_PUBLIC_APP_NAME="${NEXT_PUBLIC_APP_NAME:-Codevertex ISP Billing}" \
   --build-arg NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://ispbilling.codevertexitsolutions.com}" \
@@ -132,7 +132,7 @@ fi
 if ! kubectl -n "$NAMESPACE" get secret "$ENV_SECRET_NAME" >/dev/null 2>&1; then
   info "Creating environment secret ${ENV_SECRET_NAME}..."
   kubectl -n "$NAMESPACE" create secret generic "$ENV_SECRET_NAME" \
-    --from-literal=NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://ispbillingapi.codevertexitsolutions.com}" \
+    --from-literal=NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://ispbillingapi.codevertexitsolutions.com/api/v1}" \
     --from-literal=NEXT_PUBLIC_WS_BASE_URL="${NEXT_PUBLIC_WS_BASE_URL:-wss://ispbillingapi.codevertexitsolutions.com}" \
     --from-literal=NEXT_PUBLIC_APP_NAME="${NEXT_PUBLIC_APP_NAME:-Codevertex ISP Billing}" \
     --from-literal=NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://ispbilling.codevertexitsolutions.com}" \
