@@ -138,23 +138,18 @@ if [[ -n ${REGISTRY_USERNAME:-} && -n ${REGISTRY_PASSWORD:-} ]]; then
 fi
 
 # =============================================================================
-# HELM VALUES UPDATE (via centralized script)
+# CLONE DEVOPS-K8S (needed for helm values update)
 # =============================================================================
-# Resolve token from available sources
-TOKEN="${GH_PAT:-${GIT_SECRET:-${GIT_TOKEN:-${GITHUB_TOKEN:-}}}}"
-
-if [[ -n "${GH_PAT:-}" ]]; then
-  info "Using GH_PAT for git operations"
-elif [[ -n "${GIT_SECRET:-}" ]]; then
-  info "Using GIT_SECRET for git operations"
-elif [[ -n "${GIT_TOKEN:-}" ]]; then
-  info "Using GIT_TOKEN for git operations"
-elif [[ -n "${GIT_TOKEN:-}" ]]; then
-  info "Using GIT_TOKEN for git operations"
-else
-  warn "No GitHub token found for devops-k8s update"
+if [[ ! -d "$DEVOPS_DIR" ]]; then
+  TOKEN="${GH_PAT:-}"
+  CLONE_URL="https://github.com/${DEVOPS_REPO}.git"
+  [[ -n $TOKEN ]] && CLONE_URL="https://x-access-token:${TOKEN}@github.com/${DEVOPS_REPO}.git"
+  git clone "$CLONE_URL" "$DEVOPS_DIR" || warn "Unable to clone devops repo for helm values update"
 fi
 
+# =============================================================================
+# HELM VALUES UPDATE (via centralized script)
+# =============================================================================
 source "${HOME}/devops-k8s/scripts/helm/update-values.sh" 2>/dev/null || {
   warn "Centralized helm update script not available"
 }
