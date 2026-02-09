@@ -3,10 +3,10 @@
  */
 
 import axios, {
-    AxiosError,
-    AxiosInstance,
-    AxiosRequestConfig,
-    InternalAxiosRequestConfig,
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
 } from "axios";
 
 // API configuration
