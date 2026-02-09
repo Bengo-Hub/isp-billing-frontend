@@ -567,18 +567,22 @@ export interface ActiveConnection {
   router_name: string;
 }
 
-// Fetch all active connections across all routers
-export function useAllActiveConnections() {
+// Fetch all active connections across all routers (or a specific router)
+export function useAllActiveConnections(routerId?: number | null) {
   const { data: routersData, isLoading: routersLoading } = useRouters();
 
   return useQuery({
-    queryKey: ['active-sessions', 'all', routersData?.items?.map(r => r.id)],
+    queryKey: ['active-sessions', 'all', routerId, routersData?.items?.map(r => r.id)],
     queryFn: async (): Promise<ActiveConnection[]> => {
       if (!routersData?.items || routersData.items.length === 0) {
         return [];
       }
 
-      const onlineRouters = routersData.items.filter(r => r.status === 'online');
+      // Filter to specific router if routerId provided
+      let onlineRouters = routersData.items.filter(r => r.status === 'online');
+      if (routerId) {
+        onlineRouters = onlineRouters.filter(r => r.id === routerId);
+      }
 
       const connectionPromises = onlineRouters.map(async (router) => {
         try {

@@ -95,8 +95,9 @@ export function usePortalConfig(orgSlug: string) {
   return useQuery({
     queryKey: ['portal-config', orgSlug],
     queryFn: async (): Promise<PortalConfig> => {
-      const { data } = await api.get(`/portal/hotspot/${orgSlug}/config`);
-      return data;
+      const response = await api.get<PortalConfig>(`/portal/hotspot/${orgSlug}/config`);
+      // Portal endpoint returns raw object, not wrapped in { data: ... }
+      return response.data || response;
     },
     enabled: !!orgSlug,
   });
@@ -110,8 +111,9 @@ export function useHotspotPackages(orgSlug: string) {
   return useQuery({
     queryKey: ['hotspot-packages', orgSlug],
     queryFn: async (): Promise<HotspotPackage[]> => {
-      const { data } = await api.get(`/portal/hotspot/${orgSlug}/packages`);
-      return data;
+      const response = await api.get<HotspotPackage[]>(`/portal/hotspot/${orgSlug}/packages`);
+      // Portal endpoint returns raw array, not wrapped in { data: ... }
+      return Array.isArray(response) ? response : response.data || [];
     },
     enabled: !!orgSlug,
   });

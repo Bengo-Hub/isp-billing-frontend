@@ -84,14 +84,48 @@ function createApiClient(): AxiosInstance {
     },
   });
 
-  // Request interceptor - add auth token
+  // Request interceptor - add auth token and org slug
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      // Get token from localStorage (set by auth store)
       if (typeof window !== "undefined") {
+        // Add auth token
         const token = localStorage.getItem("auth-token");
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        // Add organization slug header for tenant context
+        // Extract org_slug from current URL path (e.g., /demo-isp/dashboard)
+        const pathname = window.location.pathname;
+        const orgMatch = pathname.match(/^\/([^\/]+)\//);
+
+        if (orgMatch) {
+          const potentialOrgSlug = orgMatch[1];
+          // Exclude platform and other special routes
+          if (potentialOrgSlug !== 'platform' &&
+              potentialOrgSlug !== 'login' &&
+              potentialOrgSlug !== 'signup' &&
+              potentialOrgSlug !== 'buy' &&
+              !potentialOrgSlug.startsWith('_')) {
+            config.headers['X-Organization-Slug'] = potentialOrgSlug;
+          }
+        }
+
+        // Fallback: Try to get org_slug from auth store
+        if (!config.headers['X-Organization-Slug']) {
+          try {
+            const authStorage = localStorage.getItem('auth-storage');
+            if (authStorage) {
+              const authState = JSON.parse(authStorage);
+              const orgSlug = authState.state?.organizationInfo?.organization_slug ||
+                             authState.state?.customerPortalInfo?.organization_slug;
+              if (orgSlug) {
+                config.headers['X-Organization-Slug'] = orgSlug;
+              }
+            }
+          } catch {
+            // Ignore parsing errors
+          }
         }
       }
       return config;

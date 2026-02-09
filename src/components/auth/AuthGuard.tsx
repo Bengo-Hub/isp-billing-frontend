@@ -60,6 +60,7 @@ export function AuthGuard({ children, requiredRole, fallback }: AuthGuardProps) 
   useEffect(() => {
     if (hydrated && !isLoading && !validating && (!isAuthenticated || !user)) {
       console.log('[AuthGuard] Not authenticated, redirecting to login...', { isAuthenticated, hasUser: !!user });
+      // All users login via the central login page
       router.replace('/login');
     }
   }, [hydrated, isLoading, validating, isAuthenticated, user, router]);
@@ -102,8 +103,20 @@ export function AuthGuard({ children, requiredRole, fallback }: AuthGuardProps) 
       redirecting: true,
     });
 
-    // Redirect ISP users to their dashboard, not unauthorized page
-    router.push('/dashboard');
+    // Redirect users to their appropriate dashboard based on role
+    // Note: We already know user is not superuser due to check on line 99
+    const { organizationInfo, customerPortalInfo } = useAuthStore.getState();
+
+    // Customers should go to their portal, not the ISP dashboard
+    if (user?.role === 'customer' && customerPortalInfo?.portal_url) {
+      router.push(customerPortalInfo.portal_url);
+    } else if (organizationInfo?.organization_slug) {
+      // ISP users (admin, technician) go to dashboard
+      router.push(`/${organizationInfo.organization_slug}/dashboard`);
+    } else {
+      // Fallback to login if no org context
+      router.push('/login');
+    }
     return fallback || null;
   }
 

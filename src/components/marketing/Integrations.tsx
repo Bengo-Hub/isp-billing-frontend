@@ -170,13 +170,12 @@ export function Integrations() {
                 
                 <div className="space-y-3">
                   {category.items.map((item, itemIndex) => (
-                    <motion.div 
+                    <motion.div
                       key={itemIndex}
-                      className="flex items-center justify-between p-3 bg-muted rounded-lg group/item"
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg group/item hover:bg-primary/5 transition-colors"
                       initial={{ opacity: 0, x: -20 }}
                       animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
                       transition={{ duration: 0.6, delay: 1 + itemIndex * 0.1 }}
-                      whileHover={{ backgroundColor: "rgba(128, 16, 102, 0.05)" }}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">

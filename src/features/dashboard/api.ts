@@ -74,12 +74,17 @@ const fallback: DashboardAnalytics = {
   generated_at: new Date().toISOString(),
 };
 
-export function useDashboardAnalytics(options?: { refetchInterval?: number; refetchIntervalInBackground?: boolean }) {
+export function useDashboardAnalytics(
+  params?: { router_id?: number | null },
+  options?: { refetchInterval?: number; refetchIntervalInBackground?: boolean }
+) {
   return useQuery({
-    queryKey: ['dashboard-analytics'],
+    queryKey: ['dashboard-analytics', params?.router_id],
     queryFn: async (): Promise<DashboardAnalytics> => {
       try {
-        const { data } = await api.get('/reports/analytics/dashboard');
+        const { data } = await api.get('/reports/analytics/dashboard', {
+          params: params?.router_id ? { router_id: params.router_id } : undefined,
+        });
         return data;
       } catch {
         // Only return fallback in development, throw in production
@@ -92,11 +97,16 @@ export function useDashboardAnalytics(options?: { refetchInterval?: number; refe
   });
 }
 
-export function useDashboardCharts(options?: { refetchInterval?: number; refetchIntervalInBackground?: boolean }) {
+export function useDashboardCharts(
+  params?: { router_id?: number | null },
+  options?: { refetchInterval?: number; refetchIntervalInBackground?: boolean }
+) {
   return useQuery({
-    queryKey: ['dashboard-charts'],
+    queryKey: ['dashboard-charts', params?.router_id],
     queryFn: async (): Promise<DashboardCharts> => {
-      const { data } = await api.get('/reports/analytics/dashboard-charts');
+      const { data } = await api.get('/reports/analytics/dashboard-charts', {
+        params: params?.router_id ? { router_id: params.router_id } : undefined,
+      });
       return data;
     },
     staleTime: 60_000,

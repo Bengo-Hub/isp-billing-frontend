@@ -454,11 +454,11 @@ export default function CaptiveBuyPackagesPage() {
 
         {/* Payment Modal - Mobile Optimized */}
         <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-          <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] mx-4 p-0">
-            <div className="p-4 sm:p-6">
+          <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md p-0 mx-auto">
+            <div className="p-4 sm:p-6 w-full overflow-x-hidden">
               <DialogHeader className="mb-4 sm:mb-6">
                 <DialogTitle className="text-lg sm:text-xl">Complete Purchase</DialogTitle>
-                <DialogDescription className="text-sm sm:text-base">
+                <DialogDescription className="text-sm sm:text-base break-words">
                   {selectedPackage && packages?.find(p => p.id === selectedPackage)?.name}
                   {' - '}
                   <span className="font-bold" style={{ color: primaryColor }}>
@@ -467,7 +467,7 @@ export default function CaptiveBuyPackagesPage() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-4 sm:space-y-6 w-full">
                 {/* Payment Methods */}
                 {gatewaysLoading ? (
                   <div className="text-center py-4">

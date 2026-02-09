@@ -102,7 +102,24 @@ export function usePlans(params: { page?: number; size?: number; plan_type?: str
     queryFn: async (): Promise<{ items: PlanItem[]; total: number; page: number; size: number; pages: number }> => {
       try {
         const { data } = await api.get('/plans/', { params });
-        return data;
+
+        // Normalize plan types: backend uses UPPERCASE, frontend uses lowercase
+        // Also map 'INTERNET' → 'data' for consistency
+        const normalizedPlans = (data.plans || []).map((plan: any) => ({
+          ...plan,
+          plan_type: plan.plan_type?.toLowerCase() === 'internet'
+            ? 'data'
+            : plan.plan_type?.toLowerCase() || 'data'
+        }));
+
+        // Transform backend response: { plans: [...] } → { items: [...] }
+        return {
+          items: normalizedPlans,
+          total: data.total || 0,
+          page: data.page || 1,
+          size: data.size || 20,
+          pages: data.pages || 1,
+        };
       } catch {
         // Only return fallback in development, throw in production
         return getDevFallback(plansFallback as any);

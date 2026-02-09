@@ -366,15 +366,15 @@ export interface PaystackSMSTopUpResponse {
   sms_credits?: number;
 }
 
-export function usePaystackSmsTopUp(accountId: number) {
+export function usePaystackSmsTopUp(accountId: number, orgSlug?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: PaystackSMSTopUpRequest): Promise<PaystackSMSTopUpResponse> => {
       // Construct callback URL pointing to our success page
-      const callbackUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/messages/sms-topup-success`
-        : data.callback_url;
+      const callbackUrl = typeof window !== 'undefined' && orgSlug
+        ? `${window.location.origin}/${orgSlug}/dashboard/messages/sms-topup-success`
+        : (data.callback_url || `${window.location.origin}/messages/sms-topup-success`);
 
       const response = await api.post(`/sms-credit/accounts/${accountId}/paystack-top-up`, {
         ...data,
@@ -399,15 +399,15 @@ export function usePaystackSmsTopUp(accountId: number) {
 }
 
 // Tenant-aware SMS top-up - automatically uses the current user's organization
-export function useTenantSmsTopUp() {
+export function useTenantSmsTopUp(orgSlug?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: PaystackSMSTopUpRequest): Promise<PaystackSMSTopUpResponse> => {
       // Construct callback URL pointing to our success page
-      const callbackUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/messages/sms-topup-success`
-        : data.callback_url;
+      const callbackUrl = typeof window !== 'undefined' && orgSlug
+        ? `${window.location.origin}/${orgSlug}/dashboard/messages/sms-topup-success`
+        : (data.callback_url || `${window.location.origin}/messages/sms-topup-success`);
 
       const response = await api.post('/tenant/messages/sms-topup', {
         ...data,

@@ -11,10 +11,7 @@ const PUBLIC_ROUTES = [
   '/verify-email',
   '/contact',
   '/payment/callback',
-  '/hotspot',
-  '/pppoe',
-  '/portal',
-  '/buy-packages',
+  '/buy', // Captive portal package purchase page (/buy/[orgSlug])
 ];
 
 // Platform-only routes (require platform_owner role)
@@ -22,62 +19,87 @@ const PLATFORM_ROUTES = [
   '/platform',
 ];
 
-// Routes that require authentication but any authenticated user can access
-const DASHBOARD_ROUTES = [
-  '/dashboard',
-  '/users',
-  '/packages',
-  '/payments',
-  '/routers',
-  '/reports',
-  '/settings',
-  '/billing',
-  '/sms',
-  '/leads',
-  '/tickets',
-  '/logs',
-  '/messages',
-  '/security',
-  '/ip-bindings',
-  '/shop',
+// Protected route segments that require authentication (can appear anywhere in path)
+const PROTECTED_SEGMENTS = [
+  'dashboard',
+  'portal', // Customer portals (/[org]/portal/hotspot, /[org]/portal/pppoe)
+  'users',
+  'packages',
+  'payments',
+  'routers',
+  'reports',
+  'settings',
+  'billing',
+  'sms',
+  'leads',
+  'tickets',
+  'logs',
+  'messages',
+  'security',
+  'ip-bindings',
+  'shop',
+  'campaigns',
+  'emails',
+  'expenses',
+  'vouchers',
+  'support',
 ];
+
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.some(route => {
+    // Exact match or starts with (for nested public routes)
+    return pathname === route || pathname.startsWith(route + '/');
+  });
+}
+
+function isProtectedRoute(pathname: string): boolean {
+  // Split path into segments
+  const segments = pathname.split('/').filter(Boolean);
+
+  // Check if any segment matches protected segments
+  // This handles both /dashboard and /{org}/dashboard patterns
+  return PROTECTED_SEGMENTS.some(protectedSegment =>
+    segments.includes(protectedSegment)
+  );
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 
-  // Get auth token from cookies or localStorage (Next.js middleware can only read cookies)
+  // Get auth token from cookies
   const authToken = request.cookies.get('auth-token')?.value;
 
-  // If no auth token, redirect to login
-  if (!authToken) {
-    // For API routes or protected pages without auth, redirect to login
-    if (!pathname.startsWith('/login')) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
+  // Debug logging
+  const allCookies = request.cookies.getAll();
+  console.log('[Middleware] Auth check:', {
+    pathname,
+    hasAuthToken: !!authToken,
+    authTokenLength: authToken?.length,
+    allCookieNames: allCookies.map(c => c.name),
+    isProtected: isProtectedRoute(pathname),
+    isPlatform: PLATFORM_ROUTES.some(route => pathname.startsWith(route)),
+  });
 
   // Platform route protection
   if (PLATFORM_ROUTES.some(route => pathname.startsWith(route))) {
-    // Note: We can't read localStorage in middleware (server-side)
-    // We'll rely on client-side AuthGuard for role checking
-    // But we can at least ensure they're authenticated
     if (!authToken) {
+      console.log('[Middleware] Redirecting to login: Platform route without token');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
+    return NextResponse.next();
   }
 
-  // Dashboard route protection - require authentication
-  if (DASHBOARD_ROUTES.some(route => pathname.startsWith(route))) {
+  // Protected route check (handles both /dashboard and /{org}/dashboard)
+  if (isProtectedRoute(pathname)) {
     if (!authToken) {
+      console.log('[Middleware] Redirecting to login: Protected route without token');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);

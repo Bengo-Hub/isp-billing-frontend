@@ -14,13 +14,17 @@ import { toast } from 'sonner';
 
 type ConnectionType = 'all' | 'hotspot' | 'pppoe';
 
-export default function ActiveUsersTable() {
+interface ActiveUsersTableProps {
+  routerId?: number | null;
+}
+
+export default function ActiveUsersTable({ routerId }: ActiveUsersTableProps = {}) {
   const [activeTab, setActiveTab] = useState<ConnectionType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
-  // Fetch all active connections from all routers
-  const { data: connections, isLoading, error, refetch } = useAllActiveConnections();
+  // Fetch all active connections from all routers (or specific router if filtered)
+  const { data: connections, isLoading, error, refetch } = useAllActiveConnections(routerId);
   const disconnectMutation = useDisconnectUser();
 
   const activeUsers = connections || [];

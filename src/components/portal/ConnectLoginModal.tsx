@@ -100,7 +100,7 @@ export function ConnectLoginModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] mx-4 p-0">
+      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] p-0">
         <div className="p-5 sm:p-6">
           <DialogHeader className="mb-5 sm:mb-6 text-center">
             {/* Accent icon */}

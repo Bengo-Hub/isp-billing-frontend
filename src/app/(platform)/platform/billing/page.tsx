@@ -21,10 +21,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Receipt, DollarSign, Clock, AlertTriangle, Download, RefreshCw, Eye, Undo2, Loader2 } from 'lucide-react';
+import { Receipt, DollarSign, Clock, AlertTriangle, Download, RefreshCw, Eye, Undo2, Loader2, Edit, Trash2, Ban, RotateCcw, MoreVertical } from 'lucide-react';
 import {
   usePlatformBillingStats,
   usePlatformInvoices,
@@ -34,9 +40,15 @@ import {
   useRefundPayment,
   usePlatformPaymentDetails,
   useExportPlatformData,
+  useUpdateInvoice,
+  useVoidInvoice,
+  useDeleteInvoice,
+  useRegenerateInvoice,
   type PlatformPayment,
   type PlatformInvoice,
   type RefundRequest,
+  type UpdateInvoiceRequest,
+  type VoidInvoiceRequest,
 } from '@/features/platform/billing-api';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -50,6 +62,17 @@ export default function PlatformBillingPage() {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
+
+  // Invoice management state
+  const [selectedInvoice, setSelectedInvoice] = useState<PlatformInvoice | null>(null);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [voidModalOpen, setVoidModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [regenerateModalOpen, setRegenerateModalOpen] = useState(false);
+  const [updateAmount, setUpdateAmount] = useState('');
+  const [updateDueDate, setUpdateDueDate] = useState('');
+  const [updateNotes, setUpdateNotes] = useState('');
+  const [voidReason, setVoidReason] = useState('');
 
   // Data hooks
   const { data: stats, isLoading: statsLoading } = usePlatformBillingStats();
@@ -70,6 +93,10 @@ export default function PlatformBillingPage() {
   const generateInvoices = useGeneratePlatformInvoices();
   const refundPayment = useRefundPayment();
   const exportData = useExportPlatformData();
+  const updateInvoice = useUpdateInvoice();
+  const voidInvoice = useVoidInvoice();
+  const deleteInvoice = useDeleteInvoice();
+  const regenerateInvoice = useRegenerateInvoice();
 
   const handleRefund = async () => {
     if (!selectedPayment) return;
@@ -103,6 +130,91 @@ export default function PlatformBillingPage() {
     setDetailsModalOpen(true);
   };
 
+  // Invoice management handlers
+  const openUpdateModal = (invoice: PlatformInvoice) => {
+    setSelectedInvoice(invoice);
+    setUpdateAmount(invoice.total_amount.toString());
+    setUpdateDueDate(invoice.due_date.split('T')[0]);
+    setUpdateNotes('');
+    setUpdateModalOpen(true);
+  };
+
+  const openVoidModal = (invoice: PlatformInvoice) => {
+    setSelectedInvoice(invoice);
+    setVoidReason('');
+    setVoidModalOpen(true);
+  };
+
+  const openDeleteModal = (invoice: PlatformInvoice) => {
+    setSelectedInvoice(invoice);
+    setDeleteModalOpen(true);
+  };
+
+  const openRegenerateModal = (invoice: PlatformInvoice) => {
+    setSelectedInvoice(invoice);
+    setRegenerateModalOpen(true);
+  };
+
+  const handleUpdateInvoice = async () => {
+    if (!selectedInvoice) return;
+
+    const updateData: UpdateInvoiceRequest = {};
+
+    if (updateAmount && parseFloat(updateAmount) !== selectedInvoice.total_amount) {
+      updateData.amount = parseFloat(updateAmount);
+    }
+
+    if (updateDueDate && updateDueDate !== selectedInvoice.due_date.split('T')[0]) {
+      updateData.due_date = updateDueDate;
+    }
+
+    if (updateNotes) {
+      updateData.notes = updateNotes;
+    }
+
+    await updateInvoice.mutateAsync({
+      invoiceId: selectedInvoice.id,
+      data: updateData,
+    });
+
+    setUpdateModalOpen(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleVoidInvoice = async () => {
+    if (!selectedInvoice || !voidReason) return;
+
+    const voidData: VoidInvoiceRequest = {
+      reason: voidReason,
+    };
+
+    await voidInvoice.mutateAsync({
+      invoiceId: selectedInvoice.id,
+      data: voidData,
+    });
+
+    setVoidModalOpen(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleDeleteInvoice = async () => {
+    if (!selectedInvoice) return;
+
+    await deleteInvoice.mutateAsync(selectedInvoice.id);
+
+    setDeleteModalOpen(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleRegenerateInvoice = async () => {
+    if (!selectedInvoice) return;
+
+    await regenerateInvoice.mutateAsync(selectedInvoice.id);
+
+    setRegenerateModalOpen(false);
+    setSelectedInvoice(null);
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       paid: 'bg-green-100 text-green-800',
@@ -117,6 +229,29 @@ export default function PlatformBillingPage() {
     return colors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
 
+  // Check if invoices exist for current billing period (previous month)
+  const hasCurrentPeriodInvoices = (): boolean => {
+    if (!invoicesData?.items || invoicesData.items.length === 0) return false;
+
+    const today = new Date();
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const billingPeriodEnd = firstOfMonth;
+    const billingPeriodStart = new Date(firstOfMonth);
+    billingPeriodStart.setMonth(billingPeriodStart.getMonth() - 1);
+
+    // Check if any invoice matches current billing period
+    return invoicesData.items.some((invoice: PlatformInvoice) => {
+      const invoiceStart = new Date(invoice.billing_period_start);
+      const invoiceEnd = new Date(invoice.billing_period_end);
+      return (
+        invoiceStart.getTime() === billingPeriodStart.getTime() &&
+        invoiceEnd.getTime() === billingPeriodEnd.getTime()
+      );
+    });
+  };
+
+  const canGenerateInvoices = !hasCurrentPeriodInvoices() && !generateInvoices.isPending;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -124,23 +259,30 @@ export default function PlatformBillingPage() {
           <h1 className="text-2xl font-bold text-gray-900">Platform Billing</h1>
           <p className="text-gray-600">Manage invoices and payments from ISP providers</p>
         </div>
-        <Button
-          onClick={() => generateInvoices.mutate()}
-          disabled={generateInvoices.isPending}
-          className="bg-brand-600 hover:bg-brand-700"
-        >
-          {generateInvoices.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Generate Invoices
-            </>
+        <div className="relative group">
+          <Button
+            onClick={() => generateInvoices.mutate()}
+            disabled={!canGenerateInvoices}
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generateInvoices.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Generate Invoices
+              </>
+            )}
+          </Button>
+          {!canGenerateInvoices && !generateInvoices.isPending && (
+            <div className="absolute bottom-full mb-2 right-0 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Invoices for current period already generated
+            </div>
           )}
-        </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -276,6 +418,7 @@ export default function PlatformBillingPage() {
                       <TableHead>Billing Cycle</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -283,13 +426,64 @@ export default function PlatformBillingPage() {
                       <TableRow key={invoice.id}>
                         <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                         <TableCell>{invoice.organization_name || 'N/A'}</TableCell>
-                        <TableCell>{formatCurrency(invoice.amount, invoice.currency)}</TableCell>
+                        <TableCell>{formatCurrency(invoice.total_amount, invoice.currency || 'KES')}</TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(invoice.status)}>{invoice.status}</Badge>
                         </TableCell>
                         <TableCell>{invoice.billing_cycle}</TableCell>
                         <TableCell>{format(new Date(invoice.due_date), 'MMM dd, yyyy')}</TableCell>
                         <TableCell>{format(new Date(invoice.created_at), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {(invoice.status === 'pending' || invoice.status === 'overdue') && (
+                                <>
+                                  <DropdownMenuItem onClick={() => openUpdateModal(invoice)}>
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Update Invoice
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openVoidModal(invoice)}>
+                                    <Ban className="w-4 h-4 mr-2" />
+                                    Void Invoice
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openRegenerateModal(invoice)}>
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    Regenerate
+                                  </DropdownMenuItem>
+                                  {!invoice.paid_at && (
+                                    <DropdownMenuItem
+                                      onClick={() => openDeleteModal(invoice)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete Invoice
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              )}
+                              {invoice.status === 'paid' && (
+                                <DropdownMenuItem onClick={() => openRegenerateModal(invoice)}>
+                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                  Regenerate
+                                </DropdownMenuItem>
+                              )}
+                              {(invoice.status === 'draft' || invoice.status === 'cancelled') && (
+                                <DropdownMenuItem
+                                  onClick={() => openDeleteModal(invoice)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Invoice
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -550,6 +744,236 @@ export default function PlatformBillingPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailsModalOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Invoice Modal */}
+      <Dialog open={updateModalOpen} onOpenChange={setUpdateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Invoice</DialogTitle>
+            <DialogDescription>
+              Update invoice {selectedInvoice?.invoice_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="update-amount">Amount</Label>
+              <Input
+                id="update-amount"
+                type="number"
+                step="0.01"
+                value={updateAmount}
+                onChange={(e) => setUpdateAmount(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="update-due-date">Due Date</Label>
+              <Input
+                id="update-due-date"
+                type="date"
+                value={updateDueDate}
+                onChange={(e) => setUpdateDueDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="update-notes">Notes (Optional)</Label>
+              <Textarea
+                id="update-notes"
+                placeholder="Add any notes about this update..."
+                value={updateNotes}
+                onChange={(e) => setUpdateNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUpdateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateInvoice}
+              disabled={updateInvoice.isPending}
+              className="bg-brand-600 hover:bg-brand-700"
+            >
+              {updateInvoice.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Invoice'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Void Invoice Modal */}
+      <Dialog open={voidModalOpen} onOpenChange={setVoidModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Void Invoice</DialogTitle>
+            <DialogDescription>
+              Void invoice {selectedInvoice?.invoice_number}. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-yellow-900">Warning</p>
+                  <p className="text-sm text-yellow-700">
+                    Voiding this invoice will mark it as cancelled. The invoice cannot be paid after voiding.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="void-reason">Reason *</Label>
+              <Textarea
+                id="void-reason"
+                placeholder="Enter reason for voiding this invoice..."
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVoidModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleVoidInvoice}
+              disabled={!voidReason || voidInvoice.isPending}
+              variant="destructive"
+            >
+              {voidInvoice.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Voiding...
+                </>
+              ) : (
+                'Void Invoice'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Invoice Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Invoice</DialogTitle>
+            <DialogDescription>
+              Delete invoice {selectedInvoice?.invoice_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-red-900">Warning</p>
+                  <p className="text-sm text-red-700">
+                    This will permanently delete the invoice. This action cannot be undone.
+                    {selectedInvoice?.paid_at && (
+                      <span className="block mt-1 font-medium">
+                        Note: This invoice has been paid and should not be deleted without good reason.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Invoice:</span> {selectedInvoice?.invoice_number}
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Amount:</span> {formatCurrency(selectedInvoice?.total_amount || 0, selectedInvoice?.currency || 'KES')}
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Status:</span> {selectedInvoice?.status}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteInvoice}
+              disabled={deleteInvoice.isPending}
+              variant="destructive"
+            >
+              {deleteInvoice.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Invoice'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerate Invoice Modal */}
+      <Dialog open={regenerateModalOpen} onOpenChange={setRegenerateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Regenerate Invoice</DialogTitle>
+            <DialogDescription>
+              Regenerate invoice {selectedInvoice?.invoice_number} with recalculated amounts
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <RotateCcw className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-blue-900">Regenerate Invoice</p>
+                  <p className="text-sm text-blue-700">
+                    This will recalculate the invoice based on current subscription data and update the amount.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Invoice:</span> {selectedInvoice?.invoice_number}
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Current Amount:</span> {formatCurrency(selectedInvoice?.total_amount || 0, selectedInvoice?.currency || 'KES')}
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Organization:</span> {selectedInvoice?.organization_name || 'N/A'}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRegenerateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRegenerateInvoice}
+              disabled={regenerateInvoice.isPending}
+              className="bg-brand-600 hover:bg-brand-700"
+            >
+              {regenerateInvoice.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Regenerating...
+                </>
+              ) : (
+                'Regenerate Invoice'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

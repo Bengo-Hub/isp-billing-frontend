@@ -113,40 +113,79 @@ export default function PlatformAnalyticsPage() {
       {/* Organization Growth */}
       <Card className="p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Organization Growth</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2 font-medium text-gray-500">Month</th>
-                <th className="text-right py-2 font-medium text-gray-500">New Signups</th>
-                <th className="text-right py-2 font-medium text-gray-500">Churned</th>
-                <th className="text-right py-2 font-medium text-gray-500">Net Growth</th>
-                <th className="text-right py-2 font-medium text-gray-500">Total Active</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.organization_growth && data.organization_growth.length > 0 ? (
-                data.organization_growth.map((month) => (
-                  <tr key={month.date} className="border-b">
-                    <td className="py-3">{month.date}</td>
-                    <td className="text-right py-3 text-green-600">+{month.new_signups}</td>
-                    <td className="text-right py-3 text-red-600">-{month.churned}</td>
-                    <td className={`text-right py-3 font-medium ${
-                      month.new_signups - month.churned >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {month.new_signups - month.churned >= 0 ? '+' : ''}{month.new_signups - month.churned}
-                    </td>
-                    <td className="text-right py-3 font-medium">{month.total_active}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="text-center py-8 text-gray-500">No growth data available</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {data?.organization_growth && data.organization_growth.length > 0 ? (
+          <div className="space-y-6">
+            {/* Line Chart */}
+            <div className="h-64 relative">
+              <div className="absolute inset-0 flex items-end justify-between gap-2 px-4">
+                {data.organization_growth.map((month, i) => {
+                  const maxValue = Math.max(...data.organization_growth.map(m => m.total_active));
+                  const height = maxValue > 0 ? (month.total_active / maxValue) * 100 : 0;
+                  const netGrowth = month.new_signups - month.churned;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      {/* Bar */}
+                      <div
+                        className="w-full bg-gradient-to-t from-brand-500 to-brand-400 rounded-t hover:from-brand-600 hover:to-brand-500 transition-all cursor-pointer shadow-sm"
+                        style={{ height: `${Math.max(height, 5)}%` }}
+                        title={`${month.date}: ${month.total_active} active orgs\nNew: +${month.new_signups}, Churned: -${month.churned}, Net: ${netGrowth >= 0 ? '+' : ''}${netGrowth}`}
+                      >
+                        {/* Growth indicator badge */}
+                        {month.new_signups > 0 && (
+                          <div className="w-full flex justify-center pt-1">
+                            <span className="text-xs font-bold text-white bg-green-500 px-1 rounded">
+                              +{month.new_signups}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Month label */}
+                      <span className="text-xs text-gray-500 mt-1">{month.date.slice(-2)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-brand-500 rounded"></div>
+                <span className="text-gray-600">Total Active</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span className="text-gray-600">New Signups</span>
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">
+                  +{data.organization_growth.reduce((sum, m) => sum + m.new_signups, 0)}
+                </p>
+                <p className="text-sm text-gray-500">Total Signups</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-600">
+                  -{data.organization_growth.reduce((sum, m) => sum + m.churned, 0)}
+                </p>
+                <p className="text-sm text-gray-500">Total Churned</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-brand-600">
+                  {data.organization_growth[data.organization_growth.length - 1]?.total_active || 0}
+                </p>
+                <p className="text-sm text-gray-500">Currently Active</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-64 flex items-center justify-center text-gray-500">
+            No growth data available
+          </div>
+        )}
       </Card>
 
       {/* Top Organizations */}

@@ -66,6 +66,15 @@ export function normalizePermissions(backendPermissions: any[]): Permission[] {
 }
 
 /**
+ * Organization info for ISP users (admin, technician)
+ */
+export interface OrganizationInfo {
+  organization_id: number;
+  organization_slug: string;
+  organization_name: string;
+}
+
+/**
  * Customer portal info for redirect after login
  */
 export interface CustomerPortalInfo {
@@ -108,6 +117,7 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
+  organizationInfo: OrganizationInfo | null;
   customerPortalInfo: CustomerPortalInfo | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -158,6 +168,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       user: null,
       accessToken: null,
       refreshToken: null,
+      organizationInfo: null,
       customerPortalInfo: null,
       isAuthenticated: false,
       isLoading: false,
@@ -187,7 +198,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             hasAccessToken: !!(response.data as any)?.access_token,
           });
 
-          // API response is wrapped: { data: { access_token, user, customer_portal, ... } }
+          // API response is wrapped: { data: { access_token, user, customer_portal, organization, ... } }
           const responseData = (response.data as any).data || response.data;
 
           // Check if 2FA is required
@@ -203,7 +214,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             return;
           }
 
-          const { access_token, refresh_token, user: backendUser, customer_portal } = responseData;
+          const { access_token, refresh_token, user: backendUser, customer_portal, organization } = responseData;
 
           // Store tokens in localStorage for API client
           localStorage.setItem("auth-token", access_token);
@@ -245,6 +256,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               } as User)
             : null;
 
+          // Extract organization info for ISP users (admin, technician)
+          const organizationInfo = organization ? {
+            organization_id: organization.organization_id,
+            organization_slug: organization.organization_slug,
+            organization_name: organization.organization_name,
+          } : null;
+
           // Extract customer portal info for customers
           const customerPortalInfo = customer_portal ? {
             organization_slug: customer_portal.organization_slug,
@@ -256,6 +274,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             user: normalizedUser,
             accessToken: access_token,
             refreshToken: refresh_token,
+            organizationInfo,
             customerPortalInfo,
             isAuthenticated: true,
             isLoading: false,
@@ -267,6 +286,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             userRole: normalizedUser?.role,
             isAuthenticated: true,
             hasAccessToken: !!access_token,
+            hasOrganizationInfo: !!organizationInfo,
             hasCustomerPortalInfo: !!customerPortalInfo,
           });
         } catch (error) {
@@ -292,7 +312,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           });
 
           const responseData = (response.data as any).data || response.data;
-          const { access_token, refresh_token, user: backendUser, customer_portal } = responseData;
+          const { access_token, refresh_token, user: backendUser, customer_portal, organization } = responseData;
 
           // Store tokens in localStorage for API client
           localStorage.setItem("auth-token", access_token);
@@ -328,6 +348,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               } as User)
             : null;
 
+          // Extract organization info for ISP users (admin, technician)
+          const organizationInfo = organization ? {
+            organization_id: organization.organization_id,
+            organization_slug: organization.organization_slug,
+            organization_name: organization.organization_name,
+          } : null;
+
           // Extract customer portal info for customers
           const customerPortalInfo = customer_portal ? {
             organization_slug: customer_portal.organization_slug,
@@ -339,6 +366,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             user: normalizedUser,
             accessToken: access_token,
             refreshToken: refresh_token,
+            organizationInfo,
             customerPortalInfo,
             isAuthenticated: true,
             isLoading: false,

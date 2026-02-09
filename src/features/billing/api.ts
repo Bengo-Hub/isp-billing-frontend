@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 export type LicenceStatus = {
   organization_id: number;
   organization_name: string;
+  organization_type?: string;
   status: string;
   is_trial: boolean;
   is_subscription_active: boolean;

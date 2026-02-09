@@ -14,6 +14,7 @@ import {
 import { AcceptedPaymentsRow } from '@/components/portal/PaymentProviders';
 import { CreditCard, ExternalLink, Loader2 } from 'lucide-react';
 import { useInitiatePaystackPayment, Invoice } from '@/features/payments/api';
+import { useInitiatePlatformInvoicePayment } from '@/features/platform/billing-api';
 import { toast } from 'sonner';
 
 interface PaystackPaymentDialogProps {
@@ -22,6 +23,7 @@ interface PaystackPaymentDialogProps {
   invoice: Invoice | null;
   userEmail?: string;
   userPhone?: string;
+  isPlatformInvoice?: boolean; // Flag to indicate if this is a platform invoice
 }
 
 export function PaystackPaymentDialog({
@@ -30,10 +32,16 @@ export function PaystackPaymentDialog({
   invoice,
   userEmail,
   userPhone,
+  isPlatformInvoice = false,
 }: PaystackPaymentDialogProps) {
   const [email, setEmail] = useState(userEmail || '');
   const [phone, setPhone] = useState(userPhone || '');
-  const initiatePayment = useInitiatePaystackPayment();
+
+  // Use different hooks based on invoice type
+  const initiateCustomerPayment = useInitiatePaystackPayment();
+  const initiatePlatformPayment = useInitiatePlatformInvoicePayment();
+
+  const initiatePayment = isPlatformInvoice ? initiatePlatformPayment : initiateCustomerPayment;
 
   const handlePayment = async () => {
     if (!invoice) {
@@ -45,12 +53,26 @@ export function PaystackPaymentDialog({
     const callbackUrl = `${window.location.origin}/payment/callback`;
 
     try {
-      const result = await initiatePayment.mutateAsync({
-        invoice_id: invoice.id,
-        callback_url: callbackUrl,
-        email: 'codevertexitsolutions@gmail.com',
-        phone: phone || undefined,
-      });
+      let result;
+
+      if (isPlatformInvoice) {
+        // Platform invoice payment - use new endpoint
+        result = await initiatePlatformPayment.mutateAsync({
+          invoiceId: invoice.id,
+          data: {
+            callback_url: callbackUrl,
+            email: email || 'codevertexitsolutions@gmail.com',
+          },
+        });
+      } else {
+        // Customer invoice payment - use existing endpoint
+        result = await initiateCustomerPayment.mutateAsync({
+          invoice_id: invoice.id,
+          callback_url: callbackUrl,
+          email: email || 'codevertexitsolutions@gmail.com',
+          phone: phone || undefined,
+        });
+      }
 
       if (result.success && result.checkout_url) {
         // Redirect to Paystack checkout

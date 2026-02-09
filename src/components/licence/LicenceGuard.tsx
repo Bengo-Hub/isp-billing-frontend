@@ -2,6 +2,7 @@
 
 import { useLicenceStatus } from '@/features/billing/api';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useOrg } from '@/components/org/OrgProvider';
 import { AlertTriangle, Clock, ShieldAlert, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -21,12 +22,13 @@ export function LicenceGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const { orgSlug } = useOrg();
 
   // Superusers / platform owners bypass licence checks
   const isSuperuser = user?.role === 'superuser';
 
-  // Don't enforce on billing pages
-  const isBillingPage = pathname?.startsWith('/billing');
+  // Don't enforce on billing pages (both /{org}/dashboard/billing and /billing)
+  const isBillingPage = pathname?.includes('/billing');
 
   // Only fetch licence status for non-superuser ISP users
   const { data: licence, isLoading } = useLicenceStatus({
@@ -145,7 +147,7 @@ export function LicenceGuard({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Link
-              href="/billing/subscription"
+              href={`/${orgSlug}/dashboard/billing/subscription`}
               className={`rounded bg-white ${isExpiringSoon ? 'text-orange-600' : 'text-amber-600'} px-3 py-1 text-xs font-semibold hover:bg-amber-50 transition-colors`}
             >
               Upgrade Now

@@ -286,6 +286,63 @@ export function useDownloadReceipt() {
 }
 
 // =============================================================================
+// Subscription Renewal
+// =============================================================================
+
+export interface SubscriptionRenewalRequest {
+  billing_cycle: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+}
+
+export interface PlatformInvoice {
+  id: number;
+  organization_id: number;
+  invoice_number: string;
+  billing_cycle: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  tier_id?: number;
+  base_fee: number;
+  earnings_during_period: number;
+  earnings_fee: number;
+  customer_count: number;
+  customer_fee: number;
+  additional_fees: number;
+  discount: number;
+  tax: number;
+  total_amount: number;
+  status: string;
+  due_date: string;
+  paid_at?: string;
+  paystack_reference?: string;
+  notes?: string;
+  pdf_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Renew subscription by creating a platform invoice for the ISP admin's organization.
+ * This must be called before initiating Paystack payment.
+ */
+export function useRenewSubscription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: SubscriptionRenewalRequest): Promise<PlatformInvoice> => {
+      const response = await api.post('/billing/subscription/renew', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-invoices'] });
+      toast.success('Renewal invoice created successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to create renewal invoice');
+    },
+  });
+}
+
+// =============================================================================
 // Paystack Payment Integration
 // =============================================================================
 

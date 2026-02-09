@@ -11,24 +11,30 @@ import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, ShieldCheck, Loader2 } from 'lucide-react';
 
 /**
- * Get the appropriate redirect URL based on user role
- * For customers, uses portal URL from login response (based on subscription type)
+ * Get the appropriate redirect URL based on user role and organization
+ * - Platform users (superuser): /platform (no org_slug)
+ * - ISP users (admin, technician): /{org_slug}/dashboard (with org_slug)
+ * - Customers: /{org_slug}/portal/hotspot or /{org_slug}/portal/pppoe (from backend)
  */
-function getRedirectByRole(role: UserRole | undefined, customerPortalUrl?: string): string {
+function getRedirectByRole(
+  role: UserRole | undefined,
+  organizationSlug?: string,
+  customerPortalUrl?: string
+): string {
   switch (role) {
     case 'superuser':
-      // Platform owner goes to platform admin dashboard
+      // Platform owner goes to platform admin dashboard (no org_slug)
       return '/platform';
     case 'admin':
     case 'technician':
-      // ISP admin and technicians go to ISP dashboard
-      return '/dashboard';
+      // ISP admin and technicians go to org-specific dashboard
+      return organizationSlug ? `/${organizationSlug}/dashboard` : '/login';
     case 'customer':
-      // Customers go to their portal based on subscription type (hotspot/pppoe)
-      // Portal URL is provided by backend based on their active subscription
-      return customerPortalUrl || '/dashboard';
+      // Customers go to their portal based on subscription type
+      // Portal URL is provided by backend (e.g., /{org}/portal/hotspot)
+      return customerPortalUrl || '/login';
     default:
-      return '/dashboard';
+      return '/login';
   }
 }
 
@@ -67,16 +73,16 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
           return;
         }
 
-        authLogger.info('[LoginForm] Login successful, waiting for persist...');
+        authLogger.info('[LoginForm] Login successful, waiting for persist and cookie write...');
 
-        // Wait for Zustand persist to save to localStorage before navigating
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait for Zustand persist to save to localStorage and cookie to be written
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         // Verify localStorage has the data
         const authStorage = localStorage.getItem('auth-storage');
         const authToken = localStorage.getItem('auth-token');
 
-        authLogger.debug('[LoginForm] Pre-navigation localStorage check:', {
+        authLogger.debug('[LoginForm] Pre-navigation checks:', {
           hasAuthStorage: !!authStorage,
           hasAuthToken: !!authToken,
         });
@@ -87,15 +93,16 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
           return;
         }
 
-        // Get user role and customer portal info from the store to determine redirect
+        // Get user role, organization, and customer portal info to determine redirect
         const userRole = state.user?.role;
+        const organizationSlug = state.organizationInfo?.organization_slug || state.customerPortalInfo?.organization_slug;
         const customerPortalUrl = state.customerPortalInfo?.portal_url;
-        const redirectUrl = getRedirectByRole(userRole, customerPortalUrl);
+        const redirectUrl = getRedirectByRole(userRole, organizationSlug, customerPortalUrl);
 
-        authLogger.debug('[LoginForm] Role-based redirect:', { userRole, customerPortalUrl, redirectUrl });
+        authLogger.debug('[LoginForm] Role-based redirect:', { userRole, organizationSlug, customerPortalUrl, redirectUrl });
 
-        // Use window.location for immediate navigation after login
-        window.location.href = redirectUrl;
+        // Use router.push for client-side navigation (doesn't trigger middleware)
+        router.push(redirectUrl);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -116,17 +123,19 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
       await complete2FALogin(twoFactorChallenge.tempToken, totpCode);
 
       // Wait for Zustand persist
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Get user role and redirect
+      // Get user role, organization, and redirect
       const state = useAuthStore.getState();
       const userRole = state.user?.role;
+      const organizationSlug = state.organizationInfo?.organization_slug || state.customerPortalInfo?.organization_slug;
       const customerPortalUrl = state.customerPortalInfo?.portal_url;
-      const redirectUrl = getRedirectByRole(userRole, customerPortalUrl);
+      const redirectUrl = getRedirectByRole(userRole, organizationSlug, customerPortalUrl);
 
-      authLogger.info('[LoginForm] 2FA verified, redirecting:', { userRole, redirectUrl });
+      authLogger.info('[LoginForm] 2FA verified, redirecting:', { userRole, organizationSlug, redirectUrl });
 
-      window.location.href = redirectUrl;
+      // Use router.push for client-side navigation
+      router.push(redirectUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid verification code');
       setTotpCode('');
@@ -224,33 +233,44 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
   // Regular Login UI
   const cardContent = (
     <>
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-        <p className="text-gray-600">Sign in to your account</p>
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-semibold text-gray-700 mb-3">
+          Welcome back! Log in to your account
+        </h1>
+        <p className="text-sm">
+          or{' '}
+          <a href="/signup" className="text-pink-500 hover:text-pink-600 font-medium">
+            sign up for an account
+          </a>
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="username">Username or Email</Label>
+          <Label htmlFor="username" className="text-sm font-medium">
+            Username<span className="text-red-500">*</span>
+          </Label>
           <Input
             id="username"
             type="text"
-            placeholder="Enter your username or email"
+            placeholder=""
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
             disabled={isLoading}
             autoComplete="username"
-            className="h-11"
+            className="h-12 bg-blue-50 border-pink-200 focus:border-pink-300"
           />
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <a 
-              href="/forgot-password" 
-              className="text-sm text-primary hover:underline"
+            <Label htmlFor="password" className="text-sm font-medium">
+              Password<span className="text-red-500">*</span>
+            </Label>
+            <a
+              href="/forgot-password"
+              className="text-sm text-gray-600 hover:text-gray-800"
             >
               Forgot password?
             </a>
@@ -258,14 +278,25 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
           <Input
             id="password"
             type="password"
-            placeholder="Enter your password"
+            placeholder=""
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={isLoading}
             autoComplete="current-password"
-            className="h-11"
+            className="h-12 bg-blue-50 border-pink-200 focus:border-pink-300"
           />
+        </div>
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="remember"
+            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <label htmlFor="remember" className="ml-2 text-sm text-gray-700">
+            Remember me
+          </label>
         </div>
 
         {error && (
@@ -274,7 +305,7 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
 
         <Button
           type="submit"
-          className="w-full h-11"
+          className="w-full h-12 bg-pink-500 hover:bg-pink-600 text-white font-medium"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -286,13 +317,6 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
             'Sign in'
           )}
         </Button>
-
-        <div className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <a href="/signup" className="text-primary hover:underline font-medium">
-            Sign up
-          </a>
-        </div>
       </form>
     </>
   );

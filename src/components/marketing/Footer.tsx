@@ -72,7 +72,7 @@ export function Footer() {
               transition={{ duration: 0.3 }}
             >
               <Image
-                src="/images/logo.png"
+                src="/images/logo/logo.png"
                 alt="CodeVertex Billing"
                 width={120}
                 height={40}

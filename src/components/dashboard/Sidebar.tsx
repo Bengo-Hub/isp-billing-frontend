@@ -3,6 +3,7 @@
 import { useSettings } from '@/features/settings/api';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useRBACStore, type PermissionModule } from '@/lib/stores/rbac';
+import { useOrg } from '@/components/org/OrgProvider';
 import {
     BarChart3,
     Building2,
@@ -53,12 +54,12 @@ const navigation: NavigationItem[] = [
     section: 'Customers',
     roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'Active Connections', href: '/users', icon: Wifi, module: 'users' },
-      { name: 'Customers', href: '/users/all', icon: Users, module: 'users' },
-      { name: 'Expiry Dates', href: '/users/expiry', icon: Calendar, module: 'users' },
-      { name: 'IP Bindings', href: '/ip-bindings', icon: Wifi, module: 'users' },
-      { name: 'Tickets', href: '/tickets', icon: Ticket, module: 'users' },
-      { name: 'Leads', href: '/leads', icon: Users, module: 'users' },
+      { name: 'Active Connections', href: '/dashboard/users', icon: Wifi, module: 'users' },
+      { name: 'Customers', href: '/dashboard/users/all', icon: Users, module: 'users' },
+      { name: 'Expiry Dates', href: '/dashboard/users/expiry', icon: Calendar, module: 'users' },
+      { name: 'IP Bindings', href: '/dashboard/ip-bindings', icon: Wifi, module: 'users' },
+      { name: 'Tickets', href: '/dashboard/tickets', icon: Ticket, module: 'users' },
+      { name: 'Leads', href: '/dashboard/leads', icon: Users, module: 'users' },
     ]
   },
 
@@ -67,10 +68,10 @@ const navigation: NavigationItem[] = [
     section: 'Finance',
     roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'Packages', href: '/packages', icon: Package, module: 'packages' },
-      { name: 'Payments', href: '/payments', icon: CreditCard, module: 'payments' },
-      { name: 'Vouchers', href: '/vouchers', icon: CreditCard, module: 'packages' },
-      { name: 'Expenses', href: '/expenses', icon: CreditCard, module: 'payments', roles: ['superuser', 'admin'] },
+      { name: 'Packages', href: '/dashboard/packages', icon: Package, module: 'packages' },
+      { name: 'Payments', href: '/dashboard/payments', icon: CreditCard, module: 'payments' },
+      { name: 'Vouchers', href: '/dashboard/vouchers', icon: CreditCard, module: 'packages' },
+      { name: 'Expenses', href: '/dashboard/expenses', icon: CreditCard, module: 'payments', roles: ['superuser', 'admin'] },
     ]
   },
 
@@ -79,9 +80,9 @@ const navigation: NavigationItem[] = [
     section: 'Communication',
     roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'Messages', href: '/messages', icon: MessageSquare, module: 'sms' },
-      { name: 'Emails', href: '/emails', icon: Mail, module: 'sms' },
-      { name: 'Campaigns', href: '/campaigns', icon: MessageSquare, module: 'sms', roles: ['superuser', 'admin'] },
+      { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare, module: 'sms' },
+      { name: 'Emails', href: '/dashboard/emails', icon: Mail, module: 'sms' },
+      { name: 'Campaigns', href: '/dashboard/campaigns', icon: MessageSquare, module: 'sms', roles: ['superuser', 'admin'] },
     ]
   },
 
@@ -90,18 +91,18 @@ const navigation: NavigationItem[] = [
     section: 'Devices',
     roles: ['superuser', 'admin', 'technician'],
     items: [
-      { name: 'MikroTik', href: '/routers', icon: Wifi, module: 'routers' },
+      { name: 'MikroTik', href: '/dashboard/routers', icon: Wifi, module: 'routers' },
     ]
   },
 
   // Reports & Admin - ISP Admin
-  { name: 'Reports', href: '/reports', icon: BarChart3, module: 'reports', roles: ['superuser', 'admin'] },
+  { name: 'Reports', href: '/dashboard/reports', icon: BarChart3, module: 'reports', roles: ['superuser', 'admin'] },
   {
     section: 'Administration',
     roles: ['superuser', 'admin'],
     items: [
-      { name: 'System Users', href: '/users/system', icon: Shield, module: 'users', roles: ['superuser', 'admin'] },
-      { name: 'Settings', href: '/settings', icon: Settings, module: 'settings', roles: ['superuser', 'admin'] },
+      { name: 'System Users', href: '/dashboard/users/system', icon: Shield, module: 'users', roles: ['superuser', 'admin'] },
+      { name: 'Settings', href: '/dashboard/settings', icon: Settings, module: 'settings', roles: ['superuser', 'admin'] },
     ]
   },
 
@@ -119,11 +120,36 @@ const navigation: NavigationItem[] = [
 ];
 
 /**
+ * Add org_slug prefix to navigation items for ISP admins and technicians
+ * Platform routes (starting with /platform) are not prefixed
+ */
+function addOrgSlugToNavigation(items: NavigationItem[], orgSlug: string | null): NavigationItem[] {
+  if (!orgSlug) return items;
+
+  return items.map((item) => {
+    if ('section' in item) {
+      return {
+        ...item,
+        items: item.items.map((subItem) => ({
+          ...subItem,
+          href: subItem.href.startsWith('/platform') ? subItem.href : `/${orgSlug}${subItem.href}`,
+        })),
+      };
+    }
+
+    return {
+      ...item,
+      href: item.href.startsWith('/platform') ? item.href : `/${orgSlug}${item.href}`,
+    };
+  });
+}
+
+/**
  * Customer-specific navigation items.
  * Built dynamically because portal routes include the org slug.
  */
 function getCustomerNavigation(orgSlug: string, subscriptionType: string): NavigationItem[] {
-  const portalBase = `/portal/${subscriptionType}/${orgSlug}`;
+  const portalBase = `/${orgSlug}/portal/${subscriptionType}`;
   return [
     { name: 'My Dashboard', href: portalBase, icon: LayoutDashboard, module: 'customer_dashboard' as PermissionModule, roles: ['customer'] as const },
     {
@@ -133,7 +159,7 @@ function getCustomerNavigation(orgSlug: string, subscriptionType: string): Navig
         { name: 'Packages', href: `${portalBase}#packages`, icon: Package, module: 'customer_packages' as PermissionModule, roles: ['customer'] as const },
         { name: 'Payments', href: `${portalBase}#payments`, icon: CreditCard, module: 'customer_payments' as PermissionModule, roles: ['customer'] as const },
         { name: 'Usage', href: `${portalBase}#usage`, icon: Globe, module: 'customer_usage' as PermissionModule, roles: ['customer'] as const },
-        { name: 'Profile', href: '/settings', icon: User, module: 'customer_profile' as PermissionModule, roles: ['customer'] as const },
+        { name: 'Profile', href: `/${orgSlug}/settings`, icon: User, module: 'customer_profile' as PermissionModule, roles: ['customer'] as const },
       ]
     },
   ];
@@ -143,18 +169,42 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { userRole, canAccessModule } = useRBACStore();
-  const { user, logout, customerPortalInfo } = useAuthStore();
+  const { user, logout, customerPortalInfo, organizationInfo } = useAuthStore();
+
+  // Get org slug from context (for ISP admins/technicians) or auth store
+  let orgSlug: string | null = null;
+  try {
+    const orgContext = useOrg();
+    orgSlug = orgContext.orgSlug;
+  } catch {
+    // Not in org context (e.g., platform admin pages)
+    // Try to get from auth store instead
+    if (userRole === 'customer' && customerPortalInfo) {
+      orgSlug = customerPortalInfo.organization_slug;
+    } else if ((userRole === 'admin' || userRole === 'technician') && organizationInfo) {
+      orgSlug = organizationInfo.organization_slug;
+    }
+  }
 
   // Build full navigation: admin nav + customer nav (if applicable)
   const fullNavigation = useMemo(() => {
-    if (userRole === 'customer' && customerPortalInfo) {
+    let baseNav = navigation;
+
+    // Add org_slug prefix to ISP admin/technician routes
+    if (orgSlug && (userRole === 'admin' || userRole === 'technician')) {
+      baseNav = addOrgSlugToNavigation(navigation, orgSlug);
+    }
+
+    // Add customer-specific navigation
+    if (userRole === 'customer' && customerPortalInfo && orgSlug) {
       return [
-        ...navigation,
-        ...getCustomerNavigation(customerPortalInfo.organization_slug, customerPortalInfo.subscription_type),
+        ...baseNav,
+        ...getCustomerNavigation(orgSlug, customerPortalInfo.subscription_type),
       ];
     }
-    return navigation;
-  }, [userRole, customerPortalInfo]);
+
+    return baseNav;
+  }, [userRole, customerPortalInfo, organizationInfo, orgSlug]);
 
   // Filter navigation based on user role and permissions
   const filteredNavigation = useMemo(() => {
@@ -340,6 +390,17 @@ function LogoArea() {
   const { data = {} as any } = useSettings('system');
   const [imageError, setImageError] = useState(false);
   const customLogoUrl = ((data['system.logo_url'] as string) || '').replace(/^"|"$/g, '');
+  const userRole = useAuthStore((state) => state.user?.role);
+
+  // Try to get org slug for building dashboard link
+  let orgSlug: string | null = null;
+  try {
+    const orgContext = useOrg();
+    orgSlug = orgContext.orgSlug;
+  } catch {
+    // useOrg throws if not in OrgProvider context (e.g., platform routes)
+    // This is expected for platform admin
+  }
 
   // Validate URL - must be absolute URL or relative path starting with /
   const isValidUrl = (url: string): boolean => {
@@ -363,8 +424,15 @@ function LogoArea() {
   // If the image fails to load, show the text fallback only
   const showTextFallback = imageError;
 
+  // Build the dashboard link based on user role and org context
+  const dashboardHref = userRole === 'superuser'
+    ? '/platform'
+    : orgSlug
+    ? `/${orgSlug}/dashboard`
+    : '/dashboard';
+
   return (
-    <Link href="/dashboard" className="flex items-center gap-3">
+    <Link href={dashboardHref} className="flex items-center gap-3">
       {!showTextFallback ? (
         <div className="relative w-full h-14">
           <Image
