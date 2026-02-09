@@ -128,6 +128,18 @@ if [[ -z ${CI:-}${GITHUB_ACTIONS:-} && -f KubeSecrets/devENV.yml ]]; then
   kubectl apply -n "$NAMESPACE" -f KubeSecrets/devENV.yml || warn "Failed to apply devENV.yml"
 fi
 
+# Ensure frontend env secret exists (Helm chart expects envFromSecret)
+if ! kubectl -n "$NAMESPACE" get secret "$ENV_SECRET_NAME" >/dev/null 2>&1; then
+  info "Creating environment secret ${ENV_SECRET_NAME}..."
+  kubectl -n "$NAMESPACE" create secret generic "$ENV_SECRET_NAME" \
+    --from-literal=NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://ispbillingapi.codevertexitsolutions.com}" \
+    --from-literal=NEXT_PUBLIC_WS_BASE_URL="${NEXT_PUBLIC_WS_BASE_URL:-wss://ispbillingapi.codevertexitsolutions.com}" \
+    --from-literal=NEXT_PUBLIC_APP_NAME="${NEXT_PUBLIC_APP_NAME:-Codevertex ISP Billing}" \
+    --from-literal=NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://ispbilling.codevertexitsolutions.com}" \
+    --from-literal=NODE_ENV="production" \
+    --dry-run=client -o yaml | kubectl apply -f - || warn "Environment secret creation failed"
+fi
+
 # Create registry credentials
 if [[ -n ${REGISTRY_USERNAME:-} && -n ${REGISTRY_PASSWORD:-} ]]; then
   kubectl -n "$NAMESPACE" create secret docker-registry registry-credentials \
