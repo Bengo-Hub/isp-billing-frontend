@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { PublicBrandedLayout } from '@/components/layouts/PublicBrandedLayout';
-import { CheckCircle2, XCircle, Loader2, ArrowLeft, Receipt, Home, Wifi, Globe, Phone, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { api } from '@/lib/api/api-client';
+import { ArrowLeft, CheckCircle2, CreditCard, Globe, Home, Loader2, Mail, MessageSquare, Phone, Receipt, Wifi, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 const SUPPORT_EMAIL = 'support@codevertexitsolutions.com';
 const SUPPORT_PHONE = '+254743793901';
@@ -41,7 +41,7 @@ interface PortalConfig {
   primary_color?: string;
 }
 
-type PaymentType = 'hotspot_purchase' | 'pppoe_renewal' | 'billing' | null;
+type PaymentType = 'hotspot_purchase' | 'pppoe_renewal' | 'billing' | 'platform_subscription' | 'sms_topup' | 'whatsapp_subscription' | null;
 
 export default function PaymentCallbackPage() {
   const searchParams = useSearchParams();
@@ -57,6 +57,9 @@ export default function PaymentCallbackPage() {
   const reference = searchParams.get('reference') || searchParams.get('trxref');
   const paymentType: PaymentType = (searchParams.get('payment_type') as PaymentType) || null;
   const orgSlug = searchParams.get('org');
+
+  // Build org-aware dashboard paths (routes are /{org}/dashboard/...)
+  const dashboardPath = (path: string = '') => orgSlug ? `/${orgSlug}/dashboard${path}` : `/dashboard${path}`;
 
   // Fetch portal config for hotspot purchases to get redirect URL
   const fetchPortalConfig = useCallback(async (slug: string) => {
@@ -116,12 +119,98 @@ export default function PaymentCallbackPage() {
         return;
       }
 
-      // For PPPoE and billing payments, use the Paystack verify endpoint
-      try {
-        if (paymentType === 'pppoe_renewal' && orgSlug) {
-          await fetchPortalConfig(orgSlug);
-        }
+      // For platform subscription payments, use the platform verify endpoint
+      if (paymentType === 'platform_subscription') {
+        try {
+          const response = await api.get<{ success: boolean; status: string; message: string; invoice_id?: number; payment_id?: number }>(
+            `/platform/billing/payments/verify/${reference}`
+          );
 
+          if (response.data.success) {
+            setStatus('success');
+            setPaymentData({ reference, amount: 0, currency: 'KES' });
+          } else {
+            setStatus(response.data.status === 'pending' ? 'pending' : 'failed');
+            setErrorMessage(response.data.message);
+          }
+        } catch {
+          setStatus('pending');
+          setErrorMessage('Unable to verify payment. Please check your billing dashboard for confirmation.');
+        }
+        return;
+      }
+
+      // For SMS top-up payments, verify via the SMS credit endpoint
+      if (paymentType === 'sms_topup') {
+        try {
+          const response = await api.post<{ success: boolean; message: string; sms_credits?: number; new_balance?: number }>(
+            '/sms-credit/verify-paystack-payment',
+            { reference }
+          );
+
+          if (response.data.success) {
+            setStatus('success');
+            setPaymentData({ reference, amount: 0, currency: 'KES' });
+          } else {
+            setStatus('failed');
+            setErrorMessage(response.data.message);
+          }
+        } catch {
+          // Auth may have expired or another issue - show pending since webhook will process it
+          setStatus('pending');
+          setErrorMessage('Your payment is being processed. SMS credits will be added to your account shortly.');
+        }
+        return;
+      }
+
+      // For PPPoE renewals, use the PPPoE-specific verify endpoint (calls Paystack API directly)
+      if (paymentType === 'pppoe_renewal' && orgSlug) {
+        await fetchPortalConfig(orgSlug);
+
+        try {
+          const response = await api.get<PaymentVerificationResult>(
+            `/portal/pppoe/${orgSlug}/payment/verify`,
+            { params: { reference } }
+          );
+
+          if (response.data.success) {
+            setStatus('success');
+            setPaymentData(response.data.data);
+          } else {
+            setStatus(response.data.status === 'pending' ? 'pending' : 'failed');
+            setErrorMessage(response.data.message);
+          }
+        } catch {
+          setStatus('pending');
+          setErrorMessage('Your payment is being processed. Your subscription will be renewed shortly.');
+        }
+        return;
+      }
+
+      // For WhatsApp subscription, use the billing verify endpoint
+      // (billing service handles WhatsApp activation automatically after payment)
+      if (paymentType === 'whatsapp_subscription') {
+        try {
+          const response = await api.get<PaymentVerificationResult>(
+            `/payments/paystack/verify/${reference}`
+          );
+
+          if (response.data.success) {
+            setStatus('success');
+            setPaymentData(response.data.data);
+          } else {
+            setStatus(response.data.status === 'pending' ? 'pending' : 'failed');
+            setErrorMessage(response.data.message);
+          }
+        } catch {
+          setStatus('pending');
+          setErrorMessage('Your payment is being processed. WhatsApp subscription will be activated shortly.');
+        }
+        return;
+      }
+
+      // For billing and other payments, use the Paystack verify endpoint
+      try {
         const response = await api.get<PaymentVerificationResult>(
           `/payments/paystack/verify/${reference}`
         );
@@ -183,8 +272,122 @@ export default function PaymentCallbackPage() {
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
 
-              {/* Hotspot Purchase Success */}
-              {paymentType === 'hotspot_purchase' ? (
+              {/* Success content based on payment type */}
+              {paymentType === 'platform_subscription' ? (
+                /* Platform Subscription Payment Success */
+                <>
+                  <h1 className="text-xl font-semibold text-gray-900 mb-2">Subscription Payment Successful!</h1>
+                  <p className="text-gray-500 mb-6">
+                    Your platform subscription invoice has been paid successfully. Thank you!
+                  </p>
+
+                  {reference && (
+                    <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                      <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <Receipt className="w-4 h-4" />
+                        Transaction Details
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Reference</span>
+                          <span className="font-mono text-gray-900">{reference}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    <Link href={dashboardPath('/billing/subscription/')}>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Back to Billing
+                      </Button>
+                    </Link>
+                    <Link href={dashboardPath()}>
+                      <Button variant="outline" className="w-full">
+                        <Home className="w-4 h-4 mr-2" />
+                        Go to Dashboard
+                      </Button>
+                    </Link>
+                  </div>
+                </>
+              ) : paymentType === 'sms_topup' ? (
+                /* SMS Top-up Payment Success */
+                <>
+                  <h1 className="text-xl font-semibold text-gray-900 mb-2">SMS Top-up Successful!</h1>
+                  <p className="text-gray-500 mb-6">
+                    Your SMS credits have been added to your account successfully.
+                  </p>
+
+                  {reference && (
+                    <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                      <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <Receipt className="w-4 h-4" />
+                        Transaction Details
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Reference</span>
+                          <span className="font-mono text-gray-900">{reference}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    <Link href={dashboardPath('/messages')}>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Back to SMS Dashboard
+                      </Button>
+                    </Link>
+                    <Link href={dashboardPath()}>
+                      <Button variant="outline" className="w-full">
+                        <Home className="w-4 h-4 mr-2" />
+                        Go to Dashboard
+                      </Button>
+                    </Link>
+                  </div>
+                </>
+              ) : paymentType === 'whatsapp_subscription' ? (
+                /* WhatsApp Subscription Payment Success */
+                <>
+                  <h1 className="text-xl font-semibold text-gray-900 mb-2">WhatsApp Subscription Activated!</h1>
+                  <p className="text-gray-500 mb-6">
+                    Your WhatsApp messaging subscription has been activated successfully.
+                  </p>
+
+                  {reference && (
+                    <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                      <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <Receipt className="w-4 h-4" />
+                        Transaction Details
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Reference</span>
+                          <span className="font-mono text-gray-900">{reference}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    <Link href={dashboardPath('/settings')}>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Back to Settings
+                      </Button>
+                    </Link>
+                    <Link href={dashboardPath()}>
+                      <Button variant="outline" className="w-full">
+                        <Home className="w-4 h-4 mr-2" />
+                        Go to Dashboard
+                      </Button>
+                    </Link>
+                  </div>
+                </>
+              ) : paymentType === 'hotspot_purchase' ? (
                 <>
                   <h1 className="text-xl font-semibold text-gray-900 mb-2">Package Purchased!</h1>
                   <p className="text-gray-500 mb-6">
@@ -295,7 +498,7 @@ export default function PaymentCallbackPage() {
                         </Button>
                       </Link>
                     ) : (
-                      <Link href="/dashboard">
+                      <Link href={dashboardPath()}>
                         <Button className="w-full bg-green-600 hover:bg-green-700">
                           <Home className="w-4 h-4 mr-2" />
                           Go to Dashboard
@@ -349,13 +552,13 @@ export default function PaymentCallbackPage() {
                   )}
 
                   <div className="flex flex-col gap-3">
-                    <Link href="/dashboard">
+                    <Link href={dashboardPath()}>
                       <Button className="w-full bg-green-600 hover:bg-green-700">
                         <Home className="w-4 h-4 mr-2" />
                         Go to Dashboard
                       </Button>
                     </Link>
-                    <Link href="/dashboard/billing">
+                    <Link href={dashboardPath('/billing')}>
                       <Button variant="outline" className="w-full">
                         <Receipt className="w-4 h-4 mr-2" />
                         View Billing History
@@ -409,8 +612,29 @@ export default function PaymentCallbackPage() {
                       Back to Portal
                     </Button>
                   </Link>
+                ) : paymentType === 'platform_subscription' ? (
+                  <Link href={dashboardPath('/billing')}>
+                    <Button variant="outline" className="w-full">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Back to Billing
+                    </Button>
+                  </Link>
+                ) : paymentType === 'sms_topup' ? (
+                  <Link href={dashboardPath('/messages')}>
+                    <Button variant="outline" className="w-full">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Back to SMS Dashboard
+                    </Button>
+                  </Link>
+                ) : paymentType === 'whatsapp_subscription' ? (
+                  <Link href={dashboardPath('/settings')}>
+                    <Button variant="outline" className="w-full">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Back to Settings
+                    </Button>
+                  </Link>
                 ) : (
-                  <Link href="/dashboard">
+                  <Link href={dashboardPath()}>
                     <Button variant="outline" className="w-full">
                       <Home className="w-4 h-4 mr-2" />
                       Go to Dashboard
@@ -456,8 +680,29 @@ export default function PaymentCallbackPage() {
                       Back to Portal
                     </Button>
                   </Link>
+                ) : paymentType === 'platform_subscription' ? (
+                  <Link href={dashboardPath('/billing')}>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Back to Billing
+                    </Button>
+                  </Link>
+                ) : paymentType === 'sms_topup' ? (
+                  <Link href={dashboardPath('/messages')}>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Back to SMS Dashboard
+                    </Button>
+                  </Link>
+                ) : paymentType === 'whatsapp_subscription' ? (
+                  <Link href={dashboardPath('/settings')}>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Back to Settings
+                    </Button>
+                  </Link>
                 ) : (
-                  <Link href="/dashboard">
+                  <Link href={dashboardPath()}>
                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
                       <Home className="w-4 h-4 mr-2" />
                       Go to Dashboard

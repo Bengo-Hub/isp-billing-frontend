@@ -371,10 +371,9 @@ export function usePaystackSmsTopUp(accountId: number, orgSlug?: string) {
 
   return useMutation({
     mutationFn: async (data: PaystackSMSTopUpRequest): Promise<PaystackSMSTopUpResponse> => {
-      // Construct callback URL pointing to our success page
-      const callbackUrl = typeof window !== 'undefined' && orgSlug
-        ? `${window.location.origin}/${orgSlug}/dashboard/messages/sms-topup-success`
-        : (data.callback_url || `${window.location.origin}/messages/sms-topup-success`);
+      // Construct callback URL pointing to unified payment callback page
+      const baseCallback = `${window.location.origin}/payment/callback?payment_type=sms_topup`;
+      const callbackUrl = orgSlug ? `${baseCallback}&org=${orgSlug}` : baseCallback;
 
       const response = await api.post(`/sms-credit/accounts/${accountId}/paystack-top-up`, {
         ...data,
@@ -404,10 +403,9 @@ export function useTenantSmsTopUp(orgSlug?: string) {
 
   return useMutation({
     mutationFn: async (data: PaystackSMSTopUpRequest): Promise<PaystackSMSTopUpResponse> => {
-      // Construct callback URL pointing to our success page
-      const callbackUrl = typeof window !== 'undefined' && orgSlug
-        ? `${window.location.origin}/${orgSlug}/dashboard/messages/sms-topup-success`
-        : (data.callback_url || `${window.location.origin}/messages/sms-topup-success`);
+      // Construct callback URL pointing to unified payment callback page
+      const baseCallback = `${window.location.origin}/payment/callback?payment_type=sms_topup`;
+      const callbackUrl = orgSlug ? `${baseCallback}&org=${orgSlug}` : baseCallback;
 
       const response = await api.post('/tenant/messages/sms-topup', {
         ...data,

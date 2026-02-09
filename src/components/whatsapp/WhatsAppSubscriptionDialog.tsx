@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,6 +95,8 @@ export function WhatsAppSubscriptionDialog({
   onSuccess,
 }: WhatsAppSubscriptionDialogProps) {
   const user = useAuthStore((state) => state.user);
+  const params = useParams();
+  const orgSlug = params?.org as string | undefined;
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [selectedPlan] = useState(WHATSAPP_PLANS[0]); // APIWAP is preselected
@@ -150,7 +153,8 @@ export function WhatsAppSubscriptionDialog({
           return;
         }
 
-        const callbackUrl = `${window.location.origin}/payment/callback`;
+        const orgParam = orgSlug ? `&org=${orgSlug}` : '';
+        const callbackUrl = `${window.location.origin}/payment/callback?payment_type=whatsapp_subscription${orgParam}`;
 
         const paymentResult = await initiatePayment.mutateAsync({
           invoice_id: invoiceResult.invoice_id,

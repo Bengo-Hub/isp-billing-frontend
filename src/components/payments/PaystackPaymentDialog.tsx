@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,6 +37,8 @@ export function PaystackPaymentDialog({
 }: PaystackPaymentDialogProps) {
   const [email, setEmail] = useState(userEmail || '');
   const [phone, setPhone] = useState(userPhone || '');
+  const params = useParams();
+  const orgSlug = params?.org as string | undefined;
 
   // Use different hooks based on invoice type
   const initiateCustomerPayment = useInitiatePaystackPayment();
@@ -49,8 +52,10 @@ export function PaystackPaymentDialog({
       return;
     }
 
-    // Get the current origin for callback URL
-    const callbackUrl = `${window.location.origin}/payment/callback`;
+    // Get the current origin for callback URL with payment_type and org context
+    const paymentTypeParam = isPlatformInvoice ? 'platform_subscription' : 'billing';
+    const orgParam = orgSlug ? `&org=${orgSlug}` : '';
+    const callbackUrl = `${window.location.origin}/payment/callback?payment_type=${paymentTypeParam}${orgParam}`;
 
     try {
       let result;
