@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL:
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
+    NEXT_PUBLIC_WS_BASE_URL:
+      process.env.NEXT_PUBLIC_WS_BASE_URL || "ws://localhost:8000",
+    NEXT_PUBLIC_APP_NAME:
+      process.env.NEXT_PUBLIC_APP_NAME || "Codevertex ISP Billing",
+    NEXT_PUBLIC_APP_URL:
+      process.env.NEXT_PUBLIC_APP_URL || "https://ispbilling.codevertexitsolutions.com",
+    NEXT_PUBLIC_NOTIFICATIONS_URL:
+      process.env.NEXT_PUBLIC_NOTIFICATIONS_URL || "https://notificationsapi.codevertexitsolutions.com",
   },
 
   // Security headers for production
