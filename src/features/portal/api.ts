@@ -168,10 +168,13 @@ export function usePaymentStatus(orgSlug: string, reference?: string) {
   return useQuery({
     queryKey: ['payment-status', orgSlug, reference],
     queryFn: async (): Promise<PaymentStatus> => {
-      const { data } = await api.get(`/portal/hotspot/${orgSlug}/payment/status`, {
+      // Normalize responses from portal endpoints which sometimes return
+      // either `{ success, data }` or a plain payload object.
+      const resp = await api.get(`/portal/hotspot/${orgSlug}/payment/status`, {
         params: { reference },
       });
-      return data;
+      const payload: PaymentStatus = (resp && (resp as any).data) ? (resp as any).data : (resp as any);
+      return payload;
     },
     enabled: !!orgSlug && !!reference,
     refetchInterval: (query) => {

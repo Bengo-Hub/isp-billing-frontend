@@ -77,11 +77,15 @@ export default function PaymentCallbackPage() {
     const maxAttempts = 30; // 30 * 3s = 90s max
     for (let i = 0; i < maxAttempts; i++) {
       try {
-        const { data } = await api.get<HotspotPaymentStatus>(
+        // Accept either the ApiResponse<T> shape or a raw payload (some portal endpoints
+        // return plain objects). Normalize both shapes to `payload` below.
+        const resp = await api.get<HotspotPaymentStatus>(
           `/portal/hotspot/${slug}/payment/status`,
           { params: { reference: ref } }
         );
-        if (data.is_completed) return data;
+        const payload: HotspotPaymentStatus = (resp && (resp as any).data) ? (resp as any).data : (resp as any);
+
+        if (payload && payload.is_completed) return payload;
       } catch {
         // Continue polling
       }
