@@ -164,21 +164,24 @@ export default function ProvisionPage() {
     // For reprovisioning, it's shown for reference but not required to be run
     setGeneratingCommand(true);
     try {
+      // Generate a temporary session ID for ping monitoring FIRST so we can
+      // pass it to the bootstrap command. This ensures the router-initiated
+      // notify callback includes the session_id, allowing the backend to
+      // broadcast stage_complete/device_online to the correct WebSocket.
+      const tempSessionId = `ping-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
       const response = await apiClient.get(
-        `/provisioning/bootstrap/command?identity=${encodeURIComponent(identity)}&api_port=${apiPort}&interface=${encodeURIComponent(interfaceName)}`
+        `/provisioning/bootstrap/command?identity=${encodeURIComponent(identity)}&api_port=${apiPort}&interface=${encodeURIComponent(interfaceName)}&session_id=${encodeURIComponent(tempSessionId)}`
       );
 
       const commandData = response.data;
-      
-      // Store the backend-generated command (includes token and correct URL)
+
+      // Store the backend-generated command (includes token, correct URL, and session_id callback)
       setProvisioningCommand(commandData.command);
       setBootstrapUrl(commandData.script_url);
-      
-      // Generate a temporary session ID for ping monitoring
-      // This will be replaced with the actual provisioning session ID in step 3
-      const tempSessionId = `ping-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
       setSessionId(tempSessionId);
-      
+
       setStep(2);
       
       if (isFirstTimeProvisioning) {
