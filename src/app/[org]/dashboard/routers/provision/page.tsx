@@ -39,6 +39,7 @@ export default function ProvisionPage() {
   const [provisioningLogs, setProvisioningLogs] = useState<LogEntry[]>([]);
   const [scriptBasedProvisioning, setScriptBasedProvisioning] = useState(false);
   const [provisioningScriptCommand, setProvisioningScriptCommand] = useState('');
+  const [autoSkipBootstrap, setAutoSkipBootstrap] = useState(false);
 
   // Use centralized provisioning store
   const {
@@ -98,10 +99,19 @@ export default function ProvisionPage() {
       const response = await apiClient.get(`/provisioning/bootstrap/can-use-direct-api/${routerId}`);
       const data = response.data;
       setCanUseDirectApi(data.can_use_direct_api || false);
-      
-      // Stay at step 1, just store the capability info
-      if (data.can_use_direct_api) {
-        toast.info('Router has saved credentials - will auto-reconnect in step 2');
+
+      // If router is already bootstrapped (agent installed or bootstrap ran before),
+      // flag for auto-advance once router data is loaded
+      if (data.bootstrap_completed || data.agent_installed) {
+        setAutoSkipBootstrap(true);
+        if (data.agent_online) {
+          setDeviceConnected(true);
+        }
+        toast.success(
+          data.agent_online
+            ? 'Router detected online via polling agent - skipping bootstrap'
+            : 'Router previously bootstrapped - skipping to device detection'
+        );
       } else {
         toast.info('Reprovisioning mode - bootstrap command required');
       }
@@ -153,6 +163,19 @@ export default function ProvisionPage() {
       // Note: Credentials are managed by backend - not loaded to frontend
     }
   }, [existingRouter, reprovisionRouterId]);
+
+  // Auto-advance past step 1 for previously bootstrapped routers
+  // Triggered after router data loads and identity/apiPort are set
+  useEffect(() => {
+    if (autoSkipBootstrap && existingRouter && reprovisionRouterId && step === 1) {
+      // Small delay to ensure state is settled after identity/port updates
+      const timer = setTimeout(() => {
+        handleStep1Next();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSkipBootstrap, existingRouter, reprovisionRouterId]);
 
   // Network calculation using store configuration
   const calculatedNetworkConfig = {
