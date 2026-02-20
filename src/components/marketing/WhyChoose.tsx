@@ -44,10 +44,10 @@ export function WhyChoose() {
   ];
 
   const stats = [
-    { value: 'KSh 2.4M+', label: 'Revenue Generated', icon: TrendingUp },
-    { value: '1,247', label: 'Active Users', icon: Users },
-    { value: '99.9%', label: 'Uptime Guarantee', icon: Shield },
-    { value: '24/7', label: 'Support Available', icon: CheckCircle }
+    { value: 'Multi-Tenant', label: 'Architecture', icon: TrendingUp },
+    { value: 'RBAC', label: 'Access Control', icon: Shield },
+    { value: 'M-Pesa', label: 'Payment Integration', icon: CheckCircle },
+    { value: '24/7', label: 'Support Available', icon: Users }
   ];
 
   return (
@@ -132,8 +132,8 @@ export function WhyChoose() {
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            Join thousands of ISPs who trust CodeVertex for their billing and management needs. 
-            Experience the difference with our comprehensive solution.
+            Built for Kenyan ISPs, CodeVertex automates billing, MikroTik provisioning, and
+            customer management so you can focus on growing your business.
           </motion.p>
         </motion.div>
         
@@ -275,11 +275,11 @@ export function WhyChoose() {
                 ))}
               </div>
               <blockquote className="text-sm md:text-base text-muted-foreground italic mb-3">
-                "CodeVertex transformed our ISP operations. The automated billing and real-time analytics 
-                helped us increase revenue by 40% in just 6 months."
+                "Automate M-Pesa billing, provision MikroTik routers remotely, and give your customers
+                a self-service portal — all from one platform built for East African ISPs."
               </blockquote>
               <div className="text-sm font-medium text-foreground">
-                - Sarah Johnson, CEO TechNet ISP
+                - The CodeVertex Team
               </div>
             </motion.div>
           </motion.div>

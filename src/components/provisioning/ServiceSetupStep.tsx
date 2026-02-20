@@ -17,8 +17,11 @@ import {
   Cpu,
   HardDrive,
   Clock,
-  Zap
+  Zap,
+  Copy,
+  Terminal
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { RealtimeLogViewer, LogEntry } from './RealtimeLogViewer';
 
 interface ServiceSetupStepProps {
@@ -51,6 +54,8 @@ interface ServiceSetupStepProps {
   currentOperation?: string;
   onProvisioningComplete?: (logs: LogEntry[]) => void;
   onProgressUpdate?: (percentage: number, operation: string) => void;
+  scriptBasedProvisioning?: boolean;
+  provisioningScriptCommand?: string;
 }
 
 export function ServiceSetupStep({
@@ -78,7 +83,9 @@ export function ServiceSetupStep({
   progressPercentage = 0,
   currentOperation = '',
   onProvisioningComplete,
-  onProgressUpdate
+  onProgressUpdate,
+  scriptBasedProvisioning = false,
+  provisioningScriptCommand = ''
 }: ServiceSetupStepProps) {
 
   const toggleEthernetPort = (port: string) => {
@@ -503,8 +510,80 @@ export function ServiceSetupStep({
         </Button>
       </div>
 
-      {/* Progress Bar and Live Logs */}
-      {isStarting && (
+      {/* Script-Based Provisioning (when backend cannot reach router directly) */}
+      {scriptBasedProvisioning && provisioningScriptCommand && (
+        <div className="space-y-3 mt-4">
+          <Card className="p-4 bg-amber-50 border-amber-200">
+            <div className="flex items-start gap-3">
+              <Terminal className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-amber-900 text-sm">Script-Based Provisioning</h3>
+                <p className="text-xs text-amber-700 mt-1">
+                  The backend cannot connect to your router directly. Paste the command below in your MikroTik terminal to complete provisioning.
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 bg-gray-900 text-white">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">$</span>
+                <span className="font-semibold text-sm">PROVISIONING COMMAND</span>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(provisioningScriptCommand);
+                    toast.success('Command copied to clipboard');
+                  } catch {
+                    toast.error('Failed to copy command');
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm transition-colors"
+              >
+                Click to copy
+                <Copy className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="bg-black p-4 rounded font-mono text-xs sm:text-sm overflow-x-auto">
+              <pre className="text-green-400 whitespace-pre-wrap break-all">
+                {provisioningScriptCommand}
+              </pre>
+            </div>
+
+            <div className="mt-3 p-3 bg-blue-900/50 border border-blue-700 rounded">
+              <div className="flex items-start gap-2">
+                <svg className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div className="text-xs text-blue-200">
+                  <p>Open your MikroTik terminal (via Winbox, SSH, or WebFig) and paste this command. The router will download and execute the provisioning script automatically.</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Live logs for script-based provisioning completion */}
+          {sessionId && (
+            <RealtimeLogViewer
+              sessionId={sessionId}
+              title="Waiting for Provisioning"
+              subtitle="The router will report back when provisioning is complete"
+              autoConnect={true}
+              showConnectionStatus={true}
+              height="h-48"
+              onProvisioningComplete={onProvisioningComplete}
+              onProgressUpdate={onProgressUpdate}
+              initialMessage="Waiting for router to execute provisioning script..."
+            />
+          )}
+        </div>
+      )}
+
+      {/* Progress Bar and Live Logs (direct provisioning) */}
+      {isStarting && !scriptBasedProvisioning && (
         <div className="space-y-3 mt-4">
           <Card className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <div className="flex items-center justify-between mb-1.5">

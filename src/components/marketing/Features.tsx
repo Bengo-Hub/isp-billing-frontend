@@ -14,31 +14,31 @@ export function Features() {
     {
       icon: Shield,
       title: 'Secure & Reliable',
-      description: 'Enterprise-grade security with 99.9% uptime guarantee',
+      description: 'Multi-tenant security with role-based access control and 2FA',
       color: 'from-brand-700 to-brand-900'
     },
     {
       icon: Zap,
       title: 'Lightning Fast',
-      description: 'Optimized performance for thousands of concurrent users',
+      description: 'Optimized for ISP operations with real-time monitoring',
       color: 'from-gray-400 to-brand-700'
     },
     {
       icon: Users,
-      title: 'Scalable',
-      description: 'Grows with your business from startup to enterprise',
+      title: 'Multi-Tenant',
+      description: 'Isolated organizations with their own users, routers, and billing',
       color: 'from-brand-700 to-gray-400'
     },
     {
       icon: BarChart3,
       title: 'Analytics',
-      description: 'Comprehensive insights and reporting for data-driven decisions',
+      description: 'Revenue tracking, subscription metrics, and usage reports',
       color: 'from-brand-900 to-brand-700'
     },
     {
       icon: Settings,
       title: 'Customizable',
-      description: 'Flexible configuration to match your business needs',
+      description: 'Flexible packages, pricing tiers, and service configuration',
       color: 'from-gray-400 to-brand-900'
     }
   ];
@@ -122,11 +122,11 @@ export function Features() {
         >
           <div className="flex flex-wrap justify-center gap-4 md:gap-8">
             {[
-              'Easy Captcha Profiles',
-              'Remote Mikrotik Management',
-              'Automated Payments',
-              'Real-Time Reports',
-              'Many More'
+              'Automated MikroTik Provisioning',
+              'M-Pesa & Paystack Payments',
+              'PPPoE & Hotspot Management',
+              'Real-Time Dashboard',
+              'Customer Self-Service Portal'
             ].map((feature, index) => (
               <motion.div 
                 key={index}

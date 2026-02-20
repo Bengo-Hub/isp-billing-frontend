@@ -37,6 +37,8 @@ export default function ProvisionPage() {
   const [currentOperation, setCurrentOperation] = useState('');
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [provisioningLogs, setProvisioningLogs] = useState<LogEntry[]>([]);
+  const [scriptBasedProvisioning, setScriptBasedProvisioning] = useState(false);
+  const [provisioningScriptCommand, setProvisioningScriptCommand] = useState('');
 
   // Use centralized provisioning store
   const {
@@ -348,8 +350,55 @@ export default function ProvisionPage() {
     } catch (error: any) {
       console.error('Failed to start provisioning:', error);
       setIsProvisioning(false);
+
       const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to start provisioning';
-      toast.error(errorMessage);
+      const isConnectionError = errorMessage.toLowerCase().includes('connection') ||
+                                 errorMessage.toLowerCase().includes('timeout') ||
+                                 errorMessage.toLowerCase().includes('unreachable') ||
+                                 errorMessage.toLowerCase().includes('circuit') ||
+                                 error?.response?.status === 502 ||
+                                 error?.response?.status === 504;
+
+      if (isConnectionError) {
+        // Backend cannot reach router directly (cloud deployment).
+        // Fall back to script-based provisioning.
+        toast.warning('Backend cannot reach router directly. Generating provisioning script...');
+        try {
+          const sessionRes = await apiClient.post('/provisioning/sessions', {
+            router_id: routerId,
+            service_type: configuration.enableHotspot && configuration.enablePppoe ? 'both' : configuration.enableHotspot ? 'hotspot' : 'pppoe_server',
+            configuration: {
+              router_identity: identity,
+              bridge_ports: selectedPorts,
+              wan_interface: deviceInfo?.wan_interface || 'ether1',
+              enable_hotspot_anti_sharing: configuration.enableAntiSharing,
+              custom_subnet: configuration.useCustomSubnet,
+              subnet_address: configuration.subnetAddress,
+              cidr: parseInt(configuration.cidr),
+              enable_hotspot: configuration.enableHotspot,
+              enable_pppoe: configuration.enablePppoe,
+              routeros_version: (deviceInfo as any)?.system_info?.version || '',
+            }
+          });
+          const scriptSessionId = (sessionRes.data as any).session_id || (sessionRes.data as any).data?.session_id;
+          if (scriptSessionId) {
+            setSessionId(scriptSessionId);
+            setScriptBasedProvisioning(true);
+            const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const token = localStorage.getItem('access_token') || '';
+            const scriptUrl = `${backendUrl}/provisioning/provision-script/${scriptSessionId}?token=${encodeURIComponent(token)}`;
+            const fetchMode = scriptUrl.startsWith('https://') ? 'https' : 'http';
+            const fetchCmd = `/tool/fetch mode=${fetchMode} url="${scriptUrl}" dst-path=codevertex-provision.rsc; :delay 2s; /import codevertex-provision.rsc`;
+            setProvisioningScriptCommand(fetchCmd);
+            toast.info('Paste the provisioning command on your router to complete setup.');
+          }
+        } catch (scriptError: any) {
+          console.error('Failed to create script-based session:', scriptError);
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -478,6 +527,8 @@ export default function ProvisionPage() {
               setProgressPercentage(percentage);
               setCurrentOperation(operation);
             }}
+            scriptBasedProvisioning={scriptBasedProvisioning}
+            provisioningScriptCommand={provisioningScriptCommand}
           />
         )}
       </Card>

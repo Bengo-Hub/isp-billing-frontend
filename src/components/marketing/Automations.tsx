@@ -31,8 +31,8 @@ export function Automations() {
     },
     {
       icon: Router,
-      title: 'Remote Mikrotik',
-      description: 'Remote management of Mikrotik routers with real-time monitoring',
+      title: 'MikroTik Provisioning',
+      description: 'Automated bootstrap provisioning with v6 & v7 router configuration',
       color: 'from-brand-900 to-brand-700'
     },
     {
@@ -145,8 +145,8 @@ export function Automations() {
           transition={{ duration: 0.8, delay: 1.4 }}
         >
           {[
-            'Free Mikrotik Support',
-            'Reliable API',
+            'MikroTik RouterOS v6 & v7',
+            'Reliable REST API',
             'Available 24/7'
           ].map((feature, index) => (
             <motion.div 

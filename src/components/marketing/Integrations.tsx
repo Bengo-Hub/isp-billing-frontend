@@ -22,11 +22,11 @@ export function Integrations() {
       icon: CreditCard,
       color: 'from-green-500 to-green-600',
       items: [
-        { name: 'M-Pesa', description: 'Mobile money payments', status: 'active' },
+        { name: 'M-Pesa', description: 'Mobile money payments (STK Push)', status: 'active' },
         { name: 'Paystack', description: 'Online card payments', status: 'active' },
-        { name: 'IOTEC', description: 'Digital payment processing', status: 'active' },
-        { name: 'ClickPesa', description: 'Business payment platform', status: 'active' },
-        { name: 'ZenoPay', description: 'Modern digital payments', status: 'active' }
+        { name: 'IOTEC', description: 'Digital payment processing', status: 'coming_soon' },
+        { name: 'ClickPesa', description: 'Business payment platform', status: 'coming_soon' },
+        { name: 'ZenoPay', description: 'Modern digital payments', status: 'coming_soon' }
       ]
     },
     {
@@ -34,11 +34,11 @@ export function Integrations() {
       icon: Router,
       color: 'from-brand-700 to-brand-900',
       items: [
-        { name: 'Mikrotik RouterOS', description: 'Full RouterOS v6 & v7 support', status: 'active' },
-        { name: 'PPPoE Servers', description: 'Point-to-Point Protocol over Ethernet', status: 'active' },
-        { name: 'Hotspot Management', description: 'Captive portal & user authentication', status: 'active' },
+        { name: 'MikroTik RouterOS', description: 'RouterOS v6 & v7 provisioning', status: 'active' },
+        { name: 'PPPoE Servers', description: 'Automated PPPoE server setup', status: 'active' },
+        { name: 'Hotspot Management', description: 'Captive portal with voucher system', status: 'active' },
         { name: 'DHCP Servers', description: 'Dynamic IP assignment', status: 'active' },
-        { name: 'VLAN Management', description: 'Virtual LAN configuration', status: 'active' }
+        { name: 'VLAN Management', description: 'Virtual LAN configuration', status: 'coming_soon' }
       ]
     },
     {
@@ -46,10 +46,10 @@ export function Integrations() {
       icon: MessageSquare,
       color: 'from-gray-400 to-brand-700',
       items: [
-        { name: 'SMS Gateway', description: 'Bulk SMS notifications', status: 'active' },
-        { name: 'Email Integration', description: 'Automated email alerts', status: 'active' },
-        { name: 'WhatsApp API', description: 'WhatsApp notifications', status: 'active' },
-        { name: 'Push Notifications', description: 'Mobile app notifications', status: 'active' }
+        { name: 'SMS Gateway', description: 'Africa\'s Talking SMS notifications', status: 'active' },
+        { name: 'Email Integration', description: 'SMTP-based email alerts', status: 'active' },
+        { name: 'WhatsApp API', description: 'WhatsApp notifications', status: 'coming_soon' },
+        { name: 'Push Notifications', description: 'Mobile app notifications', status: 'coming_soon' }
       ]
     },
     {
@@ -57,9 +57,9 @@ export function Integrations() {
       icon: Shield,
       color: 'from-red-500 to-red-600',
       items: [
-        { name: 'SSL/TLS Encryption', description: 'Secure data transmission', status: 'active' },
-        { name: 'Two-Factor Authentication', description: 'Enhanced security login', status: 'active' },
-        { name: 'Data Backup', description: 'Automated data protection', status: 'active' },
+        { name: 'SSL/TLS Encryption', description: 'End-to-end encrypted connections', status: 'active' },
+        { name: 'Two-Factor Authentication', description: 'TOTP-based 2FA login', status: 'active' },
+        { name: 'Role-Based Access', description: 'Granular RBAC permissions', status: 'active' },
         { name: 'Audit Logs', description: 'Comprehensive activity tracking', status: 'active' }
       ]
     }
@@ -180,8 +180,8 @@ export function Integrations() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">{item.name}</span>
-                          <motion.span 
-                            className="w-2 h-2 bg-green-500 rounded-full"
+                          <motion.span
+                            className={`w-2 h-2 rounded-full ${item.status === 'active' ? 'bg-green-500' : 'bg-amber-400'}`}
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 2, repeat: Infinity, delay: itemIndex * 0.5 }}
                           />
@@ -189,10 +189,10 @@ export function Integrations() {
                         <p className="text-sm text-muted-foreground">{item.description}</p>
                       </div>
                       <motion.div
-                        className="text-green-600 dark:text-green-400 text-sm font-medium"
+                        className={`text-sm font-medium ${item.status === 'active' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}
                         whileHover={{ scale: 1.1 }}
                       >
-                        Active
+                        {item.status === 'active' ? 'Active' : 'Coming Soon'}
                       </motion.div>
                     </motion.div>
                   ))}
