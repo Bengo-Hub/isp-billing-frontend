@@ -193,6 +193,7 @@ export default function RoutersPage() {
               <TableHead>Memory</TableHead>
               <TableHead>Uptime</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Last Seen</TableHead>
               <TableHead>Remote Winbox</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -239,9 +240,17 @@ export default function RoutersPage() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge className={`${r.status === 'online' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {r.status === 'online' ? 'Online' : 'Offline'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${r.status === 'online' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {r.status === 'online' ? 'Online' : 'Offline'}
+                    </Badge>
+                    {r.agent_installed && (
+                      <Badge className="bg-blue-50 text-blue-700 text-[10px]">Agent</Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <LastSeenCell lastPollAt={r.last_poll_at} lastSeen={r.last_seen} agentInstalled={r.agent_installed} />
                 </TableCell>
                 <TableCell>
                   <WinboxUrlCell routerId={r.id} winboxPort={r.winbox_port} />
@@ -403,6 +412,41 @@ function ProvisioningBadge({ status, bootstrapCompleted }: { status?: string; bo
   const config = getStatusConfig();
 
   return <Badge className={config.className}>{config.label}</Badge>;
+}
+
+/**
+ * LastSeenCell - Shows how long ago the router was last seen/polled
+ */
+function LastSeenCell({ lastPollAt, lastSeen, agentInstalled }: { lastPollAt?: string; lastSeen?: string; agentInstalled?: boolean }) {
+  const timestamp = lastPollAt || lastSeen;
+  if (!timestamp) {
+    return <span className="text-sm text-gray-400">Never</span>;
+  }
+
+  const lastDate = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - lastDate.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+
+  let timeAgo: string;
+  if (diffSeconds < 60) {
+    timeAgo = `${diffSeconds}s ago`;
+  } else if (diffSeconds < 3600) {
+    timeAgo = `${Math.floor(diffSeconds / 60)}m ago`;
+  } else if (diffSeconds < 86400) {
+    timeAgo = `${Math.floor(diffSeconds / 3600)}h ago`;
+  } else {
+    timeAgo = `${Math.floor(diffSeconds / 86400)}d ago`;
+  }
+
+  // Warn if agent-installed router hasn't polled in > 2 minutes
+  const isStale = agentInstalled && diffSeconds > 120;
+
+  return (
+    <span className={`text-sm ${isStale ? 'text-amber-600 font-medium' : 'text-gray-600'}`}>
+      {timeAgo}
+    </span>
+  );
 }
 
 /**

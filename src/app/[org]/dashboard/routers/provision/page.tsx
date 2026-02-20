@@ -304,9 +304,8 @@ export default function ProvisionPage() {
   };
 
   const handleStep3Next = async () => {
+    let routerId: number | undefined;
     try {
-      let routerId: number;
-
       if (reprovisionRouterId) {
         // Use existing router for reprovisioning
         routerId = reprovisionRouterId;
@@ -328,7 +327,7 @@ export default function ProvisionPage() {
 
       // Start provisioning workflow
       // CRITICAL: Include wanInterface to prevent it from being bridged
-      const result = await startProvisioning(routerId, {
+      const result = await startProvisioning(routerId!, {
         identity,
         selectedPorts,
         wanInterface: deviceInfo?.wan_interface || 'ether1',
@@ -365,7 +364,7 @@ export default function ProvisionPage() {
         toast.warning('Backend cannot reach router directly. Generating provisioning script...');
         try {
           const sessionRes = await apiClient.post('/provisioning/sessions', {
-            router_id: routerId,
+            router_id: routerId!,
             service_type: configuration.enableHotspot && configuration.enablePppoe ? 'both' : configuration.enableHotspot ? 'hotspot' : 'pppoe_server',
             configuration: {
               router_identity: identity,

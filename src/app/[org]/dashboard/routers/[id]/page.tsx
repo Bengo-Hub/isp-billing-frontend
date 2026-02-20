@@ -16,6 +16,7 @@ import {
   useRebootRouter,
   useCreateRouterBackup,
   useTestRouterConnection,
+  useRouterAgentStatus,
 } from '@/features/routers/api';
 import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -35,6 +36,7 @@ export default function RouterDetailsPage() {
   const { data: routerData, isLoading, error, refetch } = useRouterDetail(routerId);
   const { data: resources } = useRouterSystemResources(routerId);
   const { data: activeConnections } = useActiveConnections(routerId);
+  const { data: agentStatus } = useRouterAgentStatus(routerId, !!routerData?.agent_installed);
 
   // Mutations
   const rebootMutation = useRebootRouter();
@@ -273,6 +275,37 @@ export default function RouterDetailsPage() {
                 {routerData.last_seen ? `Last seen: ${new Date(routerData.last_seen).toLocaleString()}` : 'No data available'}
               </p>
             </div>
+
+            {/* Agent Status */}
+            {routerData.agent_installed && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${agentStatus?.is_online ? 'bg-blue-500 animate-pulse' : 'bg-gray-400'}`} />
+                    <div>
+                      <h3 className="font-semibold text-blue-800">Polling Agent</h3>
+                      <p className="text-sm text-blue-600">
+                        {agentStatus?.last_poll_at
+                          ? `Last poll: ${new Date(agentStatus.last_poll_at).toLocaleString()}`
+                          : 'Waiting for first poll...'}
+                        {agentStatus?.seconds_since_last_poll != null && (
+                          <span className="ml-2">({agentStatus.seconds_since_last_poll}s ago)</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-blue-700">
+                    {routerData.agent_version && <span>v{routerData.agent_version}</span>}
+                    {agentStatus?.pending_commands != null && agentStatus.pending_commands > 0 && (
+                      <Badge className="bg-amber-100 text-amber-800">
+                        {agentStatus.pending_commands} pending cmd{agentStatus.pending_commands !== 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                    <span>Poll interval: {routerData.agent_poll_interval || 30}s</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-6">
               <div>

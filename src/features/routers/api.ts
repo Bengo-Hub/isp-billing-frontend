@@ -33,7 +33,31 @@ export type RouterItem = {
   free_memory_formatted?: string;
   total_hdd_space_formatted?: string;
   free_hdd_space_formatted?: string;
+  // Polling agent fields
+  agent_installed?: boolean;
+  agent_poll_interval?: number;
+  last_poll_at?: string;
+  last_seen?: string;
+  agent_version?: string;
 };
+
+// Agent status response type
+export interface RouterAgentStatus {
+  router_id: number;
+  agent_installed: boolean;
+  agent_version?: string;
+  last_poll_at?: string;
+  poll_interval: number;
+  is_online: boolean;
+  seconds_since_last_poll?: number;
+  pending_commands: number;
+  recent_commands: Array<{
+    id: string;
+    action: string;
+    status: string;
+    created_at: string;
+  }>;
+}
 
 // Fallback data for development/demo only
 const routerFallback: { items: RouterItem[] } = {
@@ -86,6 +110,11 @@ export interface RouterDetail {
   config?: string;
   provisioning_status?: string;
   bootstrap_completed?: boolean;
+  // Polling agent fields
+  agent_installed?: boolean;
+  agent_poll_interval?: number;
+  last_poll_at?: string;
+  agent_version?: string;
   created_at: string;
   updated_at: string;
   devices: Array<{
@@ -604,5 +633,24 @@ export function useAllActiveConnections(routerId?: number | null) {
     staleTime: QUERY_STALE_TIMES.REALTIME,
     gcTime: QUERY_GC_TIMES.REALTIME,
     refetchInterval: 30000, // Refresh every 30 seconds
+  });
+}
+
+// Fetch agent status for a specific router (pending commands, poll info)
+export function useRouterAgentStatus(routerId: number, enabled = true) {
+  return useQuery({
+    queryKey: [...queryKeys.routers.detail(String(routerId)), 'agent-status'],
+    queryFn: async (): Promise<RouterAgentStatus | null> => {
+      try {
+        const { data } = await api.get(`/router-agent/status/${routerId}`);
+        return data;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!routerId && enabled,
+    staleTime: QUERY_STALE_TIMES.REALTIME,
+    gcTime: QUERY_GC_TIMES.REALTIME,
+    refetchInterval: 30000,
   });
 }
