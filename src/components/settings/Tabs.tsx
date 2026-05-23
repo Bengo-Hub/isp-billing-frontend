@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -153,7 +153,7 @@ function GeneralTab() {
             <Input
               name="company"
               defaultValue={data['system.company_name'] ?? ''}
-              placeholder="e.g., Codevertex IT Solutions"
+              placeholder="e.g., Codevertex Africa Limited"
             />
             <p className="text-xs text-gray-500 mt-1">The name of your ISP / WiFi Company</p>
           </div>

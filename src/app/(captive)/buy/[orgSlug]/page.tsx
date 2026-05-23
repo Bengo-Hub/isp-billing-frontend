@@ -553,7 +553,7 @@ export default function CaptiveBuyPackagesPage() {
               &copy; {new Date().getFullYear()} {config.organization_name}. All rights reserved.
             </p>
           )}
-          <a className="text-xs text-gray-400 link" href="https://codevertexitsolutions.com" target="_blank" rel="noopener noreferrer">Powered by Codevertex IT Solutions</a>
+          <a className="text-xs text-gray-400 link" href="https://codevertexitsolutions.com" target="_blank" rel="noopener noreferrer">Powered by Codevertex Africa Limited</a>
         </div>
       </div>
 

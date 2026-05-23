@@ -1,4 +1,4 @@
-# Codevertex ISP Billing System - Frontend
+﻿# Codevertex ISP Billing System - Frontend
 
 A modern, responsive, and feature-rich frontend application built with Next.js 15, providing a complete user interface for ISP billing and management.
 
@@ -441,9 +441,9 @@ For issues, questions, or contributions:
 
 MIT License - See LICENSE file for details
 
-## 🏢 About Codevertex IT Solutions
+## 🏢 About Codevertex Africa Limited
 
-Codevertex IT Solutions specializes in ISP management software, network automation, and billing systems.
+Codevertex Africa Limited specializes in ISP management software, network automation, and billing systems.
 
 ---
 

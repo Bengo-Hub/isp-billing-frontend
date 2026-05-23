@@ -1,4 +1,4 @@
-# Frontend Setup Guide - Codevertex ISP Billing System
+﻿# Frontend Setup Guide - Codevertex ISP Billing System
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -231,7 +231,7 @@ NEXT_PUBLIC_WS_URL=ws://localhost:8000
 # Application Settings
 NEXT_PUBLIC_APP_NAME="Codevertex ISP Billing"
 NEXT_PUBLIC_APP_VERSION=1.0.0
-NEXT_PUBLIC_COMPANY_NAME="Codevertex IT Solutions"
+NEXT_PUBLIC_COMPANY_NAME="Codevertex Africa Limited"
 
 # Feature Flags
 NEXT_PUBLIC_ENABLE_DEMO_MODE=true
@@ -1429,5 +1429,5 @@ npm run build
 
 **Last Updated**: October 21, 2025  
 **Version**: 1.0.0  
-**Author**: Codevertex IT Solutions
+**Author**: Codevertex Africa Limited
 

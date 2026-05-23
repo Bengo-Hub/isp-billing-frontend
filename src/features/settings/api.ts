@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+﻿import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -8,7 +8,7 @@ export type SettingsMap = Record<string, any>;
 
 const fallbackByCategory: Record<SettingsCategory, SettingsMap> = {
   system: {
-    'system.company_name': 'Codevertex IT Solutions',
+    'system.company_name': 'Codevertex Africa Limited',
     'system.primary_color': '#801066',
     'system.font': 'Inter',
     'system.support_email': 'support@codevertexitsolutions.com',

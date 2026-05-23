@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useSettings } from '@/features/settings/api';
 import { createContext, useContext, useLayoutEffect, useMemo, type ReactNode } from 'react';
@@ -14,7 +14,7 @@ interface BrandingContext {
 }
 
 const BrandingCtx = createContext<BrandingContext>({
-  companyName: 'Codevertex IT Solutions',
+  companyName: 'Codevertex Africa Limited',
   primaryColor: '#801066',
   logoUrl: null,
   font: 'Inter',
@@ -163,7 +163,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
   }, [lightVars, darkVars]);
 
   const ctx = useMemo<BrandingContext>(() => ({
-    companyName: (settings?.['system.company_name'] as string) || 'Codevertex IT Solutions',
+    companyName: (settings?.['system.company_name'] as string) || 'Codevertex Africa Limited',
     primaryColor,
     logoUrl: (settings?.['system.logo_url'] as string) || null,
     font: (settings?.['system.font'] as string) || 'Inter',

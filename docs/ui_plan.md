@@ -1,4 +1,4 @@
-# Frontend Implementation Plan (Next.js 15)
+﻿# Frontend Implementation Plan (Next.js 15)
 
 ## Goals
 - Build a production-ready frontend for the ISP Billing platform aligning with existing backend capabilities.
@@ -265,7 +265,7 @@ The billing frontend consists of **3 distinct application types**, each serving 
   - Pricing section
   - Testimonials
   - Call-to-action buttons
-  - Responsive navbar with logo (Codevertex IT Solutions)
+  - Responsive navbar with logo (Codevertex Africa Limited)
   - Footer with links and company info
   - SVG illustrations throughout
 - [x] **Login Page**

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -40,7 +40,7 @@ function VerifyEmailContent() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
             <Wifi className="h-6 w-6 text-brand-600" />
-            <span className="text-xl font-bold text-gray-900">Codevertex IT Solutions</span>
+            <span className="text-xl font-bold text-gray-900">Codevertex Africa Limited</span>
           </Link>
         </div>
       </header>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { brandBg, usePortalBranding } from '@/hooks/use-portal-branding';
 import { Loader2 } from 'lucide-react';
@@ -71,7 +71,7 @@ export function PublicBrandedLayout({
         <p className="text-xs text-gray-500 mt-2">
           Powered by{' '}
           <span className="font-medium" style={{ color: primaryColor }}>
-            Codevertex IT Solutions
+            Codevertex Africa Limited
           </span>
         </p>
       </footer>
