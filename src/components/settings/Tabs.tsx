@@ -529,14 +529,22 @@ function PaymentsTab() {
               </div>
 
               <div>
-                <label className="text-sm text-gray-700">Minimum Payout Amount</label>
-                <Input 
-                  type="number" 
-                  min={0}
+                <label className="text-sm text-gray-700 flex items-center gap-2">
+                  Minimum Payout Amount
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                    Gateway min: KES 10
+                  </span>
+                </label>
+                <Input
+                  type="number"
+                  min={10}
+                  step={1}
                   value={payoutForm.min_payout_amount}
                   onChange={(e) => setPayoutForm({ ...payoutForm, min_payout_amount: parseFloat(e.target.value) || 0 })}
                 />
-                <p className="text-xs text-gray-500 mt-1">Payouts only trigger when balance exceeds this amount</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Paystack enforces a KES 10 minimum per transfer. Payouts only trigger when balance exceeds this amount.
+                </p>
               </div>
             </div>
 
