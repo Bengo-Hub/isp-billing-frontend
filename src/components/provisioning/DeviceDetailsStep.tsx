@@ -47,6 +47,24 @@ export function DeviceDetailsStep({
     }
   }, [sessionId, ipAddress, pingMonitoringStarted, deviceConnected]);
 
+  // Honor agent-liveness detection from the parent. A NAT'd router can never be
+  // reached by the cloud's ICMP/API ping stages, so those would otherwise spin
+  // forever and keep "Continue" disabled even though the device IS online (its
+  // polling agent is reporting in). When the parent marks the device connected
+  // (via device-status / agent heartbeat), satisfy both stages and stop the
+  // futile cloud ping monitoring so the wizard can advance.
+  useEffect(() => {
+    if (deviceConnected) {
+      setPingVerified(true);
+      setApiVerified(true);
+      if (sessionId && pingMonitoringStarted) {
+        apiClient
+          .post(`/provisioning/bootstrap/ping/stop/${sessionId}`)
+          .catch(() => {});
+      }
+    }
+  }, [deviceConnected, sessionId, pingMonitoringStarted]);
+
   const startPingMonitoring = async () => {
     if (!sessionId || !ipAddress) return;
 

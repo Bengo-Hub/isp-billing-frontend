@@ -15,10 +15,13 @@ import {
   useDisconnectUser,
   useRebootRouter,
   useCreateRouterBackup,
+  useListRouterBackups,
   useTestRouterConnection,
   useRouterAgentStatus,
+  useRouterEvents,
+  useRouterPayments,
 } from '@/features/routers/api';
-import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle } from 'lucide-react';
+import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle, Activity, CreditCard, HardDrive } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -34,9 +37,12 @@ export default function RouterDetailsPage() {
 
   // Fetch router data
   const { data: routerData, isLoading, error, refetch } = useRouterDetail(routerId);
-  const { data: resources } = useRouterSystemResources(routerId);
-  const { data: activeConnections } = useActiveConnections(routerId);
+  const { data: resources, refetch: refetchResources } = useRouterSystemResources(routerId);
+  const { data: activeConnections, refetch: refetchConnections } = useActiveConnections(routerId);
   const { data: agentStatus } = useRouterAgentStatus(routerId, !!routerData?.agent_installed);
+  const { data: events } = useRouterEvents(routerId);
+  const { data: payments } = useRouterPayments(routerId);
+  const { data: backups } = useListRouterBackups(routerId);
 
   // Mutations
   const rebootMutation = useRebootRouter();
@@ -72,13 +78,26 @@ export default function RouterDetailsPage() {
     return `${days}d ${hours}h ${minutes}m ${secs}s`;
   };
 
-  // Calculate memory/disk percentages
-  const memoryUsage = resources
-    ? ((resources.total_memory - resources.free_memory) / resources.total_memory) * 100
-    : 0;
-  const diskUsage = resources
-    ? ((resources.total_hdd_space - resources.free_hdd_space) / resources.total_hdd_space) * 100
-    : 0;
+  // Calculate memory/disk percentages. Guard against a zero/absent total
+  // (NAT'd routers may not report storage) so we never render "NaN%".
+  const pctUsed = (total?: number, free?: number): number => {
+    if (!total || total <= 0) return 0;
+    const used = total - (free ?? 0);
+    const pct = (used / total) * 100;
+    if (!Number.isFinite(pct)) return 0;
+    return Math.min(100, Math.max(0, pct));
+  };
+  const hasMemory = !!(resources && resources.total_memory > 0);
+  const hasDisk = !!(resources && resources.total_hdd_space > 0);
+  const memoryUsage = pctUsed(resources?.total_memory, resources?.free_memory);
+  const diskUsage = pctUsed(resources?.total_hdd_space, resources?.free_hdd_space);
+
+  // Refresh re-fetches the NAT-safe endpoints (agent-sourced), never a direct sync.
+  const handleRefresh = () => {
+    refetch();
+    refetchResources();
+    refetchConnections();
+  };
 
   if (isLoading) {
     return <RouterDetailSkeleton />;
@@ -113,7 +132,7 @@ export default function RouterDetailsPage() {
           <p className="text-gray-600">{routerData.description || routerData.ip_address}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => refetch()}>
+          <Button variant="outline" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -233,13 +252,13 @@ export default function RouterDetailsPage() {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">MEMORY USAGE</h3>
                     <p className="text-sm text-gray-600">
-                      {resources ? `${Math.round((resources.total_memory - resources.free_memory) / 1024 / 1024)}MB / ${Math.round(resources.total_memory / 1024 / 1024)}MB` : 'N/A'}
+                      {hasMemory ? `${Math.round((resources!.total_memory - resources!.free_memory) / 1024 / 1024)}MB / ${Math.round(resources!.total_memory / 1024 / 1024)}MB` : 'N/A'}
                     </p>
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{memoryUsage.toFixed(1)}%</div>
+                <div className="text-2xl font-bold text-gray-900">{hasMemory ? `${memoryUsage.toFixed(1)}%` : 'N/A'}</div>
               </div>
-              <Progress value={memoryUsage} className="h-2" />
+              <Progress value={hasMemory ? memoryUsage : 0} className="h-2" />
             </Card>
 
             <Card className="p-6">
@@ -251,13 +270,13 @@ export default function RouterDetailsPage() {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">DISK USAGE</h3>
                     <p className="text-sm text-gray-600">
-                      {resources ? `${Math.round((resources.total_hdd_space - resources.free_hdd_space) / 1024 / 1024)}MB / ${Math.round(resources.total_hdd_space / 1024 / 1024)}MB` : 'N/A'}
+                      {hasDisk ? `${Math.round((resources!.total_hdd_space - resources!.free_hdd_space) / 1024 / 1024)}MB / ${Math.round(resources!.total_hdd_space / 1024 / 1024)}MB` : 'N/A'}
                     </p>
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{diskUsage.toFixed(1)}%</div>
+                <div className="text-2xl font-bold text-gray-900">{hasDisk ? `${diskUsage.toFixed(1)}%` : 'N/A'}</div>
               </div>
-              <Progress value={diskUsage} className="h-2" />
+              <Progress value={hasDisk ? diskUsage : 0} className="h-2" />
             </Card>
           </div>
 
@@ -363,19 +382,84 @@ export default function RouterDetailsPage() {
 
         <TabsContent value="events">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Events</h2>
-            <div className="text-center py-8 text-gray-500">
-              <p>Event logging coming soon</p>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Events ({events?.length || 0})</h2>
+            {events && events.length > 0 ? (
+              <div className="space-y-2">
+                {events.map((ev) => (
+                  <div key={ev.id} className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
+                    <div className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${ev.success ? 'bg-green-500' : ev.status === 'pending' || ev.status === 'sent' ? 'bg-amber-400' : 'bg-red-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{ev.action}</span>
+                        <Badge className={ev.kind === 'command' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700'}>
+                          {ev.kind}
+                        </Badge>
+                        <Badge className={ev.success ? 'bg-green-100 text-green-800' : ev.status === 'pending' || ev.status === 'sent' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}>
+                          {ev.status}
+                        </Badge>
+                      </div>
+                      {ev.details && <p className="text-sm text-gray-600 truncate">{ev.details}</p>}
+                    </div>
+                    <div className="text-xs text-gray-400 whitespace-nowrap">
+                      {ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Activity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p>No events recorded yet</p>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
         <TabsContent value="reports">
           <Card className="p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Reports</h2>
-            <div className="text-center py-8 text-gray-500">
-              <p>Router reports coming soon</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Active Users Now</p>
+                <p className="text-2xl font-bold text-gray-900">{activeConnections?.length || 0}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Total Payments</p>
+                <p className="text-2xl font-bold text-gray-900">{payments?.length || 0}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Revenue (collected)</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {(payments || [])
+                    .filter((p) => (p.status || '').toLowerCase() === 'completed' || (p.status || '').toLowerCase() === 'checked')
+                    .reduce((sum, p) => sum + (p.amount || 0), 0)
+                    .toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Recent Events</p>
+                <p className="text-2xl font-bold text-gray-900">{events?.length || 0}</p>
+              </div>
             </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Uptime</p>
+                <p className="text-lg font-semibold text-gray-900">{resources?.uptime || formatUptime(routerData.uptime)}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">CPU Load</p>
+                <p className="text-lg font-semibold text-gray-900">{resources?.cpu_load ?? 0}%</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Memory Used</p>
+                <p className="text-lg font-semibold text-gray-900">{hasMemory ? `${memoryUsage.toFixed(0)}%` : 'N/A'}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Agent Status</p>
+                <p className="text-lg font-semibold text-gray-900">{agentStatus?.is_online ? 'Online' : routerData.agent_installed ? 'Offline' : 'No agent'}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-4">Metrics reflect current state reported by the polling agent and stored billing data.</p>
           </Card>
         </TabsContent>
 
@@ -437,25 +521,96 @@ export default function RouterDetailsPage() {
 
         <TabsContent value="payments">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments</h2>
-            <div className="text-center py-8 text-gray-500">
-              <p>Payment history coming soon</p>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments ({payments?.length || 0})</h2>
+            {payments && payments.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Payment #</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Customer</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Invoice</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Amount</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Method</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((p) => (
+                      <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-4 font-medium">{p.payment_number}</td>
+                        <td className="py-4 px-4">{p.customer || p.subscription_username || 'N/A'}</td>
+                        <td className="py-4 px-4">{p.invoice_number}</td>
+                        <td className="py-4 px-4">{p.currency} {p.amount.toLocaleString()}</td>
+                        <td className="py-4 px-4 capitalize">{(p.payment_method || '').replace('_', ' ') || 'N/A'}</td>
+                        <td className="py-4 px-4">
+                          <Badge className={['completed', 'checked'].includes((p.status || '').toLowerCase()) ? 'bg-green-100 text-green-800' : (p.status || '').toLowerCase() === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700'}>
+                            {(p.status || 'unknown').toUpperCase()}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4">{(p.payment_date || p.created_at) ? new Date(p.payment_date || p.created_at!).toLocaleDateString() : 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <CreditCard className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p>No payments recorded for subscriptions on this router</p>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
         <TabsContent value="backups">
           <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Backups</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Backups ({backups?.length || 0})</h2>
               <Button onClick={handleBackup} disabled={backupMutation.isPending}>
                 <Download className="h-4 w-4 mr-2" />
                 Create Backup
               </Button>
             </div>
-            <div className="text-center py-8 text-gray-500">
-              <p>Backup history coming soon</p>
-            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Backups run on the router via the polling agent (<code>/system/backup/save</code>) and the file is kept on the device.
+            </p>
+            {backups && backups.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Type</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Requested</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">Completed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {backups.map((b) => (
+                      <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-4 font-medium">{b.name}</td>
+                        <td className="py-4 px-4 capitalize">{b.backup_type}</td>
+                        <td className="py-4 px-4">
+                          <Badge className={b.status === 'completed' ? 'bg-green-100 text-green-800' : b.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}>
+                            {b.status.toUpperCase()}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4">{b.created_at ? new Date(b.created_at).toLocaleString() : 'N/A'}</td>
+                        <td className="py-4 px-4">{b.completed_at ? new Date(b.completed_at).toLocaleString() : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <HardDrive className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p>No backups yet. Click "Create Backup" to queue one.</p>
+              </div>
+            )}
           </Card>
         </TabsContent>
       </Tabs>
