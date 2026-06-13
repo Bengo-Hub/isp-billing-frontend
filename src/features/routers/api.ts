@@ -67,11 +67,6 @@ const routerFallback: { items: RouterItem[] } = {
   ],
 };
 
-const activeFallback = [
-  { type: 'hotspot', name: 'alice', address: '192.168.88.10', 'mac-address': 'AA:BB:CC:DD:EE:01' },
-  { type: 'pppoe', user: 'ppp-user-1', address: '10.10.0.2', 'caller-id': '0700000000' },
-];
-
 export function useRouters() {
   return useQuery({
     queryKey: queryKeys.routers.all,
@@ -180,13 +175,13 @@ export function useTestRouterConnection() {
   return useMutation({
     mutationFn: async (routerId: number) => {
       const { data } = await api.post(`/routers/${routerId}/test`);
-      return data;
+      return data as { success: boolean; online: boolean; mode: string; message: string };
     },
-    onSuccess: () => {
-      toast.success('Router connection successful');
+    onSuccess: (data) => {
+      toast.success(data?.message || 'Router is reachable');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to connect to router');
+      toast.error(error.response?.data?.detail || 'Router is not reachable');
     },
   });
 }
@@ -197,14 +192,17 @@ export function useActiveConnections(routerId: number) {
     queryFn: async (): Promise<any[]> => {
       try {
         const { data } = await api.get(`/routers/${routerId}/active-connections`);
-        return data;
+        return data ?? [];
       } catch {
-        return activeFallback;
+        // NAT-safe endpoint returns an empty list when there is no live data;
+        // never fall back to mock users.
+        return [];
       }
     },
     enabled: !!routerId,
     staleTime: QUERY_STALE_TIMES.REALTIME,
     gcTime: QUERY_GC_TIMES.REALTIME,
+    refetchInterval: 30000,
   });
 }
 
@@ -368,10 +366,10 @@ export function useRebootRouter() {
   return useMutation({
     mutationFn: async (routerId: number) => {
       const response = await api.post(`/routers/${routerId}/reboot`);
-      return response.data;
+      return response.data as { success: boolean; queued?: boolean; message: string };
     },
-    onSuccess: () => {
-      toast.success('Router reboot initiated');
+    onSuccess: (data) => {
+      toast.success(data?.message || 'Router reboot initiated');
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to reboot router');
@@ -379,29 +377,40 @@ export function useRebootRouter() {
   });
 }
 
-// Backup & Restore
+// Backup history row (NAT-safe: backups run on the router via the agent).
+export interface RouterBackup {
+  id: number;
+  name: string;
+  status: 'pending' | 'completed' | 'failed';
+  backup_type: string;
+  size_bytes?: number | null;
+  message?: string | null;
+  created_at?: string;
+  completed_at?: string | null;
+}
+
+// Create a backup — NAT-safe: queues an agent action that runs
+// /system/backup/save locally and records a history row. Returns JSON (no blob).
 export function useCreateRouterBackup() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (routerId: number) => {
-      const response = await api.post(`/routers/${routerId}/backup`, null, {
-        responseType: 'blob',
-      });
-      
-      const filename = `router_${routerId}_backup_${new Date().toISOString().split('T')[0]}.backup`;
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      return response.data;
+      const response = await api.post(`/routers/${routerId}/backup`);
+      return response.data as {
+        success: boolean;
+        queued: boolean;
+        backup_id: number;
+        name: string;
+        status: string;
+        message: string;
+      };
     },
-    onSuccess: () => {
-      toast.success('Router backup created and downloaded');
+    onSuccess: (data, routerId) => {
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.routers.detail(String(routerId)), 'backups'],
+      });
+      toast.success(data?.message || 'Backup queued to the router agent');
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to create backup');
@@ -438,13 +447,80 @@ export function useRestoreRouterBackup() {
 export function useListRouterBackups(routerId: number) {
   return useQuery({
     queryKey: [...queryKeys.routers.detail(String(routerId)), 'backups'],
-    queryFn: async (): Promise<any[]> => {
-      const { data } = await api.get(`/routers/${routerId}/backups`);
-      return data;
+    queryFn: async (): Promise<RouterBackup[]> => {
+      try {
+        const { data } = await api.get(`/routers/${routerId}/backups`);
+        return data ?? [];
+      } catch {
+        return [];
+      }
     },
     enabled: !!routerId,
-    staleTime: QUERY_STALE_TIMES.INFREQUENT,
-    gcTime: QUERY_GC_TIMES.INFREQUENT,
+    staleTime: QUERY_STALE_TIMES.REALTIME,
+    gcTime: QUERY_GC_TIMES.REALTIME,
+    refetchInterval: 30000,
+  });
+}
+
+// Device events timeline (RouterLog + agent command history) — NAT-safe.
+export interface RouterEvent {
+  id: string;
+  kind: 'log' | 'command';
+  action: string;
+  details?: string;
+  success: boolean;
+  status: string;
+  created_at?: string;
+}
+
+export function useRouterEvents(routerId: number) {
+  return useQuery({
+    queryKey: [...queryKeys.routers.detail(String(routerId)), 'events'],
+    queryFn: async (): Promise<RouterEvent[]> => {
+      try {
+        const { data } = await api.get(`/routers/${routerId}/events`);
+        return data ?? [];
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!routerId,
+    staleTime: QUERY_STALE_TIMES.REALTIME,
+    gcTime: QUERY_GC_TIMES.REALTIME,
+    refetchInterval: 30000,
+  });
+}
+
+// Payments for subscriptions on this router — NAT-safe (DB-only).
+export interface RouterPayment {
+  id: number;
+  payment_number: string;
+  amount: number;
+  currency: string;
+  payment_method?: string | null;
+  status?: string | null;
+  payment_date?: string | null;
+  created_at?: string;
+  invoice_number: string;
+  subscription_id: number;
+  subscription_username: string;
+  customer?: string | null;
+}
+
+export function useRouterPayments(routerId: number) {
+  return useQuery({
+    queryKey: [...queryKeys.routers.detail(String(routerId)), 'payments'],
+    queryFn: async (): Promise<RouterPayment[]> => {
+      try {
+        const { data } = await api.get(`/routers/${routerId}/payments`);
+        return data ?? [];
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!routerId,
+    staleTime: QUERY_STALE_TIMES.STANDARD,
+    gcTime: QUERY_GC_TIMES.STANDARD,
   });
 }
 
