@@ -9,14 +9,14 @@
 The billing frontend consists of **3 distinct application types**, each serving different user groups:
 
 ### 1. **Captive Portal / End-User Package Purchase Page**
-   - **Purpose**: When customers connect to WiFi or PPPoE, they are automatically redirected to this page from the RADIUS (MikroTik) server
+   - **Purpose**: When customers connect to WiFi, the MikroTik hotspot intercepts their first HTTP request and serves `hotspot/login.html`, which redirects them to this page. (There is **no RADIUS**; authentication is local hotspot users created via the polling agent.)
    - **Target Users**: End users/customers who need to purchase hotspot or PPPoE packages
    - **Flow**: 
-     - User connects to WiFi/PPPoE
-     - Redirected to package purchase page
-     - Selects and purchases a package
-     - Upon successful transaction, gets connected and redirected to google.com or ISP-specified URL
-   - **Route**: `/captive-portal` or `/buy-packages`
+     - User connects to WiFi (hotspot) and opens any page
+     - Hotspot `login.html` meta-refreshes to the org's buy page
+     - Selects and purchases a package (or redeems a voucher)
+     - On success the backend queues a `create_user` for the router's polling agent; the user is connected and redirected to the ISP-specified URL (default google.com)
+   - **Route**: `/buy/{orgSlug}` (the org-scoped buy page the hotspot redirects to)
    - **Features**: Package selection, payment processing, status feedback
 
 ### 2. **ISP SaaS Marketing Website & Account Creation**
@@ -188,7 +188,7 @@ The billing frontend consists of **3 distinct application types**, each serving 
 - Accessible components via shadcn/ui
 
 ## Deliverables
-- A runnable Next.js app under wifi-billing-software-frontend/
+- A runnable Next.js app under isp-billing-frontend/
 - Documentation (this file) and root README with commands
 
 ---
@@ -299,7 +299,7 @@ The billing frontend consists of **3 distinct application types**, each serving 
   - Disconnect user functionality
   - **Router Details Page**:
     - General information (IP, username, password, API port)
-    - RADIUS configuration
+    - Polling-agent status (last poll, online/offline, pending commands) — NAT-safe command channel (no RADIUS)
     - CPU, Memory, Disk usage metrics
     - MikroTik availability chart (30-day uptime)
     - Performance overview

@@ -26,7 +26,7 @@
 
 ## Introduction
 
-The Codevertex ISP Billing System frontend is a modern, responsive web application built with Next.js 15, TypeScript, and shadcn/ui. It provides a complete user interface for managing ISP operations, from customer management to router provisioning.
+The Codevertex ISP Billing System frontend is a modern, responsive web application built with Next.js 16, TypeScript, and shadcn/ui. It provides a complete user interface for managing ISP operations, from customer management to router provisioning.
 
 ### Key Features
 - **Server-Side Rendering (SSR)**: Fast page loads with Next.js App Router
@@ -103,7 +103,7 @@ Recommended: **Visual Studio Code** with extensions:
 ### Technology Stack
 
 #### Core Framework
-- **Next.js 15**: React framework with App Router
+- **Next.js 16**: React framework with App Router
 - **React 19**: UI library
 - **TypeScript 5**: Type-safe development
 
@@ -185,7 +185,7 @@ git clone <repository-url>
 cd ISPBilling
 
 # Navigate to frontend directory
-cd wifi-billing-software-frontend
+cd isp-billing-frontend
 ```
 
 ### 2. Install Dependencies
@@ -1338,7 +1338,16 @@ describe('Button', () => {
 
 ## Deployment
 
-### Vercel Deployment
+### Production Deployment (GitOps — primary)
+
+Production deploys via GitOps, **not** Vercel. Pushes to `main`/`master` trigger
+`.github/workflows/deploy.yml` → `build.sh`, which builds and pushes
+`docker.io/codevertex/isp-billing-frontend:<short-sha>`, bumps the image `tag` in
+the devops-k8s `apps/isp-billing-frontend/values.yaml`, and ArgoCD auto-syncs the
+`isp-billing` namespace. The image is a containerized Next.js standalone server
+(see the repo `Dockerfile`).
+
+### Vercel Deployment (alternative / self-host)
 
 ```bash
 # Install Vercel CLI
