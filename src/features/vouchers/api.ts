@@ -2,7 +2,9 @@ import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-export type VoucherStatus = 'active' | 'used' | 'expired' | 'disabled';
+// Mirrors the backend VoucherStatus enum exactly (active/used/expired/cancelled).
+// NOTE: there is no "disabled" on the backend — use "cancelled" to disable a voucher.
+export type VoucherStatus = 'active' | 'used' | 'expired' | 'cancelled';
 
 export interface VoucherItem {
   id: number;
@@ -48,6 +50,9 @@ export interface VoucherGenerateData {
   plan_id: number;
   count: number;
   code_format?: string;
+  /** Optional shelf-life: the voucher must be redeemed within this many days
+   *  (None = no pre-use expiry; access duration is still enforced by the plan). */
+  expires_in_days?: number;
 }
 
 export interface VoucherUpdateData {

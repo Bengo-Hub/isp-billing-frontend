@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ticket, Search, Download, Plus, MoreHorizontal, Copy, Trash2, RefreshCw } from 'lucide-react';
+import { Ticket, Search, Download, Plus, Copy, Trash2, Pencil } from 'lucide-react';
 import { useState, useCallback } from 'react';
-import { useVouchers, useVoucherStats, useGenerateVouchers, useDeleteVoucher, useUpdateVoucher, type VoucherStatus } from '@/features/vouchers/api';
+import { useVouchers, useVoucherStats, useGenerateVouchers, useDeleteVoucher, useUpdateVoucher, type VoucherStatus, type VoucherItem } from '@/features/vouchers/api';
 import { usePlans } from '@/features/packages/api';
 import { toast } from 'sonner';
 
@@ -17,9 +17,16 @@ export default function VouchersPage() {
   const [statusFilter, setStatusFilter] = useState<VoucherStatus | ''>('');
   const [page, setPage] = useState(1);
 
-  // Form state
+  // Generate form state
   const [formPlanId, setFormPlanId] = useState<number>(0);
   const [formCount, setFormCount] = useState(10);
+  const [formCodeFormat, setFormCodeFormat] = useState('XXXX-XXXX-XXXX');
+  const [formExpiresInDays, setFormExpiresInDays] = useState<string>('');
+
+  // Edit modal state
+  const [editVoucher, setEditVoucher] = useState<VoucherItem | null>(null);
+  const [editStatus, setEditStatus] = useState<VoucherStatus>('active');
+  const [editExpiresAt, setEditExpiresAt] = useState('');
 
   const { data: voucherData, isLoading } = useVouchers({
     page,
@@ -48,13 +55,36 @@ export default function VouchersPage() {
       return;
     }
     generateVouchers.mutate(
-      { plan_id: formPlanId, count: formCount },
+      {
+        plan_id: formPlanId,
+        count: formCount,
+        code_format: formCodeFormat || undefined,
+        expires_in_days: formExpiresInDays ? Number(formExpiresInDays) : undefined,
+      },
       { onSuccess: () => setShowCreateModal(false) }
     );
   };
 
-  const handleDisable = (id: number) => {
-    updateVoucher.mutate({ voucherId: id, data: { status: 'disabled' } });
+  const openEdit = (v: VoucherItem) => {
+    setEditVoucher(v);
+    setEditStatus((v.status as VoucherStatus) || 'active');
+    setEditExpiresAt(v.expires_at ? v.expires_at.slice(0, 10) : '');
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editVoucher) return;
+    updateVoucher.mutate(
+      {
+        voucherId: editVoucher.id,
+        data: {
+          status: editStatus,
+          // inclusive end-of-day; omit when cleared
+          expires_at: editExpiresAt ? new Date(editExpiresAt + 'T23:59:59').toISOString() : undefined,
+        },
+      },
+      { onSuccess: () => setEditVoucher(null) }
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -138,7 +168,7 @@ export default function VouchersPage() {
           <option value="active">Active</option>
           <option value="used">Used</option>
           <option value="expired">Expired</option>
-          <option value="disabled">Disabled</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </div>
 
@@ -187,12 +217,10 @@ export default function VouchersPage() {
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-1">
-                        {v.status === 'active' && (
-                          <Button variant="ghost" size="sm" onClick={() => handleDisable(v.id)} title="Disable">
-                            <RefreshCw className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => deleteVoucher.mutate(v.id)} title="Delete">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(v)} title="Edit">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => { if (confirm(`Delete voucher ${v.code}?`)) deleteVoucher.mutate(v.id); }} title="Delete">
                           <Trash2 className="h-3.5 w-3.5 text-red-500" />
                         </Button>
                       </div>
@@ -253,10 +281,72 @@ export default function VouchersPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">Generate 1-500 voucher codes at once</p>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Code Format</label>
+                <select
+                  className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
+                  value={formCodeFormat}
+                  onChange={(e) => setFormCodeFormat(e.target.value)}
+                >
+                  <option value="XXXX-XXXX-XXXX">XXXX-XXXX-XXXX (12 chars)</option>
+                  <option value="XXXX-XXXX">XXXX-XXXX (8 chars)</option>
+                  <option value="XXXXXX">XXXXXX (6 chars)</option>
+                  <option value="NNNN-NNNN">NNNN-NNNN (digits only)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">X = letters &amp; digits, N = digits only</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Redeem Within (days)</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={3650}
+                  placeholder="No expiry"
+                  value={formExpiresInDays}
+                  onChange={(e) => setFormExpiresInDays(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-1">Optional shelf-life before redemption. The plan still sets the access duration once redeemed.</p>
+              </div>
               <div className="flex items-center gap-3 justify-end pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
                 <Button type="submit" className="bg-brand-600 hover:bg-brand-700" disabled={generateVouchers.isPending}>
                   {generateVouchers.isPending ? 'Generating...' : 'Generate'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Voucher Modal */}
+      {editVoucher && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-1">Edit Voucher</h2>
+            <p className="text-sm text-gray-500 mb-6 font-mono">{editVoucher.code}{editVoucher.plan_name ? ` · ${editVoucher.plan_name}` : ''}</p>
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as VoucherStatus)}
+                >
+                  <option value="active">Active</option>
+                  <option value="expired">Expired</option>
+                  <option value="cancelled">Cancelled (disable)</option>
+                  <option value="used" disabled>Used (set automatically on redemption)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Redeem-By Date</label>
+                <Input type="date" value={editExpiresAt} onChange={(e) => setEditExpiresAt(e.target.value)} />
+                <p className="text-xs text-gray-500 mt-1">Leave blank for no pre-use expiry.</p>
+              </div>
+              <div className="flex items-center gap-3 justify-end pt-4 border-t">
+                <Button type="button" variant="outline" onClick={() => setEditVoucher(null)}>Cancel</Button>
+                <Button type="submit" className="bg-brand-600 hover:bg-brand-700" disabled={updateVoucher.isPending}>
+                  {updateVoucher.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </form>
