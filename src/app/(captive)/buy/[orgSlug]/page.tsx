@@ -207,9 +207,11 @@ export default function CaptiveBuyPackagesPage() {
     fallbackLoginUrl?: string | null,
   ) => {
     if (hotspotSubmittedRef.current) return;
-    // Prefer the captive-redirect URL; otherwise use the gateway URL the backend
-    // returned on the redeem/payment response (manual-navigation path).
-    const target = loginUrl || fallbackLoginUrl;
+    // Prefer the backend-supplied gateway URL (http://<gateway>/login) over the
+    // captive-redirect $(link-login-only): the latter can resolve to
+    // https://hotspot.local/login (self-signed TLS + unresolvable .local), which a
+    // browser refuses to POST to. The gateway IP over HTTP always works.
+    const target = fallbackLoginUrl || loginUrl;
     if (!target || !username || !password) return;
     hotspotSubmittedRef.current = true;
     setIsConnecting(true);
