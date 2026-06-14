@@ -112,6 +112,36 @@ export default function PackageTable({
     }).format(price);
   };
 
+  // Real speed from the plan (Mbps); legacy `speed` string only as a fallback.
+  const formatSpeed = (pkg: PlanItem) => {
+    if (pkg.download_speed != null && pkg.upload_speed != null) {
+      return `${pkg.download_speed}M/${pkg.upload_speed}M`;
+    }
+    return pkg.speed || '-';
+  };
+
+  // Effective access window: validity_days (calendar) capped by time_limit (HOURS).
+  // Mirrors the captive buy-page logic so the list matches what customers see —
+  // e.g. a 1-hour package (validity_days=1, time_limit=1) reads "1 Hour", not the
+  // old hardcoded "2 Hours" fallback.
+  const formatDuration = (pkg: PlanItem) => {
+    const days = pkg.validity_days ?? 0;
+    const tl = pkg.time_limit ?? -1; // hours, -1 = unlimited
+    let hours = days * 24;
+    if (tl > 0) hours = hours > 0 ? Math.min(hours, tl) : tl;
+    if (hours <= 0) return pkg.duration || '-';
+    if (hours < 1) return `${Math.round(hours * 60)} min`;
+    if (hours === 1) return '1 Hour';
+    if (hours % 24 === 0) {
+      const d = hours / 24;
+      if (d === 1) return '1 Day';
+      if (d === 7) return '7 Days';
+      if (d === 30) return '1 Month';
+      return `${d} Days`;
+    }
+    return `${hours} Hours`;
+  };
+
   const matchesTab = (pkg: PlanItem) => {
     if (activeTab === 'all') return true;
     const t = (pkg.plan_type || '').toLowerCase();
@@ -193,10 +223,10 @@ export default function PackageTable({
                 <span className="font-medium text-gray-900">{formatPrice(pkg.price, pkg.currency)}</span>
               </td>
               <td className="py-4 px-4 text-gray-600">
-                {pkg.speed || '3M/3M'}
+                {formatSpeed(pkg)}
               </td>
               <td className="py-4 px-4 text-gray-600">
-                {pkg.duration || '2 Hours'}
+                {formatDuration(pkg)}
               </td>
               <td className="py-4 px-4">
                 <Badge variant="outline" className="capitalize">
@@ -204,7 +234,7 @@ export default function PackageTable({
                 </Badge>
               </td>
               <td className="py-4 px-4 text-gray-600">
-                {pkg.device_count || '1'}
+                {pkg.concurrent_sessions ?? pkg.device_count ?? 1}
               </td>
               <td className="py-4 px-4">
                 <Badge className={pkg.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>

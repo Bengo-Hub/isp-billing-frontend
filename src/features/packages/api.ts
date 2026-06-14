@@ -10,6 +10,13 @@ export type PlanItem = {
   price: number;
   currency: string;
   is_active: boolean;
+  // Real backend fields (the list returns the full ServicePlan). Prefer these
+  // over the legacy display-only `speed`/`duration`/`device_count` aliases.
+  download_speed?: number;
+  upload_speed?: number;
+  time_limit?: number;        // HOURS, -1 = unlimited
+  validity_days?: number;
+  concurrent_sessions?: number;
   speed?: string;
   duration?: string;
   device_count?: number;
