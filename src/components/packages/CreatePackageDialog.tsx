@@ -636,14 +636,14 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
                     {!formData.unlimitedTime && (
                       <div className="mt-3">
                         <Label htmlFor="timeLimit" className="text-sm font-medium text-gray-700">
-                          Time Cap (minutes)
+                          Time Cap (hours)
                         </Label>
                         <Input
                           id="timeLimit"
                           type="number"
                           value={formData.timeLimit}
                           onChange={(e) => handleInputChange('timeLimit', e.target.value)}
-                          placeholder="e.g. 1440"
+                          placeholder="e.g. 24"
                           className="mt-1"
                         />
                       </div>

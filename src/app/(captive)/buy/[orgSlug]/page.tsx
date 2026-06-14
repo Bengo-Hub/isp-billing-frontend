@@ -117,11 +117,12 @@ export default function CaptiveBuyPackagesPage() {
     return `${days} Days`;
   };
 
-  const formatDataLimit = (dataLimitMB: number) => {
-    if (dataLimitMB >= 1000) {
-      return `${(dataLimitMB / 1000).toFixed(0)} GB`;
+  // data_limit is stored in GB (backend canonical), -1 = unlimited.
+  const formatDataLimit = (dataLimitGB: number) => {
+    if (dataLimitGB < 1) {
+      return `${Math.round(dataLimitGB * 1024)} MB`;
     }
-    return `${dataLimitMB} MB`;
+    return `${dataLimitGB} GB`;
   };
 
   // time_limit is stored in HOURS in the backend (-1 = unlimited), NOT seconds.
