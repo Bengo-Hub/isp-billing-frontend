@@ -44,11 +44,15 @@ export default function PackageTable({
 }: PackageTableProps) {
   const [selectedPackages, setSelectedPackages] = useState<number[]>([]);
 
+  // Fetch all plans and filter by tab CLIENT-SIDE. The backend plan_type enum is
+  // uppercase (HOTSPOT/PPPOE/INTERNET/BOTH) with no "trial", so sending the
+  // lowercase tab id as plan_type 422'd the request -> "Error: API unavailable"
+  // on every tab except All. Client-side filtering also lets a BOTH plan appear
+  // under both Hotspot and PPPoE.
   const { data, isLoading, error } = usePlans({
     page: 1,
-    size: 20,
-    plan_type: activeTab === 'all' ? undefined : activeTab,
-    search: searchQuery || undefined
+    size: 200,
+    search: searchQuery || undefined,
   });
 
   const deleteMutation = useDeletePlan();
@@ -108,8 +112,19 @@ export default function PackageTable({
     }).format(price);
   };
 
+  const matchesTab = (pkg: PlanItem) => {
+    if (activeTab === 'all') return true;
+    const t = (pkg.plan_type || '').toLowerCase();
+    // A BOTH plan is usable as hotspot AND pppoe, so show it under either tab.
+    if (activeTab === 'hotspot') return t === 'hotspot' || t === 'both';
+    if (activeTab === 'pppoe') return t === 'pppoe' || t === 'both';
+    if (activeTab === 'data') return t === 'data' || t === 'internet';
+    if (activeTab === 'trial') return pkg.price === 0; // "Free Trial" = zero-price plans
+    return t === activeTab;
+  };
+
   const filteredPackages = data?.items?.filter(pkg => {
-    if (activeTab !== 'all' && pkg.plan_type !== activeTab) return false;
+    if (!matchesTab(pkg)) return false;
     if (searchQuery && !pkg.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   }) || [];

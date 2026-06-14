@@ -13,13 +13,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useCreatePlan } from '@/features/packages/api';
+import { useCreatePlan, useUpdatePlan, usePlan } from '@/features/packages/api';
 import { ArrowLeft, ArrowRight, DollarSign, Loader2, Package, Settings, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface CreatePackageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, the SAME form runs in edit mode: it fetches the full plan, prefills
+   *  every field, and PATCHes on save (one shared form for add + edit). */
+  editId?: number;
   initialData?: {
     type?: string;
     name?: string;
@@ -54,9 +57,13 @@ interface CreatePackageDialogProps {
   };
 }
 
-export default function CreatePackageDialog({ open, onOpenChange, initialData }: CreatePackageDialogProps) {
+export default function CreatePackageDialog({ open, onOpenChange, editId, initialData }: CreatePackageDialogProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const createPlan = useCreatePlan();
+  const updatePlan = useUpdatePlan();
+  const isEdit = !!editId;
+  const { data: editPlan } = usePlan(editId ?? 0);
+  const isSaving = createPlan.isPending || updatePlan.isPending;
   const [formData, setFormData] = useState({
     // Basic Configuration
     type: initialData?.type || '',
@@ -160,6 +167,62 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
     { value: '8760', label: '1 Year', hours: 8760, cycle: 'YEARLY' }
   ];
 
+  // Reverse-map a saved plan's validity_days/time_limit back to a duration bucket.
+  const matchDuration = (p: any): string => {
+    const tl = Number(p?.time_limit);
+    if (tl && tl > 0) {
+      const byTime = durations.find(d => d.hours === tl);
+      if (byTime) return byTime.value;
+    }
+    const hrs = (Number(p?.validity_days) || 0) * 24;
+    const exact = durations.find(d => d.hours === hrs);
+    if (exact) return exact.value;
+    if (hrs > 0) {
+      return durations.reduce((a, c) =>
+        Math.abs(c.hours - hrs) < Math.abs(a.hours - hrs) ? c : a, durations[0]).value;
+    }
+    return '';
+  };
+
+  // EDIT MODE: when the full plan loads, prefill EVERY field from it.
+  useEffect(() => {
+    if (!isEdit || !editPlan) return;
+    const p = editPlan as any;
+    setFormData({
+      type: p.plan_type || '',
+      name: p.name || '',
+      description: p.description || '',
+      duration: matchDuration(p),
+      uploadSpeed: p.upload_speed != null ? String(p.upload_speed) : '',
+      downloadSpeed: p.download_speed != null ? String(p.download_speed) : '',
+      price: p.price != null ? String(p.price) : '',
+      currency: p.currency || 'KES',
+      deviceLimit: p.concurrent_sessions != null ? String(p.concurrent_sessions) : '1',
+      unlimitedData: p.data_limit == null || p.data_limit === -1,
+      dataLimit: p.data_limit > 0 ? String(p.data_limit) : '',
+      unlimitedTime: p.time_limit == null || p.time_limit === -1,
+      timeLimit: p.time_limit > 0 ? String(p.time_limit) : '',
+      enableBurst: !!p.enable_burst,
+      burstUpload: p.burst_upload != null ? String(p.burst_upload) : '',
+      burstDownload: p.burst_download != null ? String(p.burst_download) : '',
+      burstThreshold: p.burst_threshold != null ? String(p.burst_threshold) : '80',
+      burstTime: p.burst_time != null ? String(p.burst_time) : '30',
+      enableFUP: !!p.fup_enabled,
+      fupThreshold: p.fup_threshold != null ? String(p.fup_threshold) : '',
+      fupDownloadSpeed: p.fup_download_speed != null ? String(p.fup_download_speed) : '',
+      fupUploadSpeed: p.fup_upload_speed != null ? String(p.fup_upload_speed) : '',
+      enableSchedule: !!p.enable_schedule,
+      startTime: p.schedule_start_time || '',
+      endTime: p.schedule_end_time || '',
+      isActive: p.is_active ?? true,
+      isPopular: !!p.is_popular,
+      autoRenewal: !!p.auto_renewal,
+      sortOrder: p.sort_order != null ? String(p.sort_order) : '0',
+      notes: p.notes || '',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, editPlan]);
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -223,6 +286,16 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
       notes: formData.notes || undefined,
     };
 
+    if (isEdit && editId) {
+      updatePlan.mutate({ planId: editId, data: planData }, {
+        onSuccess: () => {
+          onOpenChange(false);
+          setCurrentStep(1);
+        },
+      });
+      return;
+    }
+
     createPlan.mutate(planData, {
       onSuccess: () => {
         onOpenChange(false);
@@ -284,10 +357,10 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-brand-600" />
-            Create Package
+            {isEdit ? 'Edit Package' : 'Create Package'}
           </DialogTitle>
           <DialogDescription>
-            Create a new internet package for your clients
+            {isEdit ? 'Update package details' : 'Create a new internet package for your clients'}
           </DialogDescription>
         </DialogHeader>
 
@@ -856,7 +929,7 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createPlan.isPending}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
               Cancel
             </Button>
             {currentStep < 4 ? (
@@ -865,9 +938,9 @@ export default function CreatePackageDialog({ open, onOpenChange, initialData }:
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={!isStepValid() || createPlan.isPending}>
-                {createPlan.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Package
+              <Button onClick={handleSubmit} disabled={!isStepValid() || isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEdit ? 'Save Changes' : 'Create Package'}
               </Button>
             )}
           </div>

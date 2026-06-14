@@ -1,7 +1,6 @@
 'use client';
 
 import CreatePackageDialog from '@/components/packages/CreatePackageDialog';
-import EditPackageDialog from '@/components/packages/EditPackageDialog';
 import PackageDetailDialog from '@/components/packages/PackageDetailDialog';
 import PackageTable from '@/components/packages/PackageTable';
 import QuickTemplatesDialog, { type PackageTemplateData } from '@/components/packages/QuickTemplatesDialog';
@@ -32,13 +31,17 @@ export default function PackagesPage() {
   const { data: plansData } = usePlans({ page: 1, size: 200 });
   const plans = plansData?.items ?? [];
 
-  const packageCounts = useMemo(() => ({
-    all: plans.length,
-    hotspot: plans.filter((p) => p.plan_type === 'hotspot').length,
-    pppoe: plans.filter((p) => p.plan_type === 'pppoe').length,
-    data: plans.filter((p) => p.plan_type === 'data').length,
-    trial: plans.filter((p) => p.plan_type === 'trial').length,
-  }), [plans]);
+  const packageCounts = useMemo(() => {
+    const t = (p: PlanItem) => (p.plan_type || '').toLowerCase();
+    return {
+      all: plans.length,
+      // BOTH plans count under both hotspot and pppoe (consistent with PackageTable).
+      hotspot: plans.filter((p) => t(p) === 'hotspot' || t(p) === 'both').length,
+      pppoe: plans.filter((p) => t(p) === 'pppoe' || t(p) === 'both').length,
+      data: plans.filter((p) => t(p) === 'data' || t(p) === 'internet').length,
+      trial: plans.filter((p) => p.price === 0).length,
+    };
+  }, [plans]);
 
   const tabs = [
     { id: 'all', label: 'All', count: packageCounts.all },
@@ -152,15 +155,15 @@ export default function PackagesPage() {
         initialData={templateData}
       />
 
-      {/* Edit Package Dialog */}
+      {/* Edit Package Dialog — the SAME form as Create, in edit mode (no redundant form) */}
       {selectedPackage && (
-        <EditPackageDialog
+        <CreatePackageDialog
           open={isEditDialogOpen}
           onOpenChange={(open) => {
             setIsEditDialogOpen(open);
             if (!open) setSelectedPackage(null);
           }}
-          packageData={selectedPackage}
+          editId={selectedPackage.id}
         />
       )}
 
