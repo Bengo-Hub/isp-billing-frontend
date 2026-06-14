@@ -252,7 +252,7 @@ export default function PaymentCallbackPage() {
     return () => clearTimeout(timer);
   }, [redirectCountdown, redirectUrl]);
 
-  const primaryColor = '#801066';
+  const primaryColor = '#9100B0';
 
   return (
     <PublicBrandedLayout showHeader backgroundColor={primaryColor}>

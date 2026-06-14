@@ -48,7 +48,7 @@ interface PaymentMethodSelectorProps {
 
 export function PaymentMethodSelector({
   disabled = false,
-  primaryColor = '#801066',
+  primaryColor = '#9100B0',
 }: PaymentMethodSelectorProps) {
   return (
     <div className="space-y-4 w-full">

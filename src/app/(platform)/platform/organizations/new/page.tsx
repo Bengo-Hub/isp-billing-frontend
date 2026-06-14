@@ -23,8 +23,8 @@ export default function NewOrganizationPage() {
     country: 'Kenya',
     city: '',
     address: '',
-    primary_color: '#801066',
-    secondary_color: '#8b5cf6',
+    primary_color: '#9100B0',
+    secondary_color: '#b800e0',
     default_currency: 'KES',
     timezone: 'Africa/Nairobi',
     notification_email: '',
@@ -217,7 +217,7 @@ export default function NewOrganizationPage() {
                 <Input
                   value={formData.primary_color}
                   onChange={(e) => setFormData(prev => ({ ...prev, primary_color: e.target.value }))}
-                  placeholder="#801066"
+                  placeholder="#9100B0"
                 />
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function NewOrganizationPage() {
                 <Input
                   value={formData.secondary_color}
                   onChange={(e) => setFormData(prev => ({ ...prev, secondary_color: e.target.value }))}
-                  placeholder="#8b5cf6"
+                  placeholder="#b800e0"
                 />
               </div>
             </div>

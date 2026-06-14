@@ -35,7 +35,7 @@ export function TermsConditionsModal({
   open,
   onOpenChange,
   orgSlug,
-  primaryColor = '#801066',
+  primaryColor = '#9100B0',
 }: TermsConditionsModalProps) {
   const { data, isLoading, error } = useTermsConditions(orgSlug);
 

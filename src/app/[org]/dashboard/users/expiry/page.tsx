@@ -181,7 +181,7 @@ export default function ExpiryDatesPage() {
       {/* Table */}
       <Card className="p-4 md:p-6">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="border-b">
               <tr className="text-left text-sm text-gray-600">
                 <th className="pb-3 font-medium">

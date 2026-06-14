@@ -145,13 +145,13 @@ export default function PaymentsPage() {
       {activeTab === 'payments' && (
         <Card className="p-3 sm:p-6 w-full">
           <div className="overflow-x-auto">
-            <div className="min-w-160">
+            <div className="min-w-[900px]">
               {paymentsLoading ? (
                 <div className="text-center py-8 text-gray-500">Loading payments...</div>
               ) : payments.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">No payments found</div>
               ) : (
-                <table className="w-full">
+                <table className="w-full min-w-[720px]">
                 <thead className="border-b">
                   <tr className="text-left text-sm text-gray-600">
                     <th className="pb-3 font-medium">
@@ -207,13 +207,13 @@ export default function PaymentsPage() {
       {activeTab === 'invoices' && (
         <Card className="p-3 sm:p-6 w-full">
           <div className="overflow-x-auto">
-            <div className="min-w-160">
+            <div className="min-w-[900px]">
             {invoicesLoading ? (
               <div className="text-center py-8 text-gray-500">Loading invoices...</div>
             ) : pendingInvoices.length === 0 ? (
               <div className="text-center py-8 text-gray-500">No pending invoices</div>
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-[720px]">
                 <thead className="border-b">
                   <tr className="text-left text-sm text-gray-600">
                     <th className="pb-3 font-medium">Invoice #</th>

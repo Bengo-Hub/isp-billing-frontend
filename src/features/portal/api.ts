@@ -66,6 +66,10 @@ export interface VoucherRedeemResponse {
    *  authenticate on the MikroTik login page if not auto-logged-in. */
   hotspot_username?: string;
   hotspot_password?: string;
+  /** MikroTik hotspot gateway login URL (e.g. http://172.31.0.1/login) so the
+   *  captive page can authenticate the client even on manual navigation, when
+   *  there is no captive-redirect `loginurl` query param. */
+  login_url?: string;
 }
 
 export interface SessionStatus {

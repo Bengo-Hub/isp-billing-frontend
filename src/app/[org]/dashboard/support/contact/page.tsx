@@ -93,7 +93,7 @@ export default function ContactSupportPage() {
 
   if (isSubmitted) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <Card className="p-12 text-center">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
             <Send className="h-8 w-8 text-green-600" />

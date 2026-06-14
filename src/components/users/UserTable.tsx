@@ -54,7 +54,7 @@ export default function UserTable() {
             />
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             value={role || ''}
             onChange={(e) => setRole(e.target.value || undefined)}
@@ -86,7 +86,7 @@ export default function UserTable() {
       {error && <div className="text-red-600">{String(error)}</div>}
       {!isLoading && !error && (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 font-medium text-gray-700">

@@ -192,7 +192,7 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -277,7 +277,7 @@ export default function LeadsPage() {
       {/* Leads Table */}
       <Card className="p-6">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="border-b">
               <tr className="text-left text-sm text-gray-600">
                 <th className="pb-3 font-medium">Name</th>

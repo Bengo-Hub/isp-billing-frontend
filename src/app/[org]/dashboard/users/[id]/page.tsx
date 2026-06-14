@@ -297,7 +297,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
             <p className="text-center py-8 text-sm text-gray-500">No payment records found</p>
           ) : (
             <div className="overflow-x-auto -mx-5 px-5">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[720px]">
                 <thead className="border-b dark:border-gray-700">
                   <tr className="text-left text-xs text-gray-500 dark:text-gray-400">
                     <th className="pb-3 pr-4">Amount</th>
@@ -342,7 +342,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Session Activity</h3>
           {(subscriptions ?? []).some((s: SubscriptionItem) => s.session_count > 0) ? (
             <div className="overflow-x-auto -mx-6 px-6">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[720px]">
                 <thead className="border-b dark:border-gray-700">
                   <tr className="text-left text-xs text-gray-500 dark:text-gray-400">
                     <th className="pb-3 pr-4">Subscription</th>

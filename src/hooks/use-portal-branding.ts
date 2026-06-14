@@ -18,7 +18,7 @@ import { usePortalConfig, type PortalConfig } from '@/features/portal/api';
 export const DEFAULT_BRANDING = {
   organization_name: 'CodeVertex IT Solutions',
   logo_url: '/images/logo/logo.png',
-  primary_color: '#801066',
+  primary_color: '#9100B0',
   portal_title: 'WiFi Hotspot',
   portal_description: 'Fast, reliable internet access',
   show_packages: true,

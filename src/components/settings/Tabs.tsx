@@ -102,7 +102,7 @@ function GeneralTab() {
   const [logo, setLogo] = useState<string>(data['system.logo_url'] || DEFAULT_LOGO);
   const [terms, setTerms] = useState<string>(data['system.terms_text'] ?? '');
   const [isUploading, setIsUploading] = useState(false);
-  const [primaryColor, setPrimaryColor] = useState<string>(data['system.primary_color'] || '#801066');
+  const [primaryColor, setPrimaryColor] = useState<string>(data['system.primary_color'] || '#9100B0');
   const [timezone, setTimezone] = useState<string>(org?.timezone || DEFAULT_TIMEZONE);
 
   // Sync logo from settings when data loads
@@ -253,7 +253,7 @@ function GeneralTab() {
                       type="text"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      placeholder="#801066"
+                      placeholder="#9100B0"
                       className="font-mono"
                     />
                   </div>
