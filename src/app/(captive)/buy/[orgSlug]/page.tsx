@@ -119,13 +119,25 @@ export default function CaptiveBuyPackagesPage() {
     if (!voucherCode) return;
 
     try {
-      await redeemMutation.mutateAsync({
+      const result = await redeemMutation.mutateAsync({
         code: voucherCode,
         mac_address: macAddress || undefined,
       });
-      showToast.voucherRedeemed();
-    } catch {
-      showToast.error('Invalid voucher code. Please check and try again.');
+      // The redeem endpoint returns HTTP 200 with { success: false, message }
+      // for invalid/expired/used codes, so a non-thrown response can still fail.
+      if (result?.success) {
+        showToast.voucherRedeemed();
+      } else {
+        showToast.error(result?.message || 'Invalid voucher code. Please check and try again.');
+      }
+    } catch (error: any) {
+      // Surface the backend's actual error message when the request throws.
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Invalid voucher code. Please check and try again.';
+      showToast.error(message);
     }
   };
 
@@ -176,14 +188,31 @@ export default function CaptiveBuyPackagesPage() {
     );
   }
 
-  // Voucher success
-  if (redeemMutation.isSuccess && redeemMutation.data) {
+  // Voucher success — only when the backend actually confirmed success
+  // (the endpoint returns 200 with { success: false } for bad codes).
+  if (redeemMutation.isSuccess && redeemMutation.data?.success) {
+    const { hotspot_username, hotspot_password, message } = redeemMutation.data;
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor }}>
         <Card className="max-w-md w-full p-8 text-center">
           <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: primaryColor }} />
           <h2 className="text-2xl font-bold mb-4">Voucher Redeemed!</h2>
-          <p className="text-gray-600 mb-6">{redeemMutation.data.message}</p>
+          <p className="text-gray-600 mb-6">{message}</p>
+          {/* Show login credentials so the user can authenticate on the
+              MikroTik hotspot login page if they are not auto-logged-in. */}
+          {(hotspot_username || hotspot_password) && (
+            <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg mb-6 text-left">
+              <p className="text-xs font-semibold text-gray-500 mb-2 text-center">Your login</p>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-gray-600">Username</span>
+                <span className="font-mono font-semibold text-gray-900 break-all">{hotspot_username}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm mt-1">
+                <span className="text-gray-600">Password</span>
+                <span className="font-mono font-semibold text-gray-900 break-all">{hotspot_password}</span>
+              </div>
+            </div>
+          )}
           {linkLogin && (
             <Button onClick={() => window.location.href = linkLogin} className="w-full" style={{ backgroundColor: primaryColor }}>
               Connect to Internet
@@ -326,9 +355,22 @@ export default function CaptiveBuyPackagesPage() {
                 className="text-center text-base sm:text-lg h-12 sm:h-14"
                 autoComplete="off"
               />
-              {redeemMutation.isError && (
-                <p className="text-red-600 text-xs sm:text-sm text-center">Invalid voucher code</p>
-              )}
+              {(() => {
+                // Show the backend's real message for both thrown errors and
+                // 200 responses that carry { success: false }.
+                const err: any = redeemMutation.error;
+                const failedMessage = redeemMutation.isError
+                  ? err?.response?.data?.message ||
+                    err?.response?.data?.detail ||
+                    err?.message ||
+                    'Invalid voucher code'
+                  : redeemMutation.data && !redeemMutation.data.success
+                    ? redeemMutation.data.message || 'Invalid voucher code'
+                    : null;
+                return failedMessage ? (
+                  <p className="text-red-600 text-xs sm:text-sm text-center">{failedMessage}</p>
+                ) : null;
+              })()}
               <Button
                 onClick={handleRedeemVoucher}
                 disabled={!voucherCode || redeemMutation.isPending}
