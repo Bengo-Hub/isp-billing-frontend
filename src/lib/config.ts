@@ -5,8 +5,29 @@
 export const config = {
   // API Configuration
   apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-  wsUrl: process.env.NEXT_PUBLIC_WS_BASE_URL || 'ws://localhost:8000',
   appName: process.env.NEXT_PUBLIC_APP_NAME || 'Codevertex ISP Billing',
+
+  /**
+   * WebSocket base URL (no path). The WS endpoint lives on the SAME host as the
+   * REST API, so we derive it from the API URL by default: this guarantees
+   * `wss://` on HTTPS pages and the correct host, avoiding the old
+   * `ws://localhost:8000` fallback that threw a mixed-content SecurityError in
+   * production (leaving `readyState` undefined). An explicit, non-localhost
+   * NEXT_PUBLIC_WS_BASE_URL still wins if provided.
+   */
+  get wsUrl(): string {
+    const explicit = process.env.NEXT_PUBLIC_WS_BASE_URL;
+    if (explicit && !explicit.includes('localhost')) return explicit;
+
+    const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    try {
+      const u = new URL(api);
+      const proto = u.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${proto}//${u.host}`;
+    } catch {
+      return explicit || 'ws://localhost:8000';
+    }
+  },
 
   // MikroTik Router Configuration
   // Default router IP for provisioning, ping checks, and form defaults
