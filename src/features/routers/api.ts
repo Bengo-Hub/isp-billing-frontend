@@ -463,6 +463,9 @@ export function useListRouterBackups(routerId: number) {
 }
 
 // Device events timeline (RouterLog + agent command history) — NAT-safe.
+// Shape mirrors GET /routers/{id}/events which merges RouterLog + RouterCommand
+// rows server-side. The backend collapses `source`/`result_message` into
+// `details` and does not expose params/sent_at/completed_at separately.
 export interface RouterEvent {
   id: string;
   kind: 'log' | 'command';
@@ -473,12 +476,22 @@ export interface RouterEvent {
   created_at?: string;
 }
 
-export function useRouterEvents(routerId: number) {
+/**
+ * Device events for a router.
+ *
+ * The backend endpoint returns a single newest-first list (capped by `limit`,
+ * max 500) and does NOT support page/size params, so pagination is done
+ * client-side by the Device Events tab. We pull a generous window here so the
+ * client pager has enough rows to page through without re-fetching.
+ */
+export function useRouterEvents(routerId: number, limit = 200) {
   return useQuery({
-    queryKey: [...queryKeys.routers.detail(String(routerId)), 'events'],
+    queryKey: [...queryKeys.routers.detail(String(routerId)), 'events', limit],
     queryFn: async (): Promise<RouterEvent[]> => {
       try {
-        const { data } = await api.get(`/routers/${routerId}/events`);
+        const { data } = await api.get(`/routers/${routerId}/events`, {
+          params: { limit },
+        });
         return data ?? [];
       } catch {
         return [];

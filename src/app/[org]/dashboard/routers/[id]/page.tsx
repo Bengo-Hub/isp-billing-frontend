@@ -21,7 +21,8 @@ import {
   useRouterEvents,
   useRouterPayments,
 } from '@/features/routers/api';
-import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle, Activity, CreditCard, HardDrive } from 'lucide-react';
+import { DeviceEventsTab } from '@/features/routers/components/DeviceEventsTab';
+import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle, CreditCard, HardDrive } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -381,38 +382,7 @@ export default function RouterDetailsPage() {
         </TabsContent>
 
         <TabsContent value="events">
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Events ({events?.length || 0})</h2>
-            {events && events.length > 0 ? (
-              <div className="space-y-2">
-                {events.map((ev) => (
-                  <div key={ev.id} className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
-                    <div className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${ev.success ? 'bg-green-500' : ev.status === 'pending' || ev.status === 'sent' ? 'bg-amber-400' : 'bg-red-500'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{ev.action}</span>
-                        <Badge className={ev.kind === 'command' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700'}>
-                          {ev.kind}
-                        </Badge>
-                        <Badge className={ev.success ? 'bg-green-100 text-green-800' : ev.status === 'pending' || ev.status === 'sent' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}>
-                          {ev.status}
-                        </Badge>
-                      </div>
-                      {ev.details && <p className="text-sm text-gray-600 truncate">{ev.details}</p>}
-                    </div>
-                    <div className="text-xs text-gray-400 whitespace-nowrap">
-                      {ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Activity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p>No events recorded yet</p>
-              </div>
-            )}
-          </Card>
+          <DeviceEventsTab routerId={routerId} />
         </TabsContent>
 
         <TabsContent value="reports">

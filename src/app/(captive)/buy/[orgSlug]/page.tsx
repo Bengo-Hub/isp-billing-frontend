@@ -17,7 +17,7 @@ import { showToast } from '@/lib/utils/toast';
 import { AlertCircle, CheckCircle, Clock, Loader2, LogIn, Star, Ticket, Wifi, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function CaptiveBuyPackagesPage() {
   const params = useParams();
@@ -59,6 +59,47 @@ export default function CaptiveBuyPackagesPage() {
 
   const macAddress = searchParams.get('mac') || searchParams.get('mac-address');
   const linkLogin = searchParams.get('link-login');
+
+  // New captive-redirect contract: the router's login.html forwards these.
+  //  - loginurl: MikroTik $(link-login-only) — POST credentials here to auth.
+  //  - linkorig: the original URL the user tried to visit (use as `dst`).
+  //  - ip:       client IP (kept for completeness / future use).
+  // These are ABSENT when the user opens this page directly (not via the
+  // captive redirect), in which case we fall back to showing credentials.
+  const loginUrl = searchParams.get('loginurl');
+  const linkOrig = searchParams.get('linkorig') || searchParams.get('dst');
+  const clientIp = searchParams.get('ip');
+
+  // Tracks the "Connecting you to the internet…" splash shown right before we
+  // hand the browser off to the MikroTik hotspot login endpoint.
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  /**
+   * Authenticate the CLIENT to the MikroTik hotspot.
+   *
+   * MikroTik only grants internet once the *client's browser* submits
+   * username+password to the hotspot login endpoint ($(link-login-only),
+   * http-pap accepts plain credentials). A fetch/XHR is not enough — the
+   * browser itself must navigate there — so we build a real <form> and submit
+   * it, which navigates the client to the login URL and gets them online.
+   */
+  const loginToHotspot = (loginurl: string, username: string, password: string, dst?: string) => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = loginurl;
+    const add = (n: string, v: string) => {
+      const i = document.createElement('input');
+      i.type = 'hidden';
+      i.name = n;
+      i.value = v;
+      form.appendChild(i);
+    };
+    add('username', username);
+    add('password', password);
+    if (dst) add('dst', dst);
+    document.body.appendChild(form);
+    form.submit();
+  };
 
   const formatCurrency = (amount: number, currency: string = 'KES') => {
     return `Ksh ${amount}`;
@@ -141,7 +182,79 @@ export default function CaptiveBuyPackagesPage() {
     }
   };
 
+  // Guard so we only ever submit the hotspot login form once per page life,
+  // regardless of how many times the success state re-renders / re-polls.
+  const hotspotSubmittedRef = useRef(false);
+
+  /**
+   * Hand the client off to the MikroTik hotspot login.
+   *
+   * Only runs when we arrived via the captive redirect (loginUrl present).
+   * Shows the "Connecting…" splash first, then submits the credential form
+   * which navigates the browser to $(link-login-only) → authenticated → online.
+   * `linkOrig` is passed as `dst` so MikroTik returns the user to where they
+   * were originally headed after login.
+   */
+  const connectToHotspot = (username?: string, password?: string) => {
+    if (hotspotSubmittedRef.current) return;
+    if (!loginUrl || !username || !password) return;
+    hotspotSubmittedRef.current = true;
+    setIsConnecting(true);
+    // Defer the navigation a tick so the "Connecting…" splash paints before
+    // the browser unloads this page for the MikroTik login endpoint.
+    setTimeout(() => {
+      loginToHotspot(loginUrl, username, password, linkOrig || undefined);
+    }, 600);
+  };
+
+  // Auto-login after a SUCCESSFUL voucher redeem (captive redirect only).
+  useEffect(() => {
+    if (redeemMutation.isSuccess && redeemMutation.data?.success) {
+      connectToHotspot(
+        redeemMutation.data.hotspot_username,
+        redeemMutation.data.hotspot_password,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redeemMutation.isSuccess, redeemMutation.data]);
+
+  // Auto-login after a SUCCESSFUL package purchase/payment (captive redirect
+  // only). Credentials arrive on the polled payment-status payload. The
+  // /payment/status endpoint returns `hotspot_username`/`hotspot_password`
+  // (see the payment callback page); we also accept the legacy
+  // `username`/`password` aliases defensively.
+  useEffect(() => {
+    if (paymentStatus?.is_completed) {
+      const ps = paymentStatus as typeof paymentStatus & {
+        hotspot_username?: string;
+        hotspot_password?: string;
+      };
+      connectToHotspot(
+        ps.hotspot_username ?? ps.username,
+        ps.hotspot_password ?? ps.password,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentStatus]);
+
   const backgroundColor = '#FFF5F5';
+
+  // "Connecting you to the internet…" splash shown while we hand the client
+  // off to the MikroTik hotspot login (captive redirect path only).
+  if (isConnecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor }}>
+        <Card className="max-w-md w-full p-8 text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" style={{ color: primaryColor }} />
+          <h2 className="text-xl font-bold mb-2">Connecting you to the internet…</h2>
+          <p className="text-gray-600">Please wait while we get you online.</p>
+          {clientIp && (
+            <p className="text-xs text-gray-400 mt-3">Device {clientIp}</p>
+          )}
+        </Card>
+      </div>
+    );
+  }
 
   if (configLoading || packagesLoading) {
     return (
@@ -153,21 +266,44 @@ export default function CaptiveBuyPackagesPage() {
 
   // Payment success
   if (paymentStatus?.is_completed) {
+    // The /payment/status endpoint returns hotspot_username/hotspot_password
+    // for hotspot purchases; accept the legacy username/password aliases too.
+    const ps = paymentStatus as typeof paymentStatus & {
+      hotspot_username?: string;
+      hotspot_password?: string;
+    };
+    const psUsername = ps.hotspot_username ?? ps.username;
+    const psPassword = ps.hotspot_password ?? ps.password;
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor }}>
         <Card className="max-w-md w-full p-8 text-center">
           <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: primaryColor }} />
           <h2 className="text-2xl font-bold mb-4">Payment Successful!</h2>
-          {paymentStatus.username && (
+          {psUsername && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              <p className="text-sm text-gray-600 mb-2">Username: {paymentStatus.username}</p>
-              <p className="text-sm text-gray-600">Password: {paymentStatus.password}</p>
+              <p className="text-sm text-gray-600 mb-2">Username: {psUsername}</p>
+              <p className="text-sm text-gray-600">Password: {psPassword}</p>
             </div>
           )}
-          {linkLogin && (
-            <Button onClick={() => window.location.href = linkLogin} className="w-full" style={{ backgroundColor: primaryColor }}>
+          {/* Via captive redirect: authenticate the client on the MikroTik
+              hotspot (the auto-login effect normally fires this already; this
+              button is a manual fallback if the auto-submit was blocked). */}
+          {loginUrl ? (
+            <Button
+              onClick={() => connectToHotspot(psUsername, psPassword)}
+              className="w-full"
+              style={{ backgroundColor: primaryColor }}
+            >
               Connect to Internet
             </Button>
+          ) : (
+            // Direct navigation (no hotspot login endpoint): keep the existing
+            // link-login affordance.
+            linkLogin && (
+              <Button onClick={() => window.location.href = linkLogin} className="w-full" style={{ backgroundColor: primaryColor }}>
+                Connect to Internet
+              </Button>
+            )
           )}
         </Card>
       </div>
@@ -213,10 +349,25 @@ export default function CaptiveBuyPackagesPage() {
               </div>
             </div>
           )}
-          {linkLogin && (
-            <Button onClick={() => window.location.href = linkLogin} className="w-full" style={{ backgroundColor: primaryColor }}>
+          {/* Via captive redirect: authenticate the client on the MikroTik
+              hotspot (the auto-login effect normally fires this already; this
+              button is a manual fallback if the auto-submit was blocked). */}
+          {loginUrl ? (
+            <Button
+              onClick={() => connectToHotspot(hotspot_username, hotspot_password)}
+              className="w-full"
+              style={{ backgroundColor: primaryColor }}
+            >
               Connect to Internet
             </Button>
+          ) : (
+            // Direct navigation (no hotspot login endpoint): keep the existing
+            // link-login affordance.
+            linkLogin && (
+              <Button onClick={() => window.location.href = linkLogin} className="w-full" style={{ backgroundColor: primaryColor }}>
+                Connect to Internet
+              </Button>
+            )
           )}
         </Card>
       </div>

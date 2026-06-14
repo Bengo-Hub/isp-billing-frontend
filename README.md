@@ -1,6 +1,6 @@
 ﻿# Codevertex ISP Billing System - Frontend
 
-A modern, responsive, and feature-rich frontend application built with Next.js 15, providing a complete user interface for ISP billing and management.
+A modern, responsive, and feature-rich frontend application built with Next.js 16, providing a complete user interface for ISP billing and management.
 
 ## Features
 
@@ -37,7 +37,7 @@ A modern, responsive, and feature-rich frontend application built with Next.js 1
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript 5+
 - **UI Library**: React 19
 - **Styling**: Tailwind CSS 3+
@@ -146,7 +146,7 @@ frontend/
 
 1. **Navigate to frontend directory:**
    ```bash
-   cd wifi-billing-software-frontend
+   cd isp-billing-frontend
    ```
 
 2. **Install dependencies:**
@@ -194,15 +194,15 @@ npm run build && npm run export
 ## 📚 Documentation
 
 ### Frontend Documentation
-- **[Frontend Setup Guide](./docs/SETUP_GUIDE.md)** - Complete frontend setup and configuration (1,400+ lines)
-- **[Implementation Progress](./docs/IMPLEMENTATION_PROGRESS.md)** - Feature completion status
+- **[Frontend Setup Guide](./docs/SETUP_GUIDE.md)** - Frontend setup and configuration
+- **[API Integration](./docs/API_INTEGRATION.md)** - How the frontend talks to the backend API
+- **[Frontend Plan](./docs/plan.md)** / **[UI Plan](./docs/ui_plan.md)** - Feature/UI status
 
 ### Backend Documentation
-- **[Backend Setup Guide](../wifi-billing-software-backend/docs/SETUP_GUIDE.md)** - Backend installation and configuration
-- **[API Documentation](../wifi-billing-software-backend/docs/API_DOCUMENTATION.md)** - Complete API reference
-- **[RBAC System](../wifi-billing-software-backend/docs/RBAC_SYSTEM.md)** - Role-based access control
-- **[MikroTik Provisioning](../wifi-billing-software-backend/docs/MIKROTIK_PROVISIONING_GUIDE.md)** - Technical provisioning guide (1,400+ lines)
-- **[Auth Mapping](../wifi-billing-software-backend/docs/AUTH_MAPPING.md)** - Authentication field mapping
+- **[Backend Setup Guide](../isp-billing-backend/docs/SETUP_GUIDE.md)** - Backend installation and configuration
+- **[API Documentation](../isp-billing-backend/docs/API_DOCUMENTATION.md)** - Complete API reference
+- **[MikroTik Provisioning](../isp-billing-backend/docs/MIKROTIK_PROVISIONING_GUIDE.md)** - NAT polling-agent + external captive-portal provisioning guide
+- **[Auth Mapping](../isp-billing-backend/docs/AUTH_MAPPING.md)** - Authentication field mapping
 
 ## 🎨 Design System
 
@@ -409,18 +409,14 @@ const { theme, setTheme } = useTheme();
 npm run build
 ```
 
-### Deploy to Vercel
-```bash
-vercel deploy
-```
+### Production Deployment (GitOps)
 
-### Deploy to Other Platforms
-The application can be deployed to any platform that supports Next.js:
-- Vercel
-- Netlify
-- AWS Amplify
-- DigitalOcean App Platform
-- Self-hosted with Node.js
+Production deploys via GitOps, not Vercel. Pushes to `main`/`master` trigger
+`.github/workflows/deploy.yml` → `build.sh`, which builds + pushes
+`docker.io/codevertex/isp-billing-frontend:<short-sha>`, bumps the image `tag` in
+the devops-k8s `apps/isp-billing-frontend/values.yaml`, and **ArgoCD auto-syncs**
+the `isp-billing` namespace. The app is a containerized Next.js standalone server
+(see `Dockerfile`), so it can also run on any Node.js/container host.
 
 ## 🤝 Contributing
 
@@ -448,5 +444,5 @@ Codevertex Africa Limited specializes in ISP management software, network automa
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: October 21, 2025  
-**Status**: Production Ready ✅
+**Last Updated**: 2026-06  
+**Status**: Production
