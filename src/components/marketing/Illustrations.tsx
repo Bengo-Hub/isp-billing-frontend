@@ -72,7 +72,7 @@ export function ActiveUsersChart() {
 export function RevenueChart() {
   return (
     <motion.div 
-      className="w-full h-48 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4"
+      className="w-full h-48 bg-gradient-to-br from-brand-50 to-brand-100 rounded-lg p-4"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6 }}
@@ -81,7 +81,7 @@ export function RevenueChart() {
         {[30, 50, 40, 70, 60, 85, 65, 80, 55, 90, 75, 95].map((height, index) => (
           <motion.div
             key={index}
-            className="bg-gradient-to-t from-purple-500 to-purple-400 rounded-t flex-1"
+            className="bg-gradient-to-t from-brand-500 to-brand-400 rounded-t flex-1"
             style={{ height: `${height}%` }}
             initial={{ height: 0 }}
             animate={{ height: `${height}%` }}
@@ -95,8 +95,8 @@ export function RevenueChart() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 1.2 }}
       >
-        <div className="text-lg font-bold text-purple-600">$1,240</div>
-        <div className="text-xs text-purple-600">Revenue Today</div>
+        <div className="text-lg font-bold text-brand-600">$1,240</div>
+        <div className="text-xs text-brand-600">Revenue Today</div>
       </motion.div>
     </motion.div>
   );

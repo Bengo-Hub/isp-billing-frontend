@@ -217,7 +217,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
           <p className="text-xl font-bold">{formatCurrency(totalPaid)}</p>
           <p className="text-xs opacity-70">{payments.length} transactions</p>
         </Card>
-        <Card className="p-4 bg-linear-to-br from-purple-500 to-purple-600 text-white">
+        <Card className="p-4 bg-linear-to-br from-fuchsia-500 to-fuchsia-600 text-white">
           <p className="text-xs opacity-80 mb-1">Member Since</p>
           <p className="text-xl font-bold">{user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : ''}</p>
           <p className="text-xs opacity-70">Last: {user.last_login ? formatDate(user.last_login) : 'Never'}</p>
