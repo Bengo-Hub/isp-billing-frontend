@@ -14,6 +14,7 @@ import {
   useActiveConnections,
   useDisconnectUser,
   useRebootRouter,
+  useEnrollRouterVpn,
   useCreateRouterBackup,
   useListRouterBackups,
   useTestRouterConnection,
@@ -22,7 +23,7 @@ import {
   useRouterPayments,
 } from '@/features/routers/api';
 import { DeviceEventsTab } from '@/features/routers/components/DeviceEventsTab';
-import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle, CreditCard, HardDrive } from 'lucide-react';
+import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle, CreditCard, HardDrive, Lock } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ export default function RouterDetailsPage() {
 
   // Mutations
   const rebootMutation = useRebootRouter();
+  const enrollVpnMutation = useEnrollRouterVpn();
   const backupMutation = useCreateRouterBackup();
   const testConnectionMutation = useTestRouterConnection();
   const disconnectMutation = useDisconnectUser();
@@ -59,6 +61,12 @@ export default function RouterDetailsPage() {
   const handleReboot = async () => {
     if (confirm('Are you sure you want to reboot this router?')) {
       await rebootMutation.mutateAsync(routerId);
+    }
+  };
+
+  const handleEnrollVpn = async () => {
+    if (confirm('Enroll this router into the WireGuard VPN? It joins the tunnel on its next agent poll (~30s) and enables remote winbox.')) {
+      await enrollVpnMutation.mutateAsync(routerId);
     }
   };
 
@@ -151,6 +159,10 @@ export default function RouterDetailsPage() {
               <DropdownMenuItem onClick={handleBackup}>
                 <Download className="h-4 w-4 mr-2" />
                 Create Backup
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEnrollVpn}>
+                <Lock className="h-4 w-4 mr-2" />
+                Enroll VPN (remote winbox)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleReboot} className="text-red-600">
                 <Power className="h-4 w-4 mr-2" />

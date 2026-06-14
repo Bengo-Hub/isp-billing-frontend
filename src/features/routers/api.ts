@@ -377,6 +377,26 @@ export function useRebootRouter() {
   });
 }
 
+// Enroll a router into the WireGuard VPN overlay (NAT-safe; queues an agent
+// action-script). Lets an already-bootstrapped router join the tunnel and enables
+// remote winbox at vpn:<winbox_port> WITHOUT a manual re-bootstrap.
+export function useEnrollRouterVpn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (routerId: number) => {
+      const response = await api.post(`/routers/${routerId}/enroll-vpn`);
+      return response.data as { message: string; command_id?: string; winbox_port?: number };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['routers'] });
+      toast.success(data?.message || 'VPN enrollment queued');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to enroll router in VPN');
+    },
+  });
+}
+
 // Backup history row (NAT-safe: backups run on the router via the agent).
 export interface RouterBackup {
   id: number;
