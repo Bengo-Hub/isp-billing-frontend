@@ -8,10 +8,14 @@ import { WhatsAppSubscriptionDialog } from '@/components/whatsapp/WhatsAppSubscr
 import FileUpload from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
 import {
+  DEFAULT_TIMEZONE,
+  TIMEZONE_OPTIONS,
   useDeleteLogo,
   useHotspotSettings,
+  useOrganizationDetails,
   usePPPoESettings,
   useSaveHotspotSettings,
+  useSaveOrganizationDetails,
   useSavePPPoESettings,
   useSaveSetting,
   useSettings,
@@ -91,10 +95,15 @@ function GeneralTab() {
   const save = useSaveSetting('system');
   const uploadLogo = useUploadLogo();
   const deleteLogo = useDeleteLogo();
+  // Organization details live in a separate store (/tenant/settings/organization)
+  // from the system.* configuration keys above. Timezone is persisted there.
+  const { data: org } = useOrganizationDetails();
+  const saveOrg = useSaveOrganizationDetails();
   const [logo, setLogo] = useState<string>(data['system.logo_url'] || DEFAULT_LOGO);
   const [terms, setTerms] = useState<string>(data['system.terms_text'] ?? '');
   const [isUploading, setIsUploading] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>(data['system.primary_color'] || '#801066');
+  const [timezone, setTimezone] = useState<string>(org?.timezone || DEFAULT_TIMEZONE);
 
   // Sync logo from settings when data loads
   useState(() => {
@@ -107,6 +116,13 @@ function GeneralTab() {
       setPrimaryColor(data['system.primary_color']);
     }
   });
+
+  // Sync timezone once the organization details load (default Africa/Nairobi).
+  useEffect(() => {
+    if (org?.timezone) {
+      setTimezone(org.timezone);
+    }
+  }, [org?.timezone]);
 
   const handleLogoUpload = async (file: File | null) => {
     if (file) {
@@ -146,6 +162,8 @@ function GeneralTab() {
             'system.require_terms_consent': true,
             'system.theme': (e.currentTarget.elements.namedItem('theme') as HTMLSelectElement).value,
           });
+          // Persist timezone to the organization record (separate endpoint).
+          saveOrg.mutate({ timezone });
         }} className="space-y-6">
           {/* Company Name */}
           <div>
@@ -177,6 +195,28 @@ function GeneralTab() {
                 placeholder="+254 700 000000"
               />
             </div>
+          </div>
+
+          {/* Timezone */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">Timezone</label>
+            <select
+              name="timezone"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="mt-2 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            >
+              {/* Preserve a current value that isn't in the common list. */}
+              {timezone && !TIMEZONE_OPTIONS.includes(timezone as (typeof TIMEZONE_OPTIONS)[number]) && (
+                <option value={timezone}>{timezone}</option>
+              )}
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Used to sync your routers&apos; clock to local time.</p>
           </div>
 
           {/* Branding Section */}

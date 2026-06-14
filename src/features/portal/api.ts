@@ -62,6 +62,10 @@ export interface VoucherRedeemResponse {
   plan_name?: string;
   validity_hours?: number;
   expires_at?: string;
+  /** Hotspot login credentials returned on success so the user can
+   *  authenticate on the MikroTik login page if not auto-logged-in. */
+  hotspot_username?: string;
+  hotspot_password?: string;
 }
 
 export interface SessionStatus {

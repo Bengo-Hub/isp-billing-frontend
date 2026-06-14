@@ -242,6 +242,83 @@ export function useDeleteLogo() {
 // Tenant Settings API (OrganizationSettings-based)
 // =========================================================================
 
+/** Common IANA timezones offered in the organization settings selector. */
+export const TIMEZONE_OPTIONS = [
+  'Africa/Nairobi',
+  'Africa/Lagos',
+  'Africa/Cairo',
+  'Africa/Johannesburg',
+  'Africa/Accra',
+  'Africa/Dar_es_Salaam',
+  'Africa/Kampala',
+  'Africa/Kigali',
+  'Africa/Addis_Ababa',
+  'UTC',
+  'Europe/London',
+  'America/New_York',
+] as const;
+
+export const DEFAULT_TIMEZONE = 'Africa/Nairobi';
+
+// Organization details (GET/PATCH /tenant/settings/organization).
+export interface OrganizationDetails {
+  id: number;
+  name: string;
+  slug: string;
+  organization_type: string;
+  status: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  logo_url?: string;
+  primary_color: string;
+  currency: string;
+  /** IANA timezone name (e.g. "Africa/Nairobi"). Defaults to Africa/Nairobi. */
+  timezone?: string;
+  trial_ends_at?: string;
+  subscription_status?: string;
+  max_routers: number;
+  max_customers?: number;
+}
+
+// Fields the ISP admin can update on their organization.
+export interface OrganizationDetailsUpdate {
+  name?: string;
+  organization_type?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  /** IANA timezone name. Used to sync router clocks to local time. */
+  timezone?: string;
+}
+
+export function useOrganizationDetails() {
+  return useQuery({
+    queryKey: ['tenant-settings', 'organization'],
+    queryFn: async (): Promise<OrganizationDetails> => {
+      const { data } = await api.get('/tenant/settings/organization');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveOrganizationDetails() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: OrganizationDetailsUpdate) => {
+      const { data } = await api.patch('/tenant/settings/organization', settings);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-settings', 'organization'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save organization settings');
+    },
+  });
+}
+
 export interface HotspotSettings {
   username_prefix: string;
   hotspot_template: string;

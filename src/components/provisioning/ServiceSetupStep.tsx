@@ -268,20 +268,24 @@ export function ServiceSetupStep({
           </p>
         </div>
 
-        {/* WAN Info Reference (if available) */}
+        {/* Current management network reference (if available).
+            current_subnet is the router's own IP/CIDR — i.e. the LAN/management
+            address you connected through (e.g. 192.168.88.0/24 on a factory
+            device), NOT the WAN uplink. Label it accordingly so we don't
+            mislabel the management LAN as WAN. */}
         {deviceInfo?.network_config?.current_subnet && (
           <div className="mb-3 p-2 bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-amber-400"></div>
+              <div className="h-2 w-2 rounded-full bg-slate-400"></div>
               <span className="text-[11px] text-slate-600">
-                WAN ({wanInterface}):
+                Management (LAN):
               </span>
               <span className="font-mono text-[11px] text-slate-800 font-medium">
                 {deviceInfo.network_config.current_subnet}
               </span>
             </div>
             <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
-              Internet uplink
+              Current network
             </span>
           </div>
         )}

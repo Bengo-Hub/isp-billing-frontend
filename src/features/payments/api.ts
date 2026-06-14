@@ -78,6 +78,49 @@ export function usePayment(paymentId: number) {
   });
 }
 
+// Record Payment (admin-only offline / manual reconciliation)
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'mpesa' | 'card' | 'other';
+
+export interface RecordPaymentInput {
+  user_id: number;
+  invoice_id?: number;
+  amount: number;
+  payment_method: PaymentMethod;
+  transaction_id?: string;
+  reference_number?: string;
+  notes?: string;
+}
+
+/**
+ * Record a manual / offline payment (admin only).
+ *
+ * When `payment_method` is an offline method (cash / bank_transfer / other) AND an
+ * `invoice_id` is supplied, the backend marks that invoice PAID, activates the linked
+ * subscription, and syncs it to the router. Linking an invoice is what triggers activation.
+ */
+export function useRecordPayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: RecordPaymentInput): Promise<PaymentItem> => {
+      const { data } = await api.post('/billing/payments', input);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices-pending'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices-overdue'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice'] });
+      queryClient.invalidateQueries({ queryKey: ['payment-stats'] });
+      toast.success('Payment recorded successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to record payment');
+    },
+  });
+}
+
 // Invoices
 export function useInvoices(params: { page?: number; size?: number; user_id?: number; status?: string }) {
   return useQuery({

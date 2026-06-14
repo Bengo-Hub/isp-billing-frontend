@@ -4,14 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Eye, Search, Globe, Download, MoreHorizontal } from 'lucide-react';
+import { CreditCard, Eye, Search, Globe, Download, MoreHorizontal, Banknote } from 'lucide-react';
 import { useState } from 'react';
-import { usePayments, useInvoices, usePendingInvoices, usePaymentStats, Invoice } from '@/features/payments/api';
-import { PaystackPaymentDialog } from '@/components/payments';
+import { usePayments, usePendingInvoices, usePaymentStats, Invoice } from '@/features/payments/api';
+import { PaystackPaymentDialog, RecordPaymentDialog } from '@/components/payments';
 
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState<'payments' | 'invoices'>('payments');
   const [showRecordModal, setShowRecordModal] = useState(false);
+  const [showReconcileModal, setShowReconcileModal] = useState(false);
   const [showPaystackModal, setShowPaystackModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -253,6 +254,17 @@ export default function PaymentsPage() {
                             <Globe className="h-4 w-4 mr-1" />
                             Pay Online
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setShowReconcileModal(true);
+                            }}
+                          >
+                            <Banknote className="h-4 w-4 mr-1" />
+                            Record Payment
+                          </Button>
                           <Button variant="outline" size="sm">
                             <Download className="h-4 w-4" />
                           </Button>
@@ -268,115 +280,15 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Record Payment Modal */}
-      {showRecordModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl p-6">
-            <h2 className="text-xl font-bold mb-6">Record Payment</h2>
+      {/* Record Payment Dialog (general mode) */}
+      <RecordPaymentDialog open={showRecordModal} onOpenChange={setShowRecordModal} />
 
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* User */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    User<span className="text-red-500">*</span>
-                  </label>
-                  <select className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
-                    <option value="">Select an option</option>
-                    <option value="C658">C658</option>
-                    <option value="C744">C744</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">Select the user who made the payment</p>
-                </div>
-
-                {/* Receipt Number */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Receipt Number<span className="text-red-500">*</span>
-                  </label>
-                  <Input placeholder="Enter the receipt number" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Amount */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Amount<span className="text-red-500">*</span>
-                  </label>
-                  <Input type="number" placeholder="Ksh" />
-                  <p className="text-xs text-gray-500 mt-1">Enter the amount paid</p>
-                </div>
-
-                {/* Payment Method */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Method<span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <select className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm appearance-none">
-                      <option value="">Select an option</option>
-                      <option value="bank">Bank Transfer</option>
-                      <option value="cash">Cash</option>
-                      <option value="kopo">Kopo Kopo</option>
-                      <option value="mpesa">M-Pesa</option>
-                      <option value="paystack">Paystack</option>
-                    </select>
-                  </div>
-                  <div className="mt-2">
-                    <Input placeholder="Start typing to search..." className="text-sm" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Has this payment been checked? */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Has this payment been checked?<span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-100 hover:bg-green-100 border border-gray-300 rounded text-sm flex items-center gap-2"
-                  >
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white border border-red-600 rounded text-sm flex items-center gap-2"
-                  >
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                    No
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Click no if the system needs to check this payment and add a scheduler.</p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-3 justify-end pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowRecordModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-brand-600 hover:bg-brand-700"
-                >
-                  Create
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-      )}
+      {/* Record Payment Dialog (reconcile mode for a specific pending invoice) */}
+      <RecordPaymentDialog
+        open={showReconcileModal}
+        onOpenChange={setShowReconcileModal}
+        invoice={selectedInvoice}
+      />
 
       {/* Paystack Payment Dialog */}
       <PaystackPaymentDialog
