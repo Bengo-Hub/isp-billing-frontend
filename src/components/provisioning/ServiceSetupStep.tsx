@@ -371,8 +371,8 @@ export function ServiceSetupStep({
       {/* Service Types - Modern Card Selection */}
       <Card className="p-4 border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
-          <div className="p-1.5 bg-violet-100 rounded-md">
-            <Zap className="h-4 w-4 text-violet-600" />
+          <div className="p-1.5 bg-brand-100 rounded-md">
+            <Zap className="h-4 w-4 text-brand-600" />
           </div>
           <h3 className="font-semibold text-slate-800 text-sm">Services</h3>
         </div>
@@ -383,12 +383,12 @@ export function ServiceSetupStep({
             onClick={() => onEnablePppoeChange(!enablePppoe)}
             className={`p-3 rounded-xl border-2 transition-all text-left ${
               enablePppoe
-                ? 'border-violet-500 bg-violet-50 shadow-md shadow-violet-500/10'
+                ? 'border-brand-500 bg-brand-50 shadow-md shadow-brand-500/10'
                 : 'border-slate-200 hover:border-slate-300 bg-white'
             }`}
           >
             <div className="flex items-start justify-between mb-1.5">
-              <div className={`p-1.5 rounded-lg ${enablePppoe ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+              <div className={`p-1.5 rounded-lg ${enablePppoe ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                 <Server className="h-4 w-4" />
               </div>
               <Checkbox
@@ -397,7 +397,7 @@ export function ServiceSetupStep({
                 className="h-4 w-4"
               />
             </div>
-            <div className={`font-semibold text-sm ${enablePppoe ? 'text-violet-900' : 'text-slate-700'}`}>
+            <div className={`font-semibold text-sm ${enablePppoe ? 'text-brand-900' : 'text-slate-700'}`}>
               PPPoE Server
             </div>
             <div className="text-[10px] text-slate-500 mt-0.5">
@@ -415,12 +415,12 @@ export function ServiceSetupStep({
             onClick={() => onEnableHotspotChange(!enableHotspot)}
             className={`p-3 rounded-xl border-2 transition-all text-left ${
               enableHotspot
-                ? 'border-violet-500 bg-violet-50 shadow-md shadow-violet-500/10'
+                ? 'border-brand-500 bg-brand-50 shadow-md shadow-brand-500/10'
                 : 'border-slate-200 hover:border-slate-300 bg-white'
             }`}
           >
             <div className="flex items-start justify-between mb-1.5">
-              <div className={`p-1.5 rounded-lg ${enableHotspot ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+              <div className={`p-1.5 rounded-lg ${enableHotspot ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                 <Wifi className="h-4 w-4" />
               </div>
               <Checkbox
@@ -429,7 +429,7 @@ export function ServiceSetupStep({
                 className="h-4 w-4"
               />
             </div>
-            <div className={`font-semibold text-sm ${enableHotspot ? 'text-violet-900' : 'text-slate-700'}`}>
+            <div className={`font-semibold text-sm ${enableHotspot ? 'text-brand-900' : 'text-slate-700'}`}>
               Hotspot
             </div>
             <div className="text-[10px] text-slate-500 mt-0.5">
@@ -498,7 +498,7 @@ export function ServiceSetupStep({
         <Button
           onClick={onNext}
           disabled={isStarting || (!enableHotspot && !enablePppoe) || ethernetPorts.length === 0}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-9 px-5"
+          className="bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-600 hover:to-brand-800 text-white h-9 px-5"
           size="sm"
         >
           {isStarting ? (
@@ -589,22 +589,22 @@ export function ServiceSetupStep({
       {/* Progress Bar and Live Logs (direct provisioning) */}
       {isStarting && !scriptBasedProvisioning && (
         <div className="space-y-3 mt-4">
-          <Card className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <Card className="p-3 bg-gradient-to-r from-brand-50 to-brand-100/60 border-brand-200">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-blue-900">
+              <span className="text-xs font-medium text-brand-900">
                 {currentOperation || 'Applying configuration...'}
               </span>
-              <span className="text-xs font-bold text-blue-700">
+              <span className="text-xs font-bold text-brand-700">
                 {Math.round(progressPercentage)}%
               </span>
             </div>
-            <div className="w-full bg-blue-100 rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-brand-100 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-brand-500 to-brand-700 h-2 rounded-full transition-all duration-500"
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
-            <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-blue-600">
+            <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-brand-600">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span>Please do not close this window</span>
             </div>

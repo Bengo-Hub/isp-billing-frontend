@@ -210,7 +210,7 @@ export default function SubscriptionTiersPage() {
             <h2 className="font-semibold text-gray-900 mb-4">PPPoE Pricing</h2>
             <p className="text-gray-500 text-sm mb-6">PPPoE providers are charged per active user on a monthly basis.</p>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-8 text-center">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-2 border-blue-200 rounded-lg p-8 text-center">
               <div className="mb-4">
                 <div className="inline-block p-4 bg-blue-100 rounded-full">
                   <CreditCard className="w-8 h-8 text-blue-600" />

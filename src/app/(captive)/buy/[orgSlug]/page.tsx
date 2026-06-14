@@ -124,11 +124,25 @@ export default function CaptiveBuyPackagesPage() {
     return `${dataLimitMB} MB`;
   };
 
-  const formatTime = (seconds: number) => {
-    if (seconds < 0) return 'Unlimited time';
-    const hours = Math.floor(seconds / 3600);
-    if (hours < 1) return `${Math.floor(seconds / 60)} minutes`;
-    return `${hours} hours`;
+  // time_limit is stored in HOURS in the backend (-1 = unlimited), NOT seconds.
+  const formatTime = (hours: number) => {
+    if (hours < 0) return 'Unlimited time';
+    if (hours <= 0) return '';
+    if (hours < 1) return `${Math.round(hours * 60)} Minutes`;
+    if (hours === 1) return '1 Hour';
+    if (hours % 24 === 0) return formatValidity(hours / 24);
+    return `${hours} Hours`;
+  };
+
+  // Effective access shown on the card: time_limit (hours) caps the validity_days
+  // window when set, so a "1 hour" package (validity_days=1, time_limit=1) reads
+  // "1 Hour" rather than "1 Day".
+  const formatAccessWindow = (pkg: { validity_days: number; time_limit: number }) => {
+    if (pkg.time_limit && pkg.time_limit > 0) {
+      const accessHours = Math.min((pkg.validity_days || 0) * 24, pkg.time_limit);
+      return formatTime(accessHours);
+    }
+    return formatValidity(pkg.validity_days);
   };
 
   const handlePurchase = async () => {
@@ -611,7 +625,7 @@ export default function CaptiveBuyPackagesPage() {
                         </div>
                         <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                           <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          <span>Valid for {formatValidity(pkg.validity_days)}</span>
+                          <span>Valid for {formatAccessWindow(pkg)}</span>
                         </div>
                       </div>
 
@@ -637,12 +651,8 @@ export default function CaptiveBuyPackagesPage() {
                           </span>
                         </div>
 
-                        {/* Time limit */}
-                        {pkg.time_limit && pkg.time_limit > 0 && (
-                          <div className="text-xs sm:text-sm text-gray-600 pl-10 sm:pl-12">
-                            {formatTime(pkg.time_limit)}
-                          </div>
-                        )}
+                        {/* Time limit is reflected in the "Valid for …" line above
+                            (effective access = min of validity_days and time_limit). */}
                       </div>
 
                       {/* Button - Always at Bottom */}

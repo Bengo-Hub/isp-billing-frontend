@@ -249,7 +249,7 @@ export function WhatsAppSubscriptionDialog({
           ) : null}
 
           {/* Subscription Plan Details */}
-          <div className="p-4 bg-gradient-to-br from-brand-50 to-purple-50 rounded-lg border border-brand-200">
+          <div className="p-4 bg-gradient-to-br from-brand-50 to-brand-100/60 rounded-lg border border-brand-200">
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h3 className="font-semibold text-gray-900">{selectedPlan.provider}</h3>

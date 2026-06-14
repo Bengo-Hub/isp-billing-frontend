@@ -100,20 +100,20 @@ export function ConnectLoginModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] p-0">
+      <DialogContent className="w-[95vw] max-w-md p-0 max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl">
         <div className="p-5 sm:p-6">
           <DialogHeader className="mb-5 sm:mb-6 text-center">
             {/* Accent icon */}
             <div
-              className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto mb-3 flex items-center justify-center shrink-0"
               style={{ backgroundColor: `${primaryColor}18` }}
             >
-              <Wifi className="w-7 h-7" style={{ color: primaryColor }} />
+              <Wifi className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: primaryColor }} />
             </div>
             <DialogTitle className="text-lg sm:text-xl">
               Connect to Internet
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">
+            <DialogDescription className="text-sm text-gray-500 px-2">
               Enter your credentials to reconnect
             </DialogDescription>
           </DialogHeader>
@@ -130,7 +130,7 @@ export function ConnectLoginModal({
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 autoComplete="username"
-                className="h-11 sm:h-12 text-base"
+                className="h-12 text-base w-full"
                 required
               />
             </div>
@@ -147,16 +147,16 @@ export function ConnectLoginModal({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 autoComplete="current-password"
-                className="h-11 sm:h-12 text-base"
+                className="h-12 text-base w-full"
                 required
               />
             </div>
 
             {/* Inline error */}
             {loginMutation.isError && (
-              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>Invalid username or password, or package expired.</span>
+              <div className="flex items-start gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="break-words">Invalid username or password, or package expired.</span>
               </div>
             )}
 
@@ -169,19 +169,19 @@ export function ConnectLoginModal({
             >
               {loginMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin shrink-0" />
                   Connecting…
                 </>
               ) : (
                 <>
-                  <LogIn className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <LogIn className="w-5 h-5 mr-2 shrink-0" />
                   Connect
                 </>
               )}
             </Button>
           </form>
 
-          <p className="text-xs text-center text-gray-400 mt-4">
+          <p className="text-xs text-center text-gray-400 mt-4 px-2">
             Use the credentials you received after purchasing a package or voucher.
           </p>
         </div>

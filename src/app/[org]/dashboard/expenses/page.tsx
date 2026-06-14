@@ -73,7 +73,7 @@ export default function ExpensesPage() {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
           <button className="text-gray-400 hover:text-gray-600">
@@ -140,7 +140,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
