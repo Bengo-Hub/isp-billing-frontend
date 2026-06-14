@@ -99,7 +99,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
@@ -398,7 +398,7 @@ export default function MessagesPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[720px]">
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="w-10 px-4 py-3">

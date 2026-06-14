@@ -2,38 +2,38 @@
 
 /**
  * Theme configuration for Tailwind CSS v4
- * Brand colors derived from CodeVertex logo (purple #801066)
- * Background palette inspired by centipidbilling.com
+ * Brand colors from the Codevertex marketing site (brand purple #9100B0,
+ * HSL 289 100% 35%). Accent #b800e0. Matches codevertex-website palette.
  * Supports light / dark / system modes
  */
 
 /* ──────────────────── Light mode ──────────────────── */
 :root {
-  /* Backgrounds – cool blue-white (from website) */
-  --background: 210 50% 97%;
-  --foreground: 209 49% 11%;
+  /* Backgrounds – clean white with cool tint */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
 
   /* Surfaces */
   --card: 0 0% 100%;
-  --card-foreground: 209 49% 11%;
+  --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 209 49% 11%;
+  --popover-foreground: 222 47% 11%;
 
-  /* Primary – logo purple #801066 (hue 316) */
-  --primary: 316 72% 42%;
+  /* Primary – Codevertex brand purple #9100B0 (hue 289) */
+  --primary: 289 100% 35%;
   --primary-foreground: 0 0% 100%;
 
   /* Secondary */
   --secondary: 210 20% 96%;
-  --secondary-foreground: 209 49% 11%;
+  --secondary-foreground: 222 47% 11%;
 
   /* Muted */
   --muted: 210 20% 96%;
   --muted-foreground: 215 16% 47%;
 
-  /* Accent */
-  --accent: 210 20% 96%;
-  --accent-foreground: 209 49% 11%;
+  /* Accent – soft brand-purple tint */
+  --accent: 289 40% 96%;
+  --accent-foreground: 289 100% 25%;
 
   /* Destructive */
   --destructive: 0 84% 60%;
@@ -42,10 +42,10 @@
   /* Borders & inputs */
   --border: 214 32% 91%;
   --input: 214 32% 91%;
-  --ring: 316 72% 42%;
+  --ring: 289 100% 35%;
 
   /* Chart palette */
-  --chart-1: 316 72% 42%;
+  --chart-1: 289 100% 35%;
   --chart-2: 199 89% 48%;
   --chart-3: 173 58% 45%;
   --chart-4: 43 74% 66%;
@@ -55,12 +55,12 @@
   --radius: 0.5rem;
 
   /* Sidebar */
-  --sidebar: 210 50% 97%;
-  --sidebar-foreground: 209 49% 11%;
+  --sidebar: 210 40% 98%;
+  --sidebar-foreground: 222 47% 11%;
   --sidebar-border: 214 32% 91%;
-  --sidebar-active: 316 72% 95%;
-  --sidebar-active-foreground: 316 78% 25%;
-  --sidebar-active-border: 316 72% 42%;
+  --sidebar-active: 289 100% 96%;
+  --sidebar-active-foreground: 289 100% 25%;
+  --sidebar-active-border: 289 100% 35%;
 
   /* Semantic */
   --success: 142 71% 45%;
@@ -71,30 +71,30 @@
 
 /* ──────────────────── Dark mode ──────────────────── */
 .dark {
-  /* Backgrounds – navy (from website #0e1c29) */
-  --background: 209 49% 11%;
+  /* Backgrounds – near-black with a faint brand-purple tint (#0c0910) */
+  --background: 270 20% 5%;
   --foreground: 210 40% 98%;
 
   /* Surfaces */
-  --card: 210 40% 14%;
+  --card: 270 15% 8%;
   --card-foreground: 210 40% 98%;
-  --popover: 210 40% 14%;
+  --popover: 270 15% 8%;
   --popover-foreground: 210 40% 98%;
 
-  /* Primary – lighter brand purple for contrast */
-  --primary: 316 72% 65%;
-  --primary-foreground: 209 49% 11%;
+  /* Primary – lighter brand purple for contrast on dark bg */
+  --primary: 289 100% 60%;
+  --primary-foreground: 0 0% 100%;
 
   /* Secondary */
-  --secondary: 210 35% 18%;
+  --secondary: 270 15% 14%;
   --secondary-foreground: 210 40% 98%;
 
   /* Muted */
-  --muted: 210 35% 18%;
+  --muted: 270 15% 14%;
   --muted-foreground: 215 20% 65%;
 
   /* Accent */
-  --accent: 210 35% 18%;
+  --accent: 270 15% 14%;
   --accent-foreground: 210 40% 98%;
 
   /* Destructive */
@@ -102,24 +102,24 @@
   --destructive-foreground: 0 86% 97%;
 
   /* Borders & inputs */
-  --border: 210 35% 20%;
-  --input: 210 35% 20%;
-  --ring: 316 72% 65%;
+  --border: 270 15% 16%;
+  --input: 270 15% 16%;
+  --ring: 289 100% 60%;
 
   /* Chart palette (brighter for dark bg) */
-  --chart-1: 316 72% 65%;
+  --chart-1: 289 100% 60%;
   --chart-2: 199 89% 58%;
   --chart-3: 173 58% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
   /* Sidebar */
-  --sidebar: 209 49% 9%;
+  --sidebar: 270 20% 4%;
   --sidebar-foreground: 210 40% 85%;
-  --sidebar-border: 210 35% 18%;
-  --sidebar-active: 316 72% 15%;
-  --sidebar-active-foreground: 316 72% 80%;
-  --sidebar-active-border: 316 72% 55%;
+  --sidebar-border: 270 15% 14%;
+  --sidebar-active: 289 60% 15%;
+  --sidebar-active-foreground: 289 100% 85%;
+  --sidebar-active-border: 289 100% 55%;
 
   /* Semantic */
   --success: 142 71% 35%;
@@ -166,18 +166,18 @@
   --color-sidebar-active-foreground: hsl(var(--sidebar-active-foreground));
   --color-sidebar-active-border: hsl(var(--sidebar-active-border));
 
-  /* Brand scale – derived from logo purple (#801066, hue ~316) */
-  --color-brand-50: hsl(316 72% 97%);
-  --color-brand-100: hsl(316 72% 93%);
-  --color-brand-200: hsl(316 72% 85%);
-  --color-brand-300: hsl(316 72% 72%);
-  --color-brand-400: hsl(316 72% 58%);
-  --color-brand-500: hsl(316 72% 45%);
-  --color-brand-600: hsl(316 72% 38%);
-  --color-brand-700: hsl(316 78% 28%);
-  --color-brand-800: hsl(316 78% 22%);
-  --color-brand-900: hsl(316 78% 15%);
-  --color-brand-950: hsl(316 78% 10%);
+  /* Brand scale – Codevertex brand purple (#9100B0, hue 289, S 100%) */
+  --color-brand-50: hsl(289 100% 97%);
+  --color-brand-100: hsl(289 100% 93%);
+  --color-brand-200: hsl(289 100% 87%);
+  --color-brand-300: hsl(289 100% 76%);
+  --color-brand-400: hsl(289 100% 60%);
+  --color-brand-500: hsl(289 100% 44%);
+  --color-brand-600: hsl(289 100% 38%);
+  --color-brand-700: hsl(289 100% 30%);
+  --color-brand-800: hsl(289 100% 24%);
+  --color-brand-900: hsl(289 100% 17%);
+  --color-brand-950: hsl(289 100% 11%);
 
   /* Border radius */
   --radius-lg: var(--radius);

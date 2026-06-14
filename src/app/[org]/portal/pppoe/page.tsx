@@ -92,7 +92,7 @@ export default function PPPoEPortalPage() {
     return `${gb.toFixed(2)} GB`;
   };
 
-  const primaryColor = config?.primary_color || '#801066';
+  const primaryColor = config?.primary_color || '#9100B0';
 
   if (configLoading) {
     return (
@@ -345,7 +345,7 @@ export default function PPPoEPortalPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Recent Payments</h3>
               {dashboard?.recent_payments && dashboard.recent_payments.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm min-w-[720px]">
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-2 font-medium text-gray-500">Date</th>

@@ -309,7 +309,7 @@ export default function PlatformDashboard() {
           <h3 className="font-semibold text-gray-900">Organization Growth</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b">
                 <th className="text-left py-2 font-medium text-gray-500">Month</th>
@@ -357,7 +357,7 @@ export default function PlatformDashboard() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b">
                 <th className="text-left py-2 font-medium text-gray-500">Organization</th>

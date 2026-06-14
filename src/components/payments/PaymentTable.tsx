@@ -69,7 +69,7 @@ export default function PaymentTable() {
             />
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             value={status || ''}
             onChange={(e) => setStatus(e.target.value || undefined)}
@@ -109,7 +109,7 @@ export default function PaymentTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[720px]">
           <thead>
             <tr className="border-b border-gray-200">
               <th className="text-left py-3 px-4 font-medium text-gray-700">

@@ -466,7 +466,7 @@ function PlatformInvoicesSection() {
       </div>
 
       <div className="overflow-x-auto -mx-5 px-5">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[720px]">
           <thead>
             <tr className="border-b dark:border-gray-700">
               <th className="text-left py-3 px-3 font-medium text-gray-600 dark:text-gray-400">Invoice</th>
@@ -633,7 +633,7 @@ function InvoiceCard({
 
       {/* Line items table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[720px]">
           <thead>
             <tr className="border-b dark:border-gray-700">
               <th className="text-left py-2.5 px-4 font-medium text-gray-600 dark:text-gray-400">Description</th>
@@ -1008,7 +1008,7 @@ export default function BillingSubscriptionPage() {
         ) : (
           <>
             <div className="overflow-x-auto -mx-5 px-5">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[720px]">
                 <thead>
                   <tr className="border-b dark:border-gray-700">
                     <th className="text-left py-3 px-3 font-medium text-gray-600 dark:text-gray-400">Amount</th>

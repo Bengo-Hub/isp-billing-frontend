@@ -269,7 +269,7 @@ export default function OrganizationsPage() {
       {/* Organizations Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Organization</th>

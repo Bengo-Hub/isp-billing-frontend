@@ -1,19 +1,31 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function Brand({ href = '/' }: { href?: string }) {
+/**
+ * Codevertex wordmark logo.
+ *
+ * Renders the official logo (public/images/logo/logo.png, ~821x488) at a
+ * responsive height with auto width, so it adapts to its container instead of
+ * forcing a fixed pixel box. `className` lets callers tune the height per slot
+ * (e.g. a compact header vs a large auth page).
+ */
+export default function Brand({
+  href = '/',
+  className = 'h-9 sm:h-10',
+}: {
+  href?: string;
+  className?: string;
+}) {
   return (
-    <Link href={href} className="inline-flex items-center">
-      <div className="relative w-48 h-24">
-        <Image
-          src="/images/logo/logo.png"
-          alt="CodeVertex IT Solutions"
-          fill
-          sizes="(min-width: 1024px) 16rem, 100vw"
-          className="object-contain"
-          priority
-        />
-      </div>
+    <Link href={href} className="inline-flex items-center" aria-label="Codevertex home">
+      <Image
+        src="/images/logo/logo.png"
+        alt="Codevertex"
+        width={821}
+        height={488}
+        priority
+        className={`${className} w-auto object-contain`}
+      />
     </Link>
   );
 }

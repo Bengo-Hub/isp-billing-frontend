@@ -111,7 +111,7 @@ export default function ContactPage() {
               whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
             >
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-[#801066] rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-[#9100B0] rounded-full flex items-center justify-center">
                   <Mail className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -121,7 +121,7 @@ export default function ContactPage() {
               </div>
               <a 
                 href="mailto:info@codevertexitsolutions.com"
-                className="text-[#801066] dark:text-[#801066] hover:text-[#5a0b48] font-medium"
+                className="text-[#9100B0] dark:text-[#9100B0] hover:text-[#6a0082] font-medium"
               >
                 info@codevertexitsolutions.com
               </a>
@@ -146,7 +146,7 @@ export default function ContactPage() {
               </div>
               <a 
                 href="tel:+254743793901"
-                className="text-[#acacb3] dark:text-[#acacb3] hover:text-[#801066] font-medium"
+                className="text-[#acacb3] dark:text-[#acacb3] hover:text-[#9100B0] font-medium"
               >
                 +254 743 793 901
               </a>
@@ -256,7 +256,7 @@ export default function ContactPage() {
               >
                 <Button 
                   type="submit" 
-                  className="w-full bg-[#801066] hover:bg-[#5a0b48] text-white py-3"
+                  className="w-full bg-[#9100B0] hover:bg-[#6a0082] text-white py-3"
                 >
                   Send your message
                 </Button>

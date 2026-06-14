@@ -135,7 +135,7 @@ export default function HotspotCustomerPortal() {
     router.push('/login');
   };
 
-  const primaryColor = config?.primary_color || '#801066';
+  const primaryColor = config?.primary_color || '#9100B0';
   const supportPhone = '+254 722 434795';
   const userName = currentSession?.username || 'Guest';
   const currentHour = new Date().getHours();

@@ -106,7 +106,7 @@ export default function RouterDetailsPage() {
 
   if (error || !routerData) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <Card className="p-8 text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Router Not Found</h2>
@@ -120,7 +120,7 @@ export default function RouterDetailsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -438,7 +438,7 @@ export default function RouterDetailsPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Users ({activeConnections?.length || 0})</h2>
             {activeConnections && activeConnections.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[720px]">
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Username</th>
@@ -494,7 +494,7 @@ export default function RouterDetailsPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments ({payments?.length || 0})</h2>
             {payments && payments.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[720px]">
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Payment #</th>
@@ -548,7 +548,7 @@ export default function RouterDetailsPage() {
             </p>
             {backups && backups.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[720px]">
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
@@ -590,7 +590,7 @@ export default function RouterDetailsPage() {
 
 function RouterDetailSkeleton() {
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <Skeleton className="h-8 w-48 mb-2" />

@@ -232,7 +232,7 @@ export default function DashboardPage() {
 
       {/* Package Performance */}
       <div className="w-full overflow-x-auto">
-        <div className="min-w-160">
+        <div className="min-w-[900px]">
           <PackagePerformanceTable data={charts?.package_performance} />
         </div>
       </div>

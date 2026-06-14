@@ -106,7 +106,7 @@ export default function TwoFactorAuthPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
       <div className="flex items-center gap-3">
         <Shield className="h-8 w-8 text-brand-600" />
         <div>

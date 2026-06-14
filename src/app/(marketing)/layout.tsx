@@ -41,8 +41,8 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             : 'bg-card/80 dark:bg-card/80 backdrop-blur border-b border-border/50'
         }`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="w-20 h-14 flex items-center">
-            <Brand href="/" />
+          <div className="flex items-center shrink-0">
+            <Brand href="/" className="h-8 sm:h-10" />
           </div>
 
           {/* Desktop Navigation */}

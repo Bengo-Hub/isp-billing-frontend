@@ -15,7 +15,7 @@ interface BrandingContext {
 
 const BrandingCtx = createContext<BrandingContext>({
   companyName: 'Codevertex Africa Limited',
-  primaryColor: '#801066',
+  primaryColor: '#9100B0',
   logoUrl: null,
   font: 'Inter',
   supportEmail: '',
@@ -100,7 +100,7 @@ function buildDarkOverrides(hex: string): Record<string, string> {
 
 // ── Provider ───────────────────────────────────────────
 
-const DEFAULT_COLOR = '#801066';
+const DEFAULT_COLOR = '#9100B0';
 
 export function BrandingProvider({ children }: { children: ReactNode }) {
   const { data: settings } = useSettings('system');

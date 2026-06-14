@@ -156,7 +156,7 @@ export default function SubscriptionTiersPage() {
                     {tier.badge_text && (
                       <div
                         className="absolute top-0 right-0 text-white text-xs px-3 py-1 rounded-bl-lg"
-                        style={{ backgroundColor: tier.badge_color || '#801066' }}
+                        style={{ backgroundColor: tier.badge_color || '#9100B0' }}
                       >
                         {tier.badge_text}
                       </div>

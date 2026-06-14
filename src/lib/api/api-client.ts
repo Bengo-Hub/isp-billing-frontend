@@ -10,8 +10,25 @@ import axios, {
 } from "axios";
 
 // API configuration
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+//
+// Defensive https upgrade: if the app is served over HTTPS but NEXT_PUBLIC_API_URL
+// was (mis)configured as http://, the browser blocks every call as mixed content.
+// Upgrade http->https at runtime (except localhost/127.0.0.1 dev) so a bad build
+// env can never silently break the dashboard.
+function resolveApiUrl(): string {
+  let url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    url.startsWith("http://") &&
+    !/\/\/(localhost|127\.0\.0\.1)/.test(url)
+  ) {
+    url = url.replace(/^http:\/\//, "https://");
+  }
+  return url;
+}
+
+const API_URL = resolveApiUrl();
 const TIMEOUT = 30000;
 
 /**

@@ -202,7 +202,7 @@ export function MostActiveUsersTable({ data }: { data?: Array<{ username: string
         {rows.length === 0 ? (
           <p className="text-sm text-gray-500 py-4 text-center">No active users found</p>
         ) : (
-          <table className="w-full text-xs sm:text-sm">
+          <table className="w-full text-xs sm:text-sm min-w-[640px]">
             <thead>
               <tr className="text-left text-gray-500">
                 <th className="py-2 pr-3">Username</th>
@@ -235,7 +235,7 @@ export function PackagePerformanceTable({ data }: { data?: Array<{ name: string;
         {rows.length === 0 ? (
           <p className="text-sm text-gray-500 py-4 text-center">No package data available</p>
         ) : (
-          <table className="w-full text-xs sm:text-sm min-w-125">
+          <table className="w-full text-xs sm:text-sm min-w-[760px]">
             <thead>
               <tr className="text-left text-gray-500">
                 <th className="py-2 pr-3">Package</th>
