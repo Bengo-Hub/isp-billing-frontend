@@ -39,7 +39,8 @@ export function useLeads(params?: {
     queryKey: ['leads', params],
     queryFn: async (): Promise<{ leads: Lead[]; total: number }> => {
       const { data } = await api.get('/leads', { params });
-      return data;
+      // Backend returns the list under `items` (LeadListResponse); map to `leads`.
+      return { leads: data.items ?? data.leads ?? [], total: data.total ?? 0 };
     },
   });
 }

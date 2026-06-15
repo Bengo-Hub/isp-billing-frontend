@@ -70,7 +70,7 @@ export function LicenceGuard({ children }: { children: ReactNode }) {
               All router management, hotspot, PPPoE, and login functionalities are paused until you renew your subscription.
             </p>
             <Link
-              href="/billing/subscription"
+              href={`/${orgSlug}/dashboard/billing/subscription`}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors w-full"
             >
               Renew Subscription
@@ -104,7 +104,7 @@ export function LicenceGuard({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Link
-              href="/billing/subscription"
+              href={`/${orgSlug}/dashboard/billing/subscription`}
               className="rounded bg-white text-red-600 px-3 py-1 text-xs font-semibold hover:bg-red-50 transition-colors"
             >
               Renew Now

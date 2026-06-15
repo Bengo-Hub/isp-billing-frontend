@@ -115,7 +115,7 @@ export function WhatsAppSubscriptionDialog({
     if (availableGateways && availableGateways.length > 0 && !selectedPaymentMethod) {
       // Prioritize Paystack as the primary gateway
       const paystackGateway = availableGateways.find(g => g.gateway_type === 'paystack');
-      const defaultGateway = paystackGateway || availableGateways.find(g => g.is_selected) || availableGateways[0];
+      const defaultGateway = paystackGateway || availableGateways.find(g => g.is_primary) || availableGateways[0];
       setSelectedPaymentMethod(defaultGateway.gateway_type);
     }
   }, [availableGateways, selectedPaymentMethod]);

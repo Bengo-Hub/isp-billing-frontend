@@ -193,10 +193,12 @@ export function useRefreshToken() {
       return response.data;
     },
     onSuccess: (data) => {
+      // /auth/refresh wraps the payload as { data: { access_token, ... } }.
+      const tok = (data?.data ?? data) as { access_token: string; refresh_token?: string };
       // Update token in localStorage (store uses this for persistence)
-      localStorage.setItem('auth-token', data.access_token);
-      if (data.refresh_token) {
-        localStorage.setItem('refresh-token', data.refresh_token);
+      localStorage.setItem('auth-token', tok.access_token);
+      if (tok.refresh_token) {
+        localStorage.setItem('refresh-token', tok.refresh_token);
       }
       toast.success('Session refreshed successfully');
     },

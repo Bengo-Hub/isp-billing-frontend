@@ -17,7 +17,7 @@ export function Footer() {
       { name: 'Features', href: '#features' },
       { name: 'Pricing', href: '#pricing' },
       { name: 'Integrations', href: '#integrations' },
-      { name: 'API Documentation', href: '/docs' }
+      { name: 'API Documentation', href: '#' }
     ],
     company: [
       { name: 'About Us', href: 'https://codevertexitsolutions.com/about' },
@@ -26,16 +26,16 @@ export function Footer() {
       { name: 'Careers', href: 'https://codevertexitsolutions.com/careers' }
     ],
     support: [
-      { name: 'Help Center', href: '/help' },
-      { name: 'Documentation', href: '/docs' },
-      { name: 'Status', href: '/status' },
+      { name: 'Help Center', href: '#' },
+      { name: 'Documentation', href: '#' },
+      { name: 'Status', href: '#' },
       { name: 'Contact Support', href: '/contact' }
     ],
     legal: [
-      { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Terms of Service', href: '/terms' },
-      { name: 'Cookie Policy', href: '/cookies' },
-      { name: 'GDPR', href: '/gdpr' }
+      { name: 'Privacy Policy', href: '#' },
+      { name: 'Terms of Service', href: '#' },
+      { name: 'Cookie Policy', href: '#' },
+      { name: 'GDPR', href: '#' }
     ]
   };
 

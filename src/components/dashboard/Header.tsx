@@ -28,7 +28,7 @@ export function DashboardHeader() {
 
   const handleLogout = () => {
     logout();
-    router.push('/auth/login');
+    router.push('/login');
   };
 
   return (

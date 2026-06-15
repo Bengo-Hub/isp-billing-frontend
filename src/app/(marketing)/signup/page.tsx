@@ -754,11 +754,11 @@ export default function SignupPage() {
                           />
                           <label htmlFor="agreeToTerms" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                             By creating an account, you agree to our{' '}
-                            <Link href="/terms" className="text-primary hover:text-brand-900 font-medium">
+                            <Link href="#" className="text-primary hover:text-brand-900 font-medium">
                               Terms & Conditions
                             </Link>{' '}
                             and{' '}
-                            <Link href="/privacy" className="text-primary hover:text-brand-900 font-medium">
+                            <Link href="#" className="text-primary hover:text-brand-900 font-medium">
                               Privacy Policy
                             </Link>
                           </label>

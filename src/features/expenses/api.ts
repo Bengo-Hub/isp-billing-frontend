@@ -59,7 +59,8 @@ export function useExpenses(params?: {
     queryKey: ['expenses', params],
     queryFn: async (): Promise<{ expenses: Expense[]; total: number }> => {
       const { data } = await api.get('/expenses', { params });
-      return data;
+      // Backend returns the list under `items` (ExpenseListResponse); map to `expenses`.
+      return { expenses: data.items ?? data.expenses ?? [], total: data.total ?? 0 };
     },
   });
 }

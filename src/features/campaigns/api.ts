@@ -44,7 +44,8 @@ export function useCampaigns(params?: {
     queryKey: ['campaigns', params],
     queryFn: async (): Promise<{ campaigns: Campaign[]; total: number }> => {
       const { data } = await api.get('/campaigns', { params });
-      return data;
+      // Backend returns the list under `items` (CampaignListResponse); map to `campaigns`.
+      return { campaigns: data.items ?? data.campaigns ?? [], total: data.total ?? 0 };
     },
   });
 }

@@ -495,7 +495,7 @@ export default function PaymentCallbackPage() {
 
                   <div className="flex flex-col gap-3">
                     {orgSlug ? (
-                      <Link href={`/portal/pppoe/${orgSlug}`}>
+                      <Link href={`/${orgSlug}/portal/pppoe`}>
                         <Button className="w-full bg-green-600 hover:bg-green-700">
                           <Home className="w-4 h-4 mr-2" />
                           Back to Portal
@@ -603,14 +603,14 @@ export default function PaymentCallbackPage() {
                   Try Again
                 </Button>
                 {paymentType === 'hotspot_purchase' && orgSlug ? (
-                  <Link href={`/portal/hotspot/${orgSlug}`}>
+                  <Link href={`/${orgSlug}/portal/hotspot`}>
                     <Button variant="outline" className="w-full">
                       <Home className="w-4 h-4 mr-2" />
                       Back to Portal
                     </Button>
                   </Link>
                 ) : paymentType === 'pppoe_renewal' && orgSlug ? (
-                  <Link href={`/portal/pppoe/${orgSlug}`}>
+                  <Link href={`/${orgSlug}/portal/pppoe`}>
                     <Button variant="outline" className="w-full">
                       <Home className="w-4 h-4 mr-2" />
                       Back to Portal
@@ -671,14 +671,14 @@ export default function PaymentCallbackPage() {
 
               <div className="flex flex-col gap-3">
                 {paymentType === 'hotspot_purchase' && orgSlug ? (
-                  <Link href={`/portal/hotspot/${orgSlug}`}>
+                  <Link href={`/${orgSlug}/portal/hotspot`}>
                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
                       <Home className="w-4 h-4 mr-2" />
                       Back to Portal
                     </Button>
                   </Link>
                 ) : paymentType === 'pppoe_renewal' && orgSlug ? (
-                  <Link href={`/portal/pppoe/${orgSlug}`}>
+                  <Link href={`/${orgSlug}/portal/pppoe`}>
                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
                       <Home className="w-4 h-4 mr-2" />
                       Back to Portal

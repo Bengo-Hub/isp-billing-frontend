@@ -450,7 +450,8 @@ export function usePaystackBanks(country: string = 'kenya') {
     queryKey: ['paystack-banks', country],
     queryFn: async (): Promise<any[]> => {
       const { data } = await api.get(`/payments/paystack/banks/${country}`);
-      return data;
+      // Paystack wraps the list as { status, message, data: [...] }.
+      return Array.isArray(data) ? data : (data?.data ?? []);
     },
     enabled: !!country,
   });
@@ -476,14 +477,18 @@ export function useResolvePaystackAccount() {
 // =============================================================================
 
 export interface AvailableGateway {
+  id: number;
   gateway_type: 'paystack' | 'mpesa_paybill' | 'mpesa_till' | 'manual';
   name: string;
-  description: string;
-  is_available: boolean;
-  is_selected: boolean;
+  display_name: string;
+  is_active: boolean;
   is_primary: boolean;
-  supports_payout: boolean;
-  supported_currencies: string[];
+  environment?: string;
+  paybill_number?: string | null;
+  till_number?: string | null;
+  // legacy/optional (not sent by the backend; kept for defensive consumers)
+  description?: string;
+  is_available?: boolean;
 }
 
 /**
@@ -496,8 +501,9 @@ export function useAvailablePaymentGateways() {
     queryFn: async (): Promise<AvailableGateway[]> => {
       try {
         const { data } = await api.get('/payment-gateways/available');
-        // Filter to only show available gateways
-        return data.filter((gateway: AvailableGateway) => gateway.is_available);
+        const list: AvailableGateway[] = Array.isArray(data) ? data : (data?.data ?? []);
+        // Backend marks usable gateways with `is_active` (there is no `is_available`).
+        return list.filter((g) => g.is_active ?? g.is_available ?? true);
       } catch (error: any) {
         console.warn('Failed to fetch payment gateways:', error);
         // Return empty array if fails - no fallback, just show what's available

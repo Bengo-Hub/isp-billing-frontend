@@ -53,7 +53,8 @@ export function useEmails(params?: {
     queryKey: ['emails', params],
     queryFn: async (): Promise<{ emails: Email[]; total: number }> => {
       const { data } = await api.get('/emails', { params });
-      return data;
+      // Backend returns the list under `items` (EmailListResponse); map to `emails`.
+      return { emails: data.items ?? data.emails ?? [], total: data.total ?? 0 };
     },
   });
 }
