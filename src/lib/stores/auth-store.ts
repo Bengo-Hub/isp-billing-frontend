@@ -350,9 +350,30 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           persistSSOSession(tokens);
 
           // 3) Hydrate local profile + permissions from the service /auth/me
-          //    (the unified backend dependency accepts the SSO RS256 JWT).
-          const response = await api.get("/auth/me");
-          const backendUser = (response.data as any) ?? null;
+          //    (the unified backend dependency accepts the SSO RS256 JWT). Retry
+          //    a few times on transient errors to ride out any JIT/NATS sync
+          //    delay; stop immediately on 401/403 (a token/permission problem,
+          //    not a sync delay) so we don't loop on a genuine auth failure.
+          let backendUser: any = null;
+          let lastMeError: unknown = null;
+          for (let attempt = 0; attempt < 4; attempt++) {
+            try {
+              const response = await api.get("/auth/me");
+              backendUser = (response.data as any) ?? null;
+              if (backendUser) break;
+            } catch (err) {
+              lastMeError = err;
+              const status =
+                (err as any)?.status ?? (err as any)?.response?.status;
+              if (status === 401 || status === 403) break;
+            }
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+          if (!backendUser) {
+            throw lastMeError instanceof Error
+              ? lastMeError
+              : new Error("Could not load your profile after sign-in. Please try again.");
+          }
 
           const normalizedUser = backendUser
             ? ({

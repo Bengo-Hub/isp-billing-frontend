@@ -222,11 +222,19 @@ function createApiClient(): AxiosInstance {
         _retry?: boolean;
       };
 
+      // Skip the refresh/logout cascade for /auth/me: during the brief
+      // post-login JIT/sync window a 401 there is transient, and the callers
+      // (completeSSOLogin / checkAuth) run their own retry/clear logic. Handling
+      // it here would risk refresh loops. (Per the SSO integration guide.)
+      const reqUrl = (originalRequest?.url || "").toString();
+      const isMeRequest = reqUrl.includes("/auth/me");
+
       // Handle 401 Unauthorized - try token refresh (only in browser)
       if (
         typeof window !== "undefined" &&
         error.response?.status === 401 &&
-        !originalRequest._retry
+        !originalRequest._retry &&
+        !isMeRequest
       ) {
         originalRequest._retry = true;
 
