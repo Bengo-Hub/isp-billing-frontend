@@ -359,7 +359,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           for (let attempt = 0; attempt < 4; attempt++) {
             try {
               const response = await api.get("/auth/me");
-              backendUser = (response.data as any) ?? null;
+              // /auth/me wraps the user in a `{ data: {...} }` envelope (same as
+              // local login). Unwrap it — without this, role/tenant_slug/
+              // permissions read as undefined, the role defaults to "customer",
+              // orgSlug is empty, and the callback bounces back to /login.
+              const body = response.data as any;
+              backendUser = (body?.data ?? body) ?? null;
               if (backendUser) break;
             } catch (err) {
               lastMeError = err;
@@ -673,7 +678,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
         try {
           const response = await api.get("/auth/me");
-          const backendUser = response.data ?? null;
+          // Unwrap the `{ data: {...} }` envelope (see completeSSOLogin).
+          const body = response.data as any;
+          const backendUser = (body?.data ?? body) ?? null;
 
           // Normalize role and permissions only if backend returned a user
           const normalizedUser = backendUser
