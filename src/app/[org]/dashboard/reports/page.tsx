@@ -32,9 +32,13 @@ export default function ReportsPage() {
   const { data: routerAnalytics } = useRouterAnalytics(dateRange);
   const { data: ticketAnalytics } = useTicketAnalytics(dateRange);
   const { data: userAnalytics } = useUserAnalytics(dateRange);
+  // gated: backend endpoint not implemented (POST /reports/export). Keep hook
+  // wired but disable the export actions below until the backend ships it.
   const { mutate: exportReport, isPending: isExporting } = useExportReport();
+  const EXPORT_DISABLED = true; // gated: backend endpoint not implemented
 
   const handleExport = (reportType: string, format: 'pdf' | 'excel' | 'csv') => {
+    if (EXPORT_DISABLED) return; // gated: backend endpoint not implemented
     exportReport({
       report_type: reportType as any,
       format,
@@ -141,13 +145,15 @@ export default function ReportsPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="flex justify-end">
+            {/* gated: backend endpoint not implemented (POST /reports/export) */}
             <Button
               onClick={() => handleExport('comprehensive', 'pdf')}
-              disabled={isExporting}
+              disabled={EXPORT_DISABLED || isExporting}
+              title="Coming soon"
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="h-4 w-4 mr-2" />
-              {isExporting ? 'Exporting...' : 'Export Overview (PDF)'}
+              Export Overview (PDF) — Coming soon
             </Button>
           </div>
 
@@ -242,10 +248,12 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               onClick={() => handleExport('subscriptions', 'excel')}
-              disabled={isExporting}
+              disabled={EXPORT_DISABLED || isExporting}
+              title="Coming soon"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Excel
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export Excel (Coming soon)
             </Button>
             <Button
               onClick={() => handleExport('subscriptions', 'pdf')}
@@ -253,7 +261,8 @@ export default function ReportsPage() {
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export PDF (Coming soon)
             </Button>
           </div>
 
@@ -322,10 +331,12 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               onClick={() => handleExport('billing', 'excel')}
-              disabled={isExporting}
+              disabled={EXPORT_DISABLED || isExporting}
+              title="Coming soon"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Excel
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export Excel (Coming soon)
             </Button>
             <Button
               onClick={() => handleExport('billing', 'pdf')}
@@ -333,7 +344,8 @@ export default function ReportsPage() {
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export PDF (Coming soon)
             </Button>
           </div>
 
@@ -410,10 +422,12 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               onClick={() => handleExport('routers', 'excel')}
-              disabled={isExporting}
+              disabled={EXPORT_DISABLED || isExporting}
+              title="Coming soon"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Excel
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export Excel (Coming soon)
             </Button>
             <Button
               onClick={() => handleExport('routers', 'pdf')}
@@ -421,7 +435,8 @@ export default function ReportsPage() {
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export PDF (Coming soon)
             </Button>
           </div>
 
@@ -469,10 +484,12 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               onClick={() => handleExport('users', 'excel')}
-              disabled={isExporting}
+              disabled={EXPORT_DISABLED || isExporting}
+              title="Coming soon"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Excel
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export Excel (Coming soon)
             </Button>
             <Button
               onClick={() => handleExport('users', 'pdf')}
@@ -480,7 +497,8 @@ export default function ReportsPage() {
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export PDF (Coming soon)
             </Button>
           </div>
 
@@ -557,10 +575,12 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               onClick={() => handleExport('tickets', 'excel')}
-              disabled={isExporting}
+              disabled={EXPORT_DISABLED || isExporting}
+              title="Coming soon"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export Excel
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export Excel (Coming soon)
             </Button>
             <Button
               onClick={() => handleExport('tickets', 'pdf')}
@@ -568,7 +588,8 @@ export default function ReportsPage() {
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              {/* gated: backend endpoint not implemented (POST /reports/export) */}
+              Export PDF (Coming soon)
             </Button>
           </div>
 

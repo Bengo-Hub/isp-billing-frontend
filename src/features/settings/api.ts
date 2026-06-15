@@ -337,6 +337,8 @@ export interface PPPoESettings {
   allow_self_registration: boolean;
   session_timeout_minutes: number;
   auto_disconnect_expired: boolean;
+  /** Churn window: duration-less accounts are suspended after this many days (default 14). */
+  auto_suspend_days: number;
 }
 
 // Hotspot Settings - uses dedicated endpoint instead of Configuration table

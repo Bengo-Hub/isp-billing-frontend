@@ -801,6 +801,7 @@ function PPPoETab() {
     allow_self_registration: true,
     session_timeout_minutes: 60,
     auto_disconnect_expired: true,
+    auto_suspend_days: 14,
   });
 
   // Sync form with loaded settings
@@ -811,6 +812,7 @@ function PPPoETab() {
         allow_self_registration: settings.allow_self_registration,
         session_timeout_minutes: settings.session_timeout_minutes,
         auto_disconnect_expired: settings.auto_disconnect_expired,
+        auto_suspend_days: settings.auto_suspend_days ?? 14,
       });
     }
   }, [settings]);
@@ -838,6 +840,17 @@ function PPPoETab() {
               onChange={(e) => setFormData({ ...formData, session_timeout_minutes: parseInt(e.target.value) || 60 })}
             />
             <p className="text-xs text-gray-500 mt-1">Maximum session duration before automatic logout</p>
+          </div>
+          <div>
+            <label className="text-sm text-gray-700">Auto-suspend / churn after (days)</label>
+            <Input
+              type="number"
+              min={1}
+              max={365}
+              value={formData.auto_suspend_days}
+              onChange={(e) => setFormData({ ...formData, auto_suspend_days: parseInt(e.target.value) || 14 })}
+            />
+            <p className="text-xs text-gray-500 mt-1">Accounts with no specific package duration are suspended after this many days (default 14).</p>
           </div>
         </div>
         <div className="space-y-3">
@@ -1006,6 +1019,31 @@ function HotspotTab() {
             placeholder="https://www.google.com"
           />
           <p className="text-xs text-gray-500 mt-1">URL to redirect users after successful login</p>
+        </div>
+
+        {/* Voucher Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-gray-700 font-medium">Voucher Code Format</label>
+            <Input
+              value={formData.voucher_format}
+              onChange={(e) => setFormData({ ...formData, voucher_format: e.target.value })}
+              maxLength={50}
+              placeholder="XXXX-XXXX-XXXX"
+            />
+            <p className="text-xs text-gray-500 mt-1">Pattern for generated voucher codes (e.g., XXXX-XXXX-XXXX)</p>
+          </div>
+          <div>
+            <label className="text-sm text-gray-700 font-medium">Voucher Code Length</label>
+            <Input
+              type="number"
+              min={4}
+              max={20}
+              value={formData.voucher_length}
+              onChange={(e) => setFormData({ ...formData, voucher_length: parseInt(e.target.value) || 12 })}
+            />
+            <p className="text-xs text-gray-500 mt-1">Number of characters in generated voucher codes</p>
+          </div>
         </div>
 
         {/* Portal Settings */}
