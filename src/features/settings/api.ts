@@ -398,3 +398,186 @@ export function useSavePPPoESettings() {
     },
   });
 }
+
+// =========================================================================
+// Notification settings — dedicated endpoint (OrganizationSettings columns the
+// SMS/email senders actually read), NOT the generic Configuration KV store.
+// =========================================================================
+export interface NotificationSettings {
+  enable_mikrotik_status_notifications: boolean;
+  send_hotspot_payment_confirmation: boolean;
+  hotspot_payment_confirmation_sms: string;
+  send_pppoe_payment_confirmation: boolean;
+  pppoe_payment_confirmation_sms: string;
+  send_hotspot_expiry_notification: boolean;
+  hotspot_expiry_notification_sms: string;
+  send_pppoe_expiry_notification: boolean;
+  pppoe_expiry_notification_sms: string;
+  send_hotspot_expiry_reminder: boolean;
+  hotspot_expiry_reminder_sms: string;
+  send_pppoe_expiry_reminder: boolean;
+  pppoe_expiry_reminder_sms: string;
+  enable_email_subscription_reminders: boolean;
+  send_pppoe_email_reminders: boolean;
+  pppoe_email_reminder_subject: string;
+  pppoe_email_reminder_message: string;
+}
+
+export function useNotificationSettings() {
+  return useQuery({
+    queryKey: ['tenant-settings', 'notifications'],
+    queryFn: async (): Promise<NotificationSettings> => {
+      const { data } = await api.get('/tenant/settings/notifications');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveNotificationSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: Partial<NotificationSettings>) => {
+      const { data } = await api.patch('/tenant/settings/notifications', settings);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-settings', 'notifications'] });
+      toast.success('Notification settings saved successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save notification settings');
+    },
+  });
+}
+
+// =========================================================================
+// WhatsApp settings — dedicated endpoint (OrganizationSettings): per-event
+// toggles + templates the WhatsApp sender reads.
+// =========================================================================
+export interface WhatsAppSettings {
+  whatsapp_provider: string | null;
+  whatsapp_enabled: boolean;
+  send_hotspot_payment_confirmation_whatsapp: boolean;
+  hotspot_payment_confirmation_whatsapp: string;
+  send_pppoe_payment_confirmation_whatsapp: boolean;
+  pppoe_payment_confirmation_whatsapp: string;
+  send_hotspot_expiry_notification_whatsapp: boolean;
+  hotspot_expiry_notification_whatsapp: string;
+  send_pppoe_expiry_notification_whatsapp: boolean;
+  pppoe_expiry_notification_whatsapp: string;
+  send_hotspot_expiry_reminder_whatsapp: boolean;
+  hotspot_expiry_reminder_whatsapp: string;
+  send_pppoe_expiry_reminder_whatsapp: boolean;
+  pppoe_expiry_reminder_whatsapp: string;
+}
+
+export function useWhatsAppSettings() {
+  return useQuery({
+    queryKey: ['tenant-settings', 'whatsapp'],
+    queryFn: async (): Promise<WhatsAppSettings> => {
+      const { data } = await api.get('/tenant/settings/whatsapp');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveWhatsAppSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: Partial<WhatsAppSettings>) => {
+      const { data } = await api.patch('/tenant/settings/whatsapp', settings);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-settings', 'whatsapp'] });
+      toast.success('WhatsApp settings saved successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save WhatsApp settings');
+    },
+  });
+}
+
+// =========================================================================
+// Branding settings — dedicated endpoint (OrganizationSettings / Organization).
+// =========================================================================
+export interface BrandingSettings {
+  logo_url: string | null;
+  favicon_url: string | null;
+  primary_color: string;
+  secondary_color: string | null;
+  custom_css: string | null;
+  portal_title: string | null;
+  portal_welcome_message: string | null;
+}
+
+export function useBrandingSettings() {
+  return useQuery({
+    queryKey: ['tenant-settings', 'branding'],
+    queryFn: async (): Promise<BrandingSettings> => {
+      const { data } = await api.get('/tenant/settings/branding');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveBrandingSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: Partial<BrandingSettings>) => {
+      const { data } = await api.patch('/tenant/settings/branding', settings);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-settings', 'branding'] });
+      toast.success('Branding settings saved successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save branding settings');
+    },
+  });
+}
+
+// =========================================================================
+// Business settings — dedicated endpoint (OrganizationSettings): currency, tax,
+// invoice prefix/notes, terms, privacy.
+// =========================================================================
+export interface BusinessSettings {
+  currency: string;
+  tax_rate: number;
+  invoice_prefix: string | null;
+  invoice_notes: string | null;
+  terms_and_conditions: string | null;
+  privacy_policy: string | null;
+}
+
+export function useBusinessSettings() {
+  return useQuery({
+    queryKey: ['tenant-settings', 'business'],
+    queryFn: async (): Promise<BusinessSettings> => {
+      const { data } = await api.get('/tenant/settings/business');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveBusinessSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: Partial<BusinessSettings>) => {
+      const { data } = await api.patch('/tenant/settings/business', settings);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-settings', 'business'] });
+      toast.success('Business settings saved successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save business settings');
+    },
+  });
+}
