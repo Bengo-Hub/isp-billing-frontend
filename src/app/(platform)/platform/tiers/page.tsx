@@ -1,39 +1,39 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check, CreditCard, Plus, Loader2, AlertTriangle } from 'lucide-react';
-import { useSubscriptionTiers, useSeedDefaultTiers, type SubscriptionTier } from '@/features/platform/api';
-import { TierEditDialog } from '@/components/platform/TierEditDialog';
+import { Check, CreditCard, Loader2, AlertTriangle } from 'lucide-react';
+import { useSubscriptionTiers, type SubscriptionTier } from '@/features/platform/api';
 import { OwnershipNotice } from '@/components/platform/OwnershipNotice';
 import { config } from '@/lib/config';
 
+/**
+ * Subscription Tiers — read-only summary.
+ *
+ * Subscription plans, tiers and entitlements are owned by subscriptions-api
+ * (ISP plans are seeded there). This screen is a read-only view of the legacy
+ * local pricing used by platform billing; author/edit canonical plans and
+ * limits in subscriptions-api (link-out below).
+ */
 export default function SubscriptionTiersPage() {
   const { data: allTiers, isLoading, error } = useSubscriptionTiers();
-  const seedDefaultTiers = useSeedDefaultTiers();
-  const [editTier, setEditTier] = useState<SubscriptionTier | null>(null);
 
-  // Separate hotspot and pppoe tiers
+  // Separate hotspot tiers
   const hotspotTiers = allTiers?.filter(tier => tier.tier_type === 'hotspot') || [];
 
   // Convert features object to array for display
   const getFeaturesArray = (tier: SubscriptionTier) => {
     const features: string[] = [];
 
-    // Max routers
     if (tier.max_routers > 0) {
       features.push(`Up to ${tier.max_routers} routers`);
     } else if (tier.max_routers === -1) {
       features.push('Unlimited routers');
     }
 
-    // Trial days
     if (tier.trial_days > 0) {
       features.push(`${tier.trial_days}-day free trial`);
     }
 
-    // Features from object
     if (tier.features) {
       if (tier.features.custom_domain) features.push('Custom domain');
       if (tier.features.white_label) features.push('White label');
@@ -47,83 +47,20 @@ export default function SubscriptionTiersPage() {
     return features;
   };
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Subscription Tiers</h1>
-            <p className="text-gray-600">Manage pricing tiers for ISP providers</p>
-          </div>
-        </div>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-3 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
-            <div>
-              <p className="font-medium">Failed to load subscription tiers</p>
-              <p className="text-sm text-gray-600 mt-1">Please try seeding default tiers or contact support</p>
-            </div>
-          </div>
-          <Button
-            onClick={() => seedDefaultTiers.mutate()}
-            disabled={seedDefaultTiers.isPending}
-            className="mt-4 bg-brand-600 hover:bg-brand-700"
-          >
-            {seedDefaultTiers.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Seeding...
-              </>
-            ) : (
-              'Seed Default Tiers'
-            )}
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Subscription Tiers</h1>
-          <p className="text-gray-600">Manage pricing tiers for ISP providers</p>
-        </div>
-        <div className="flex gap-2">
-          {(!allTiers || allTiers.length === 0) && !isLoading && (
-            <Button
-              onClick={() => seedDefaultTiers.mutate()}
-              disabled={seedDefaultTiers.isPending}
-              variant="outline"
-              className="border-brand-600 text-brand-600 hover:bg-brand-50"
-            >
-              {seedDefaultTiers.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Seeding...
-                </>
-              ) : (
-                'Seed Default Tiers'
-              )}
-            </Button>
-          )}
-          <Button className="bg-brand-600 hover:bg-brand-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Tier
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Subscription Tiers</h1>
+        <p className="text-gray-600">Read-only pricing tiers for ISP providers</p>
       </div>
 
       {/* Data-ownership notice: subscription plans/tiers & entitlements are owned
           by subscriptions-api (ISP_* plans). These local tiers drive legacy
-          platform billing and are kept editable for continuity; new plan
-          definitions and limits should be authored in subscriptions-api and
-          consumed here via the subscriptions S2S client. */}
+          platform billing and are shown read-only; author canonical plans and
+          limits in subscriptions-api. */}
       <OwnershipNotice
         owner="subscriptions-api"
-        description="Subscription plans, tiers and entitlements are owned by subscriptions-api (ISP plans are already seeded there). Tiers shown here are the legacy local pricing used by platform billing; author canonical plans/limits in subscriptions-api."
+        description="Subscription plans, tiers and entitlements are owned by subscriptions-api (ISP plans are already seeded there). Tiers shown here are the legacy local pricing used by platform billing and are read-only; author and edit canonical plans/limits in subscriptions-api."
         manageUrl={config.subscriptionsUiUrl || undefined}
         manageLabel="Manage plans in subscriptions"
       />
@@ -135,25 +72,22 @@ export default function SubscriptionTiersPage() {
             <p className="text-gray-600">Loading subscription tiers...</p>
           </div>
         </Card>
+      ) : error ? (
+        <Card className="p-6">
+          <div className="flex items-center gap-3 text-red-600">
+            <AlertTriangle className="w-5 h-5" />
+            <div>
+              <p className="font-medium">Failed to load subscription tiers</p>
+              <p className="text-sm text-gray-600 mt-1">Manage plans in subscriptions-api or contact support</p>
+            </div>
+          </div>
+        </Card>
       ) : !allTiers || allTiers.length === 0 ? (
         <Card className="p-12">
           <div className="flex flex-col items-center justify-center gap-3">
             <AlertTriangle className="w-8 h-8 text-amber-600" />
             <p className="text-gray-600">No subscription tiers found</p>
-            <Button
-              onClick={() => seedDefaultTiers.mutate()}
-              disabled={seedDefaultTiers.isPending}
-              className="mt-2 bg-brand-600 hover:bg-brand-700"
-            >
-              {seedDefaultTiers.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Seeding...
-                </>
-              ) : (
-                'Seed Default Tiers'
-              )}
-            </Button>
+            <p className="text-sm text-gray-500">Plans are seeded and managed in subscriptions-api.</p>
           </div>
         </Card>
       ) : (
@@ -205,14 +139,6 @@ export default function SubscriptionTiersPage() {
                         </li>
                       ))}
                     </ul>
-
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1" onClick={() => setEditTier(tier)}>Edit</Button>
-                      <Button variant="outline" className="text-gray-500">
-                        <span className="sr-only">More options</span>
-                        •••
-                      </Button>
-                    </div>
                   </Card>
                 ))}
               </div>
@@ -261,12 +187,6 @@ export default function SubscriptionTiersPage() {
           </Card>
         </>
       )}
-
-      <TierEditDialog
-        open={!!editTier}
-        onOpenChange={(open) => { if (!open) setEditTier(null); }}
-        tier={editTier}
-      />
     </div>
   );
 }

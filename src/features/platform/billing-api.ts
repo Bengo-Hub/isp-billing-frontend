@@ -4,6 +4,12 @@ import { toast } from 'sonner';
 
 // =============================================================================
 // Platform Billing Types
+//
+// NOTE: Invoices, payments and refunds are OWNED by treasury-api. The platform
+// billing screen here is a read-only continuity view; mutation flows (generate,
+// refund, void, update, delete, regenerate, export) were removed in favour of
+// the treasury console. The only write kept is initiating an ISP-provider's own
+// subscription-invoice payment (Paystack checkout), used by PaystackPaymentDialog.
 // =============================================================================
 
 export interface PlatformInvoice {
@@ -82,7 +88,7 @@ export interface WhatsAppSubscription {
 }
 
 // =============================================================================
-// Platform Invoices
+// Read-only queries (summary view)
 // =============================================================================
 
 export function usePlatformInvoices(params?: {
@@ -110,29 +116,6 @@ export function usePlatformBillingStats() {
   });
 }
 
-export function useGeneratePlatformInvoices() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const { data } = await api.post('/platform/billing/invoices/generate-monthly');
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['platform-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-billing-stats'] });
-      toast.success(`Generated ${data.generated_count || 0} invoices`);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to generate invoices');
-    },
-  });
-}
-
-// =============================================================================
-// Platform Payments
-// =============================================================================
-
 export function usePlatformPayments(params?: {
   page?: number;
   page_size?: number;
@@ -147,61 +130,6 @@ export function usePlatformPayments(params?: {
     },
   });
 }
-
-export function usePlatformPaymentDetails(paymentId?: number) {
-  return useQuery({
-    queryKey: ['platform-payment', paymentId],
-    queryFn: async (): Promise<PlatformPayment> => {
-      if (!paymentId) throw new Error('Payment ID required');
-      const { data } = await api.get(`/platform/billing/payments/${paymentId}`);
-      return data;
-    },
-    enabled: !!paymentId,
-  });
-}
-
-// =============================================================================
-// Refunds
-// =============================================================================
-
-export interface RefundRequest {
-  amount?: number; // Leave empty for full refund
-  reason: string;
-}
-
-export interface RefundResponse {
-  success: boolean;
-  message: string;
-  refund_reference?: string;
-  refunded_amount?: number;
-}
-
-export function useRefundPayment() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ paymentId, data }: { paymentId: number; data: RefundRequest }): Promise<RefundResponse> => {
-      const response = await api.post(`/platform/billing/payments/${paymentId}/refund`, data);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['platform-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-payment'] });
-      if (data.success) {
-        toast.success(data.message || 'Refund processed successfully');
-      } else {
-        toast.error(data.message || 'Refund failed');
-      }
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to process refund');
-    },
-  });
-}
-
-// =============================================================================
-// WhatsApp Subscriptions
-// =============================================================================
 
 export function usePlatformWhatsAppSubscriptions(params?: {
   status?: string;
@@ -218,105 +146,7 @@ export function usePlatformWhatsAppSubscriptions(params?: {
 }
 
 // =============================================================================
-// Invoice Management
-// =============================================================================
-
-export interface UpdateInvoiceRequest {
-  amount?: number;
-  due_date?: string;
-  notes?: string;
-}
-
-export interface VoidInvoiceRequest {
-  reason: string;
-}
-
-export interface RegenerateInvoiceResponse {
-  success: boolean;
-  message: string;
-  old_amount?: number;
-  new_amount?: number;
-  invoice?: PlatformInvoice;
-}
-
-export function useUpdateInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ invoiceId, data }: { invoiceId: number; data: UpdateInvoiceRequest }) => {
-      const response = await api.patch(`/platform/billing/invoices/${invoiceId}/update`, data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['platform-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-billing-stats'] });
-      toast.success('Invoice updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to update invoice');
-    },
-  });
-}
-
-export function useVoidInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ invoiceId, data }: { invoiceId: number; data: VoidInvoiceRequest }) => {
-      const response = await api.post(`/platform/billing/invoices/${invoiceId}/void`, data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['platform-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-billing-stats'] });
-      toast.success('Invoice voided successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to void invoice');
-    },
-  });
-}
-
-export function useDeleteInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (invoiceId: number) => {
-      const response = await api.delete(`/platform/billing/invoices/${invoiceId}`);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['platform-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-billing-stats'] });
-      toast.success('Invoice deleted successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to delete invoice');
-    },
-  });
-}
-
-export function useRegenerateInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (invoiceId: number): Promise<RegenerateInvoiceResponse> => {
-      const response = await api.post(`/platform/billing/invoices/${invoiceId}/regenerate`);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['platform-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-billing-stats'] });
-      toast.success(data.message || 'Invoice regenerated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to regenerate invoice');
-    },
-  });
-}
-
-// =============================================================================
-// Platform Invoice Payment
+// Platform Invoice Payment (ISP providers paying their own subscription invoice)
 // =============================================================================
 
 export interface PlatformPaymentInitiationRequest {
@@ -357,68 +187,6 @@ export function useInitiatePlatformInvoicePayment() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to initiate payment');
-    },
-  });
-}
-
-export interface PlatformPaymentVerificationResponse {
-  success: boolean;
-  status: string;
-  message: string;
-  invoice_id?: number;
-  payment_id?: number;
-}
-
-/**
- * Verify a platform invoice payment by Paystack reference.
- */
-export function useVerifyPlatformPayment(reference: string) {
-  return useQuery({
-    queryKey: ['platform-payment-verify', reference],
-    queryFn: async (): Promise<PlatformPaymentVerificationResponse> => {
-      const { data } = await api.get(`/platform/billing/payments/verify/${reference}`);
-      return data;
-    },
-    enabled: !!reference,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-}
-
-// =============================================================================
-// Export Functions
-// =============================================================================
-
-export function useExportPlatformData() {
-  return useMutation({
-    mutationFn: async ({ type, params }: { type: 'invoices' | 'payments'; params?: Record<string, any> }) => {
-      const endpoint = type === 'invoices'
-        ? '/platform/billing/invoices/export'
-        : '/platform/billing/payments/export';
-
-      const response = await api.get(endpoint, {
-        params,
-        responseType: 'blob',
-      });
-
-      // Create download link
-      const filename = `platform-${type}-${new Date().toISOString().split('T')[0]}.csv`;
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Export downloaded successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to export data');
     },
   });
 }

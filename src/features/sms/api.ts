@@ -25,12 +25,6 @@ const balanceFallback: SMSBalance = {
   ],
 };
 
-const analyticsFallback = Array.from({ length: 30 }).map((_, i) => ({
-  date: new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(0, 10),
-  sent: Math.floor(Math.random() * 100),
-  failed: Math.floor(Math.random() * 5),
-}));
-
 export function useSmsBalance(accountId: number) {
   return useQuery({
     queryKey: ['sms-balance', accountId],
@@ -69,21 +63,6 @@ export function useTenantSmsBalance() {
   });
 }
 
-export function useSmsAnalytics(accountId: number, days = 30) {
-  return useQuery({
-    queryKey: ['sms-analytics', accountId, days],
-    queryFn: async (): Promise<Record<string, any>> => {
-      try {
-        const { data } = await api.get(`/sms-credit/accounts/${accountId}/analytics`, { params: { days } });
-        return data;
-      } catch {
-        return analyticsFallback as any;
-      }
-    },
-    enabled: !!accountId,
-  });
-}
-
 export function useTopUpSms(accountId: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -96,7 +75,6 @@ export function useTopUpSms(accountId: number) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sms-balance', accountId] });
-      qc.invalidateQueries({ queryKey: ['sms-analytics', accountId] });
     },
   });
 }
@@ -156,7 +134,6 @@ export function useMpesaTopUpFlow(accountId: number) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sms-balance', accountId] });
-      qc.invalidateQueries({ queryKey: ['sms-analytics', accountId] });
     },
   });
 }
@@ -182,116 +159,6 @@ export function useSendSMS() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to send SMS');
-    },
-  });
-}
-
-// Send Bulk SMS
-export interface BulkSMSRequest {
-  recipients: string[];
-  message: string;
-  sender_id?: string;
-  schedule_at?: string;
-}
-
-export function useSendBulkSMS() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (data: BulkSMSRequest) => {
-      const response = await api.post('/notifications/sms/bulk', data);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['sms-balance'] });
-      toast.success(`Bulk SMS queued for ${data.queued_count || 0} recipients`);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to send bulk SMS');
-    },
-  });
-}
-
-// SMS Templates
-export interface SMSTemplate {
-  id: number;
-  name: string;
-  message: string;
-  variables: string[];
-  category: string;
-  is_active: boolean;
-}
-
-export function useSMSTemplates() {
-  return useQuery({
-    queryKey: ['sms-templates'],
-    queryFn: async (): Promise<SMSTemplate[]> => {
-      const { data } = await api.get('/notifications/templates/sms');
-      return data.templates || [];
-    },
-  });
-}
-
-export function useCreateSMSTemplate() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (data: Omit<SMSTemplate, 'id'>) => {
-      const response = await api.post('/notifications/templates/sms', data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sms-templates'] });
-      toast.success('SMS template created successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to create template');
-    },
-  });
-}
-
-export function useUpdateSMSTemplate() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ templateId, data }: { templateId: number; data: Partial<SMSTemplate> }) => {
-      const response = await api.patch(`/notifications/templates/sms/${templateId}`, data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sms-templates'] });
-      toast.success('SMS template updated');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to update template');
-    },
-  });
-}
-
-export function useDeleteSMSTemplate() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (templateId: number) => {
-      await api.delete(`/notifications/templates/sms/${templateId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sms-templates'] });
-      toast.success('Template deleted');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to delete template');
-    },
-  });
-}
-
-// SMS History
-export function useSMSHistory(params?: { page?: number; size?: number; status?: string }) {
-  return useQuery({
-    queryKey: ['sms-history', params],
-    queryFn: async (): Promise<{ items: any[]; total: number }> => {
-      const { data } = await api.get('/sms-credit/history', { params });
-      return data;
     },
   });
 }
@@ -364,37 +231,6 @@ export interface PaystackSMSTopUpResponse {
   reference?: string;
   top_up_id?: number;
   sms_credits?: number;
-}
-
-export function usePaystackSmsTopUp(accountId: number, orgSlug?: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: PaystackSMSTopUpRequest): Promise<PaystackSMSTopUpResponse> => {
-      // Construct callback URL pointing to unified payment callback page
-      const baseCallback = `${window.location.origin}/payment/callback?payment_type=sms_topup`;
-      const callbackUrl = orgSlug ? `${baseCallback}&org=${orgSlug}` : baseCallback;
-
-      const response = await api.post(`/sms-credit/accounts/${accountId}/paystack-top-up`, {
-        ...data,
-        callback_url: callbackUrl,
-      });
-      return response.data;
-    },
-    onSuccess: (data) => {
-      if (data.success && data.checkout_url) {
-        // Redirect to Paystack checkout
-        window.location.href = data.checkout_url;
-      } else if (!data.success) {
-        toast.error(data.message);
-      }
-      queryClient.invalidateQueries({ queryKey: ['sms-balance', accountId] });
-      queryClient.invalidateQueries({ queryKey: ['tenant-sms-balance'] });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to initiate top-up');
-    },
-  });
 }
 
 // Tenant-aware SMS top-up - automatically uses the current user's organization
