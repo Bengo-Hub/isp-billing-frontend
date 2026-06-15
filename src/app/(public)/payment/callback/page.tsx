@@ -3,11 +3,12 @@
 import { PublicBrandedLayout } from '@/components/layouts/PublicBrandedLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { loginToHotspot, waitForUserReady } from '@/features/portal/connect';
 import { api } from '@/lib/api/api-client';
 import { ArrowLeft, CheckCircle2, CreditCard, Globe, Home, Loader2, Mail, MessageSquare, Phone, Receipt, Wifi, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const SUPPORT_EMAIL = 'support@codevertexitsolutions.com';
 const SUPPORT_PHONE = '+254743793901';
@@ -33,6 +34,9 @@ interface HotspotPaymentStatus {
   voucher_code?: string;
   hotspot_username?: string;
   hotspot_password?: string;
+  /** MikroTik gateway login URL (http://<gateway>/login?...) so the captive
+   *  device can be authenticated onto the hotspot before redirecting. */
+  login_url?: string;
 }
 
 interface PortalConfig {
@@ -235,12 +239,35 @@ export default function PaymentCallbackPage() {
     verifyPayment();
   }, [reference, paymentType, orgSlug, fetchPortalConfig, pollHotspotStatus]);
 
-  // Auto-redirect countdown for hotspot purchases after success
+  // After a successful hotspot purchase we must AUTHENTICATE THE DEVICE onto the
+  // MikroTik hotspot (POST creds to the gateway login) BEFORE leaving for the
+  // redirect URL. A bare redirect leaves the device unauthenticated, so HTTPS to
+  // google is closed by the no-cert hotspot (ERR_CONNECTION_CLOSED). Mirrors the
+  // voucher-redeem path. Falls back to a plain redirect only when there is no
+  // gateway login (e.g. the page was opened off-network).
+  const connectStartedRef = useRef(false);
+  const connectDevice = useCallback(() => {
+    if (connectStartedRef.current) return;
+    const username = hotspotData?.hotspot_username;
+    const password = hotspotData?.hotspot_password;
+    const loginUrl = hotspotData?.login_url;
+    if (username && password && loginUrl && orgSlug) {
+      connectStartedRef.current = true;
+      (async () => {
+        await waitForUserReady(orgSlug, username);
+        loginToHotspot(loginUrl, username, password, redirectUrl);
+      })();
+    } else {
+      // No hotspot gateway login available — fall back to a plain redirect.
+      setRedirectCountdown(6);
+    }
+  }, [hotspotData, orgSlug, redirectUrl]);
+
   useEffect(() => {
     if (status === 'success' && paymentType === 'hotspot_purchase') {
-      setRedirectCountdown(10);
+      connectDevice();
     }
-  }, [status, paymentType]);
+  }, [status, paymentType, connectDevice]);
 
   useEffect(() => {
     if (redirectCountdown === null || redirectCountdown <= 0) return;
@@ -439,7 +466,16 @@ export default function PaymentCallbackPage() {
                   <div className="flex flex-col gap-3">
                     <Button
                       className="w-full bg-green-600 hover:bg-green-700"
-                      onClick={() => { window.location.href = redirectUrl; }}
+                      onClick={() => {
+                        // Authenticate the device onto the hotspot first (then
+                        // MikroTik redirects to the redirect URL); plain redirect
+                        // only if there is no gateway login to post to.
+                        if (hotspotData?.hotspot_username && hotspotData?.login_url) {
+                          connectDevice();
+                        } else {
+                          window.location.href = redirectUrl;
+                        }
+                      }}
                     >
                       <Globe className="w-4 h-4 mr-2" />
                       Start Browsing

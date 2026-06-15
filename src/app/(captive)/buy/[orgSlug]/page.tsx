@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAvailablePaymentGateways } from '@/features/payments/api';
-import { checkConnectionStatus, useHotspotPackages, usePaymentStatus, usePortalConfig, usePurchasePackage, useRedeemVoucher } from '@/features/portal/api';
+import { useHotspotPackages, usePaymentStatus, usePortalConfig, usePurchasePackage, useRedeemVoucher } from '@/features/portal/api';
+import { loginToHotspot, waitForUserReady } from '@/features/portal/connect';
 import { usePortalBranding } from '@/hooks/use-portal-branding';
 import { showToast } from '@/lib/utils/toast';
 import { AlertCircle, CheckCircle, Clock, Loader2, LogIn, Star, Ticket, Wifi, Zap } from 'lucide-react';
@@ -73,33 +74,6 @@ export default function CaptiveBuyPackagesPage() {
   // Tracks the "Connecting you to the internet…" splash shown right before we
   // hand the browser off to the MikroTik hotspot login endpoint.
   const [isConnecting, setIsConnecting] = useState(false);
-
-  /**
-   * Authenticate the CLIENT to the MikroTik hotspot.
-   *
-   * MikroTik only grants internet once the *client's browser* submits
-   * username+password to the hotspot login endpoint ($(link-login-only),
-   * http-pap accepts plain credentials). A fetch/XHR is not enough — the
-   * browser itself must navigate there — so we build a real <form> and submit
-   * it, which navigates the client to the login URL and gets them online.
-   */
-  const loginToHotspot = (loginurl: string, username: string, password: string, dst?: string) => {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = loginurl;
-    const add = (n: string, v: string) => {
-      const i = document.createElement('input');
-      i.type = 'hidden';
-      i.name = n;
-      i.value = v;
-      form.appendChild(i);
-    };
-    add('username', username);
-    add('password', password);
-    if (dst) add('dst', dst);
-    document.body.appendChild(form);
-    form.submit();
-  };
 
   const formatCurrency = (amount: number, currency: string = 'KES') => {
     return `Ksh ${amount}`;
@@ -256,16 +230,8 @@ export default function CaptiveBuyPackagesPage() {
     if (connectStartedRef.current || !username || !password) return;
     connectStartedRef.current = true;
     setIsConnecting(true);
-    const deadline = Date.now() + 45000; // never spin forever
-    while (Date.now() < deadline) {
-      try {
-        const st = await checkConnectionStatus(orgSlug, username);
-        if (st.ready || st.status === 'failed') break;
-      } catch {
-        // transient (captive client may briefly lose the cloud) — keep trying
-      }
-      await new Promise((r) => setTimeout(r, 2500));
-    }
+    // Wait until the router has actually created the user, then submit the login.
+    await waitForUserReady(orgSlug, username);
     connectToHotspot(username, password, fallbackLoginUrl);
   };
 
