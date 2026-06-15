@@ -8,6 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MoreHorizontal, Search, Users, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { usePlatformUsers, useDeleteUser, useActivateUser, useDeactivateUser } from '@/features/users/api';
+import { OwnershipNotice } from '@/components/platform/OwnershipNotice';
+import { TablePagination } from '@/components/platform/TablePagination';
+import { config } from '@/lib/config';
 
 export default function PlatformUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,6 +85,17 @@ export default function PlatformUsersPage() {
           </div>
         </div>
       </div>
+
+      {/* Data-ownership notice: users, tenants and roles are owned by auth-api.
+          This screen lists platform-owner accounts for convenience; identity,
+          role assignment and full user management are performed in the auth
+          (accounts) console. */}
+      <OwnershipNotice
+        owner="auth-api"
+        description="Users, tenants and roles are owned by auth-api. This is a read-and-status view of platform-owner accounts; create users, assign roles and manage identity in the accounts console."
+        manageUrl={config.accountsUiUrl || undefined}
+        manageLabel="Manage users in accounts"
+      />
 
       {/* Search */}
       <div className="flex items-center gap-4">
@@ -186,17 +200,14 @@ export default function PlatformUsersPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-600">
-            Showing {users.length} of {data?.total ?? 0} user(s)
-          </p>
-          {(data?.pages ?? 0) > 1 && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button>
-              <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= (data?.pages ?? 1)}>Next</Button>
-            </div>
-          )}
-        </div>
+        <TablePagination
+          page={page}
+          pages={data?.pages ?? 1}
+          total={data?.total ?? 0}
+          shownCount={users.length}
+          noun="user(s)"
+          onPageChange={setPage}
+        />
       </Card>
     </div>
   );

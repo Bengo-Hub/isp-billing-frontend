@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { useFullAnalytics } from '@/features/platform/api';
 import { TrendingUp, Building2, Users, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/platform/StatCard';
 
 export default function PlatformAnalyticsPage() {
   const { data, isLoading } = useFullAnalytics();
@@ -38,50 +39,10 @@ export default function PlatformAnalyticsPage() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-brand-50 rounded-lg">
-              <Building2 className="w-5 h-5 text-brand-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Organizations</p>
-              <p className="text-xl font-bold">{dashboard?.total_organizations || 0}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-50 rounded-lg">
-              <DollarSign className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Monthly Revenue</p>
-              <p className="text-xl font-bold">KES {(dashboard?.total_revenue_this_month || 0).toLocaleString()}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <Users className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">End Customers</p>
-              <p className="text-xl font-bold">{(dashboard?.total_end_customers || 0).toLocaleString()}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-50 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Growth Rate</p>
-              <p className="text-xl font-bold">{(dashboard?.revenue_growth_percentage || 0).toFixed(1)}%</p>
-            </div>
-          </div>
-        </Card>
+        <StatCard inline title="Total Organizations" value={dashboard?.total_organizations || 0} icon={Building2} color="pink" />
+        <StatCard inline title="Monthly Revenue" value={`KES ${(dashboard?.total_revenue_this_month || 0).toLocaleString()}`} icon={DollarSign} color="green" />
+        <StatCard inline title="End Customers" value={(dashboard?.total_end_customers || 0).toLocaleString()} icon={Users} color="blue" />
+        <StatCard inline title="Growth Rate" value={`${(dashboard?.revenue_growth_percentage || 0).toFixed(1)}%`} icon={TrendingUp} color="orange" />
       </div>
 
       {/* Revenue Chart */}

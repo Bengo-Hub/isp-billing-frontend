@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Check, CreditCard, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import { useSubscriptionTiers, useSeedDefaultTiers, type SubscriptionTier } from '@/features/platform/api';
 import { TierEditDialog } from '@/components/platform/TierEditDialog';
+import { OwnershipNotice } from '@/components/platform/OwnershipNotice';
+import { config } from '@/lib/config';
 
 export default function SubscriptionTiersPage() {
   const { data: allTiers, isLoading, error } = useSubscriptionTiers();
@@ -113,6 +115,18 @@ export default function SubscriptionTiersPage() {
           </Button>
         </div>
       </div>
+
+      {/* Data-ownership notice: subscription plans/tiers & entitlements are owned
+          by subscriptions-api (ISP_* plans). These local tiers drive legacy
+          platform billing and are kept editable for continuity; new plan
+          definitions and limits should be authored in subscriptions-api and
+          consumed here via the subscriptions S2S client. */}
+      <OwnershipNotice
+        owner="subscriptions-api"
+        description="Subscription plans, tiers and entitlements are owned by subscriptions-api (ISP plans are already seeded there). Tiers shown here are the legacy local pricing used by platform billing; author canonical plans/limits in subscriptions-api."
+        manageUrl={config.subscriptionsUiUrl || undefined}
+        manageLabel="Manage plans in subscriptions"
+      />
 
       {isLoading ? (
         <Card className="p-12">

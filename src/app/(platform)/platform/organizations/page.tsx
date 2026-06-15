@@ -40,6 +40,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { OwnershipNotice } from '@/components/platform/OwnershipNotice';
+import { config } from '@/lib/config';
 
 const statusColors: Record<OrganizationStatus, string> = {
   active: 'bg-green-100 text-green-700',
@@ -229,6 +231,18 @@ export default function OrganizationsPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Data-ownership notice: tenant IDENTITY (name, slug, email, logo, branding)
+          is owned by auth-api. isp-billing owns only the ISP service lifecycle
+          (subscription status, trial/extend, licence-bypass) keyed on the tenant
+          UUID. Edit identity/branding in the accounts console; the
+          subscription/lifecycle actions in this table stay here. */}
+      <OwnershipNotice
+        owner="auth-api"
+        description="Tenant identity & branding (name, slug, email, logo) are owned by auth-api. The subscription lifecycle actions here (activate, extend, suspend, licence bypass) are isp-billing's own; edit tenant identity in the accounts console."
+        manageUrl={config.accountsUiUrl || undefined}
+        manageLabel="Manage tenants in accounts"
+      />
 
       {/* Filters */}
       <Card className="p-4">

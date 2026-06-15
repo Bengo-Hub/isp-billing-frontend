@@ -15,55 +15,7 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  trend,
-  trendValue,
-  color = 'pink',
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: any;
-  trend?: 'up' | 'down' | 'neutral';
-  trendValue?: string;
-  color?: 'pink' | 'green' | 'blue' | 'orange' | 'red';
-}) {
-  const colorClasses = {
-    pink: 'bg-brand-50 text-brand-600',
-    green: 'bg-green-50 text-green-600',
-    blue: 'bg-blue-50 text-blue-600',
-    orange: 'bg-orange-50 text-orange-600',
-    red: 'bg-red-50 text-red-600',
-  };
-
-  return (
-    <Card className="p-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
-          {trend && trendValue && (
-            <div className={`flex items-center gap-1 mt-2 text-sm ${
-              trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-500'
-            }`}>
-              {trend === 'up' ? <TrendingUp className="w-4 h-4" /> : trend === 'down' ? <TrendingDown className="w-4 h-4" /> : null}
-              <span>{trendValue}</span>
-            </div>
-          )}
-        </div>
-        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="w-6 h-6" />
-        </div>
-      </div>
-    </Card>
-  );
-}
+import { StatCard } from '@/components/platform/StatCard';
 
 function DashboardSkeleton() {
   return (

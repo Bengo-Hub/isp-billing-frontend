@@ -52,6 +52,9 @@ import {
 } from '@/features/platform/billing-api';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
+import { StatCard } from '@/components/platform/StatCard';
+import { OwnershipNotice } from '@/components/platform/OwnershipNotice';
+import { config } from '@/lib/config';
 
 export default function PlatformBillingPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -285,76 +288,23 @@ export default function PlatformBillingPage() {
         </div>
       </div>
 
+      {/* Data-ownership notice: invoices & payments are owned by treasury-api.
+          This screen is the platform→ISP-provider subscription billing view
+          (local PlatformInvoice/PlatformPayment) kept for continuity; the
+          canonical financial ledger lives in treasury. */}
+      <OwnershipNotice
+        owner="treasury-api"
+        description="Invoices and payments are owned by treasury-api. This screen shows the platform's ISP-provider subscription billing; for the canonical financial ledger and refunds use the treasury console."
+        manageUrl={config.treasuryUiUrl || undefined}
+        manageLabel="Open treasury console"
+      />
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-50 rounded-lg">
-              <DollarSign className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Collected</p>
-              {statsLoading ? (
-                <div className="h-7 w-24 bg-gray-200 animate-pulse rounded" />
-              ) : (
-                <p className="text-xl font-bold">
-                  {formatCurrency(stats?.total_paid || 0, 'KES')}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <Receipt className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Invoiced</p>
-              {statsLoading ? (
-                <div className="h-7 w-24 bg-gray-200 animate-pulse rounded" />
-              ) : (
-                <p className="text-xl font-bold">
-                  {formatCurrency(stats?.total_invoiced || 0, 'KES')}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-50 rounded-lg">
-              <Clock className="w-5 h-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Pending</p>
-              {statsLoading ? (
-                <div className="h-7 w-24 bg-gray-200 animate-pulse rounded" />
-              ) : (
-                <p className="text-xl font-bold">
-                  {formatCurrency(stats?.total_pending || 0, 'KES')}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-red-50 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Overdue</p>
-              {statsLoading ? (
-                <div className="h-7 w-24 bg-gray-200 animate-pulse rounded" />
-              ) : (
-                <p className="text-xl font-bold">
-                  {formatCurrency(stats?.total_overdue || 0, 'KES')}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
+        <StatCard inline title="Collected" value={statsLoading ? '…' : formatCurrency(stats?.total_paid || 0, 'KES')} icon={DollarSign} color="green" />
+        <StatCard inline title="Total Invoiced" value={statsLoading ? '…' : formatCurrency(stats?.total_invoiced || 0, 'KES')} icon={Receipt} color="blue" />
+        <StatCard inline title="Pending" value={statsLoading ? '…' : formatCurrency(stats?.total_pending || 0, 'KES')} icon={Clock} color="orange" />
+        <StatCard inline title="Overdue" value={statsLoading ? '…' : formatCurrency(stats?.total_overdue || 0, 'KES')} icon={AlertTriangle} color="red" />
       </div>
 
       {/* Tabs */}
