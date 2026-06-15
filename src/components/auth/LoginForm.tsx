@@ -45,8 +45,26 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
   const [error, setError] = useState('');
   const totpInputRef = useRef<HTMLInputElement>(null);
   
-  const { login, complete2FALogin, clear2FAChallenge, twoFactorChallenge, isLoading } = useAuthStore();
+  const { login, complete2FALogin, clear2FAChallenge, twoFactorChallenge, isLoading, startSSOLogin } = useAuthStore();
   const router = useRouter();
+  const [ssoLoading, setSsoLoading] = useState(false);
+
+  const handleSSOLogin = async () => {
+    setError('');
+    setSsoLoading(true);
+    try {
+      // Preserve any ?redirect= target through the SSO round-trip.
+      const redirect =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('redirect') || undefined
+          : undefined;
+      await startSSOLogin(redirect);
+      // startSSOLogin navigates away; keep the spinner until the browser leaves.
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start SSO sign-in');
+      setSsoLoading(false);
+    }
+  };
 
   // Focus TOTP input when 2FA challenge appears
   useEffect(() => {
@@ -243,6 +261,36 @@ export function LoginForm({ inline = false, onSubmit, initialUsername, initialPa
             sign up for an account
           </a>
         </p>
+      </div>
+
+      {/* Primary option: Codevertex SSO (Phase 1c, ADDITIVE). The local
+          username/password form below remains fully functional (dual-run). */}
+      <Button
+        type="button"
+        onClick={handleSSOLogin}
+        disabled={ssoLoading || isLoading}
+        className="w-full h-12 mb-5 bg-gray-900 hover:bg-gray-800 text-white font-medium"
+      >
+        {ssoLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Redirecting to Codevertex…
+          </>
+        ) : (
+          <>
+            <ShieldCheck className="w-4 h-4 mr-2" />
+            Sign in with Codevertex SSO
+          </>
+        )}
+      </Button>
+
+      <div className="relative mb-5">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-2 text-gray-400">or continue with</span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">

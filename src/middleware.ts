@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = [
   '/verify-email',
   '/contact',
   '/payment/callback',
+  '/auth/callback', // Codevertex SSO callback (token exchange happens client-side here)
   '/buy', // Captive portal package purchase page (/buy/[orgSlug])
 ];
 

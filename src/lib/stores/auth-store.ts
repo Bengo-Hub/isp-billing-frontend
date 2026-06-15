@@ -4,6 +4,11 @@
 
 import { api } from "@/lib/api";
 import { authLogger } from "@/lib/logger";
+import {
+  exchangeCodeForTokens,
+  persistSSOSession,
+  startSSOLogin as startSSORedirect,
+} from "@/lib/auth/sso";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 
@@ -131,6 +136,18 @@ interface AuthState {
  */
 interface AuthActions {
   login: (username: string, password: string) => Promise<void>;
+  /**
+   * Phase 1c (ADDITIVE): begin the Codevertex SSO PKCE redirect. Does NOT touch
+   * the local email/password login path. `returnTo` is restored after callback.
+   */
+  startSSOLogin: (returnTo?: string) => Promise<void>;
+  /**
+   * Phase 1c (ADDITIVE): complete the SSO callback — exchange the auth code for
+   * tokens, persist them into the shared storage the api-client reads, then
+   * hydrate the local profile/permissions from the service `/auth/me`.
+   * Returns the resolved user so the callback page can compute its redirect.
+   */
+  completeSSOLogin: (code: string) => Promise<User | null>;
   complete2FALogin: (tempToken: string, code: string) => Promise<void>;
   clear2FAChallenge: () => void;
   register: (data: RegisterData) => Promise<void>;
@@ -301,6 +318,102 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
+      // ── Phase 1c: Codevertex SSO (ADDITIVE / DUAL-RUN) ──────────────────
+      // These actions live alongside the local `login` above. They never call
+      // the local /auth/login endpoint; they drive the central SSO PKCE flow
+      // and then hydrate the SAME store shape, so the rest of the app + the
+      // api-client (which reads localStorage["auth-token"]) work unchanged.
+
+      startSSOLogin: async (returnTo?: string) => {
+        set({ error: null });
+        await startSSORedirect(returnTo);
+      },
+
+      completeSSOLogin: async (code: string): Promise<User | null> => {
+        set({ isLoading: true, error: null });
+
+        // Read the PKCE verifier persisted before the redirect.
+        const { consumeVerifier } = await import("@/lib/auth/sso");
+        const verifier = consumeVerifier();
+        if (!verifier) {
+          set({ isLoading: false, error: "Sign-in session expired. Please try again." });
+          throw new Error("Missing PKCE verifier");
+        }
+
+        try {
+          // 1) Exchange the authorization code for SSO tokens.
+          const tokens = await exchangeCodeForTokens(code, verifier);
+
+          // 2) Persist into the shared storage keys the api-client + middleware
+          //    read (auth-token / refresh-token + cookies). After this, the
+          //    api-client attaches the access token identically to local logins.
+          persistSSOSession(tokens);
+
+          // 3) Hydrate local profile + permissions from the service /auth/me
+          //    (the unified backend dependency accepts the SSO RS256 JWT).
+          const response = await api.get("/auth/me");
+          const backendUser = (response.data as any) ?? null;
+
+          const normalizedUser = backendUser
+            ? ({
+                ...backendUser,
+                role: ((): UserRole => {
+                  switch ((backendUser as any).role) {
+                    case "platform_owner":
+                      return "superuser";
+                    case "isp_admin":
+                      return "admin";
+                    case "isp_technician":
+                      return "technician";
+                    default:
+                      return "customer";
+                  }
+                })(),
+                permissions: normalizePermissions((backendUser as any).permissions ?? []),
+              } as User)
+            : null;
+
+          // Derive organization context for the role-based dashboard redirect.
+          // SSO /auth/me carries tenant_slug; local org fields are also present.
+          const orgSlug =
+            (backendUser as any)?.tenant_slug ||
+            (backendUser as any)?.organization_slug ||
+            null;
+          const organizationInfo =
+            orgSlug || (backendUser as any)?.organization_id
+              ? {
+                  organization_id: (backendUser as any)?.organization_id ?? 0,
+                  organization_slug: orgSlug ?? "",
+                  organization_name:
+                    (backendUser as any)?.organization_name ?? orgSlug ?? "",
+                }
+              : null;
+
+          set({
+            user: normalizedUser,
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token ?? null,
+            organizationInfo,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+
+          authLogger.info("[Auth Store] SSO login successful", {
+            hasUser: !!normalizedUser,
+            userRole: normalizedUser?.role,
+            orgSlug,
+          });
+
+          return normalizedUser;
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "SSO sign-in failed";
+          set({ isLoading: false, error: message, isAuthenticated: false });
+          throw error;
+        }
+      },
+
       // Complete login with 2FA verification
       complete2FALogin: async (tempToken: string, code: string) => {
         set({ isLoading: true, error: null });
@@ -453,6 +566,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       logout: () => {
         localStorage.removeItem("auth-token");
         localStorage.removeItem("refresh-token");
+        // Clear the SSO-session marker so a subsequent local login refreshes
+        // against the local backend (and vice-versa). Additive — harmless for
+        // local sessions where the key was never set.
+        localStorage.removeItem("auth-source-sso");
 
         // Clear cookies
         if (typeof document !== 'undefined') {
@@ -483,11 +600,23 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
 
         try {
-          const response = await api.post("/auth/refresh", {
-            refresh_token: refreshToken,
-          });
+          // DUAL-RUN: SSO sessions refresh against the central SSO; local
+          // sessions keep refreshing against the local backend (unchanged).
+          let access_token: string;
+          let newRefreshToken: string | undefined;
 
-          const { access_token, refresh_token: newRefreshToken } = response.data;
+          const { isSSOSession, refreshSSOTokens } = await import("@/lib/auth/sso");
+          if (isSSOSession()) {
+            const tokens = await refreshSSOTokens(refreshToken);
+            access_token = tokens.access_token;
+            newRefreshToken = tokens.refresh_token;
+          } else {
+            const response = await api.post("/auth/refresh", {
+              refresh_token: refreshToken,
+            });
+            access_token = response.data.access_token;
+            newRefreshToken = response.data.refresh_token;
+          }
 
           localStorage.setItem("auth-token", access_token);
           if (newRefreshToken) {

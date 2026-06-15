@@ -31,6 +31,68 @@ function resolveApiUrl(): string {
 const API_URL = resolveApiUrl();
 const TIMEOUT = 30000;
 
+// ── SSO refresh mutex (Phase 1c) ────────────────────────────────────────────
+// SSO-issued sessions are marked with localStorage["auth-source-sso"]. Their
+// access tokens must be refreshed against the central SSO, not the local
+// backend. A module-level mutex coalesces concurrent 401s into a single
+// refresh request (thundering-herd guard). Local sessions are unaffected and
+// keep using the existing local /auth/refresh path below.
+const SSO_BASE_URL =
+  process.env.NEXT_PUBLIC_SSO_URL || "https://sso.codevertexitsolutions.com";
+const SSO_CLIENT_ID =
+  process.env.NEXT_PUBLIC_SSO_CLIENT_ID || "isp-billing-ui";
+
+let ssoRefreshPromise: Promise<string | null> | null = null;
+
+function isSSOSession(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    localStorage.getItem("auth-source-sso") === "1"
+  );
+}
+
+async function refreshSSOAccessToken(): Promise<string | null> {
+  if (ssoRefreshPromise) return ssoRefreshPromise;
+
+  ssoRefreshPromise = (async (): Promise<string | null> => {
+    try {
+      const refreshToken = localStorage.getItem("refresh-token");
+      if (!refreshToken) return null;
+
+      // Bypass the configured `client` instance (baseURL = local API).
+      const resp = await axios.post(
+        `${SSO_BASE_URL}/api/v1/auth/refresh`,
+        { refresh_token: refreshToken, client_id: SSO_CLIENT_ID },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      const accessToken: string | undefined = resp.data?.access_token;
+      const newRefresh: string | undefined = resp.data?.refresh_token;
+      if (!accessToken) return null;
+
+      localStorage.setItem("auth-token", accessToken);
+      if (newRefresh) localStorage.setItem("refresh-token", newRefresh);
+      if (typeof document !== "undefined") {
+        document.cookie = `auth-token=${accessToken}; path=/; max-age=${
+          7 * 24 * 60 * 60
+        }; SameSite=Lax`;
+        if (newRefresh) {
+          document.cookie = `refresh-token=${newRefresh}; path=/; max-age=${
+            30 * 24 * 60 * 60
+          }; SameSite=Lax`;
+        }
+      }
+      return accessToken;
+    } catch {
+      return null;
+    } finally {
+      ssoRefreshPromise = null;
+    }
+  })();
+
+  return ssoRefreshPromise;
+}
+
 /**
  * Standardized API response format
  */
@@ -168,6 +230,22 @@ function createApiClient(): AxiosInstance {
       ) {
         originalRequest._retry = true;
 
+        // DUAL-RUN: SSO sessions refresh against the central SSO (mutex-guarded).
+        // Local sessions fall through to the existing local-backend refresh below.
+        if (isSSOSession()) {
+          const newAccessToken = await refreshSSOAccessToken();
+          if (newAccessToken) {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            }
+            return client(originalRequest);
+          }
+          // SSO refresh failed — clear auth; let AuthGuard handle the redirect.
+          localStorage.removeItem("auth-token");
+          localStorage.removeItem("refresh-token");
+          localStorage.removeItem("auth-source-sso");
+          localStorage.removeItem("auth-storage");
+        } else
         try {
           // Attempt to refresh token
           const refreshToken = localStorage.getItem("refresh-token");
