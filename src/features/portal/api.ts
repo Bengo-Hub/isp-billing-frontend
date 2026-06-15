@@ -153,6 +153,30 @@ export function useRedeemVoucher(orgSlug: string) {
   });
 }
 
+export interface ConnectionStatus {
+  ready: boolean;
+  status: string; // 'ready' | 'pending' | 'failed' | 'no_router'
+  message?: string;
+}
+
+/**
+ * Poll whether the hotspot user has actually been created on the router yet.
+ * Gates auto-login after a redeem/payment so we never submit the MikroTik login
+ * form before the agent's async create_user lands (NAT routers create users on
+ * their next poll). Returns ready=true immediately for direct/VPN routers that
+ * create the user synchronously (no queued command).
+ */
+export async function checkConnectionStatus(
+  orgSlug: string,
+  username: string,
+): Promise<ConnectionStatus> {
+  const response = await api.get<ConnectionStatus>(
+    `/portal/hotspot/${orgSlug}/connection-status?username=${encodeURIComponent(username)}`,
+  );
+  const data = (response as { data?: ConnectionStatus })?.data;
+  return data ?? (response as unknown as ConnectionStatus);
+}
+
 /**
  * Check session status.
  */

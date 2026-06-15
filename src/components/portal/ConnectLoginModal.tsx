@@ -100,9 +100,15 @@ export function ConnectLoginModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-md p-0 max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl">
+      {/* Explicitly LIGHT + brand-driven: the captive portal is always light, but
+          the shared Dialog/Input theme tokens (bg-background, border-input) flip
+          DARK on devices set to system dark-mode (prefers-color-scheme), which
+          made this modal render dark + off-brand. We hard-set light surfaces here
+          and drive every accent off the dynamic primaryColor. Width is capped to
+          the viewport (w-[calc(100vw-2rem)]) and the base Dialog centres it. */}
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md p-0 max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-xl">
         <div className="p-5 sm:p-6">
-          <DialogHeader className="mb-5 sm:mb-6 text-center">
+          <DialogHeader className="mb-5 sm:mb-6 !text-center items-center">
             {/* Accent icon */}
             <div
               className="w-14 h-14 sm:w-16 sm:h-16 rounded-full mx-auto mb-3 flex items-center justify-center shrink-0"
@@ -110,10 +116,10 @@ export function ConnectLoginModal({
             >
               <Wifi className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: primaryColor }} />
             </div>
-            <DialogTitle className="text-lg sm:text-xl">
+            <DialogTitle className="text-lg sm:text-xl text-slate-900 text-center">
               Connect to Internet
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-500 px-2">
+            <DialogDescription className="text-sm text-slate-500 text-center px-2">
               Enter your credentials to reconnect
             </DialogDescription>
           </DialogHeader>
@@ -121,7 +127,7 @@ export function ConnectLoginModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Username */}
             <div>
-              <Label htmlFor="connect-username" className="text-sm font-medium mb-1.5 block">
+              <Label htmlFor="connect-username" className="text-sm font-medium mb-1.5 block text-slate-700">
                 Username
               </Label>
               <Input
@@ -130,14 +136,14 @@ export function ConnectLoginModal({
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 autoComplete="username"
-                className="h-12 text-base w-full"
+                className="h-12 text-base w-full bg-white text-slate-900 border-slate-300 placeholder:text-slate-400"
                 required
               />
             </div>
 
             {/* Password */}
             <div>
-              <Label htmlFor="connect-password" className="text-sm font-medium mb-1.5 block">
+              <Label htmlFor="connect-password" className="text-sm font-medium mb-1.5 block text-slate-700">
                 Password
               </Label>
               <Input
@@ -147,7 +153,7 @@ export function ConnectLoginModal({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 autoComplete="current-password"
-                className="h-12 text-base w-full"
+                className="h-12 text-base w-full bg-white text-slate-900 border-slate-300 placeholder:text-slate-400"
                 required
               />
             </div>
@@ -164,7 +170,7 @@ export function ConnectLoginModal({
             <Button
               type="submit"
               disabled={!username.trim() || !password.trim() || loginMutation.isPending}
-              className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold touch-manipulation"
+              className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold text-white touch-manipulation"
               style={{ backgroundColor: primaryColor }}
             >
               {loginMutation.isPending ? (
@@ -181,7 +187,7 @@ export function ConnectLoginModal({
             </Button>
           </form>
 
-          <p className="text-xs text-center text-gray-400 mt-4 px-2">
+          <p className="text-xs text-center text-slate-400 mt-4 px-2">
             Use the credentials you received after purchasing a package or voucher.
           </p>
         </div>

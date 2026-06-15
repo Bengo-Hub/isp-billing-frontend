@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAvailablePaymentGateways } from '@/features/payments/api';
-import { useHotspotPackages, usePaymentStatus, usePortalConfig, usePurchasePackage, useRedeemVoucher } from '@/features/portal/api';
+import { checkConnectionStatus, useHotspotPackages, usePaymentStatus, usePortalConfig, usePurchasePackage, useRedeemVoucher } from '@/features/portal/api';
 import { usePortalBranding } from '@/hooks/use-portal-branding';
 import { showToast } from '@/lib/utils/toast';
 import { AlertCircle, CheckCircle, Clock, Loader2, LogIn, Star, Ticket, Wifi, Zap } from 'lucide-react';
@@ -230,11 +230,43 @@ export default function CaptiveBuyPackagesPage() {
     if (!target || !username || !password) return;
     hotspotSubmittedRef.current = true;
     setIsConnecting(true);
+    // After auth, send the client to the ISP's configured landing page (or
+    // Google), NOT back to `linkOrig` — which is usually the captive portal / a
+    // probe URL and causes a redirect loop back to this page. The redirect URL
+    // is set by the ISP in settings (hotspot.redirect_url), default google.com.
+    const dst = config?.redirect_url || 'https://www.google.com';
     // Defer the navigation a tick so the "Connecting…" splash paints before
     // the browser unloads this page for the MikroTik login endpoint.
     setTimeout(() => {
-      loginToHotspot(target, username, password, linkOrig || undefined);
+      loginToHotspot(target, username, password, dst);
     }, 600);
+  };
+
+  // Gate auto-login on the router actually having CREATED the user. After a
+  // redeem/payment the backend queues create_user for the agent's next poll, so
+  // submitting the login form immediately races that and fails (the user then
+  // has to retry manually). We poll connection-status until ready (bounded),
+  // showing the "Connecting…" splash, then submit the login exactly once.
+  const connectStartedRef = useRef(false);
+  const waitThenConnect = async (
+    username?: string,
+    password?: string,
+    fallbackLoginUrl?: string | null,
+  ) => {
+    if (connectStartedRef.current || !username || !password) return;
+    connectStartedRef.current = true;
+    setIsConnecting(true);
+    const deadline = Date.now() + 45000; // never spin forever
+    while (Date.now() < deadline) {
+      try {
+        const st = await checkConnectionStatus(orgSlug, username);
+        if (st.ready || st.status === 'failed') break;
+      } catch {
+        // transient (captive client may briefly lose the cloud) — keep trying
+      }
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+    connectToHotspot(username, password, fallbackLoginUrl);
   };
 
   // Auto-login after a SUCCESSFUL voucher redeem. The backend returns `login_url`
@@ -242,7 +274,7 @@ export default function CaptiveBuyPackagesPage() {
   // not only via the captive redirect.
   useEffect(() => {
     if (redeemMutation.isSuccess && redeemMutation.data?.success) {
-      connectToHotspot(
+      waitThenConnect(
         redeemMutation.data.hotspot_username,
         redeemMutation.data.hotspot_password,
         redeemMutation.data.login_url,
@@ -263,7 +295,7 @@ export default function CaptiveBuyPackagesPage() {
         hotspot_password?: string;
         login_url?: string;
       };
-      connectToHotspot(
+      waitThenConnect(
         ps.hotspot_username ?? ps.username,
         ps.hotspot_password ?? ps.password,
         ps.login_url,
@@ -329,7 +361,7 @@ export default function CaptiveBuyPackagesPage() {
               already; this button is a manual fallback if it was blocked. */}
           {(loginUrl || ps.login_url) ? (
             <Button
-              onClick={() => connectToHotspot(psUsername, psPassword, ps.login_url)}
+              onClick={() => waitThenConnect(psUsername, psPassword, ps.login_url)}
               className="w-full"
               style={{ backgroundColor: primaryColor }}
             >
@@ -394,7 +426,7 @@ export default function CaptiveBuyPackagesPage() {
               already; this button is a manual fallback if it was blocked. */}
           {(loginUrl || login_url) ? (
             <Button
-              onClick={() => connectToHotspot(hotspot_username, hotspot_password, login_url)}
+              onClick={() => waitThenConnect(hotspot_username, hotspot_password, login_url)}
               className="w-full"
               style={{ backgroundColor: primaryColor }}
             >
