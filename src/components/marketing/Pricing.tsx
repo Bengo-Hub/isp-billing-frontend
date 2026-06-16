@@ -2,9 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import { type SubscriptionTier } from '@/features/platform/api';
+import { startSSOSignup } from '@/lib/auth/sso';
 import { motion } from 'framer-motion';
 import { CheckCircle, Loader2 } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 
@@ -265,20 +265,19 @@ export function Pricing() {
                     ))}
                   </ul>
 
-                  <Link href="https://accounts.codevertexitsolutions.com/signup" className="block relative z-10">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        variant={plan.buttonVariant}
-                        className={`w-full h-10 md:h-12 text-base md:text-lg ${
-                          plan.buttonVariant === 'default'
-                            ? 'bg-primary hover:bg-brand-800 text-white'
-                            : 'border-primary text-primary hover:bg-primary/10'
-                        }`}
-                      >
-                        Get Started - Free
-                      </Button>
-                    </motion.div>
-                  </Link>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="block relative z-10">
+                    <Button
+                      onClick={() => { void startSSOSignup(); }}
+                      variant={plan.buttonVariant}
+                      className={`w-full h-10 md:h-12 text-base md:text-lg ${
+                        plan.buttonVariant === 'default'
+                          ? 'bg-primary hover:bg-brand-800 text-white'
+                          : 'border-primary text-primary hover:bg-primary/10'
+                      }`}
+                    >
+                      Get Started - Free
+                    </Button>
+                  </motion.div>
                 </motion.div>
               ))}
             </div>

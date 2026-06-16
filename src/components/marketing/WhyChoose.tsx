@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { startSSOSignup } from '@/lib/auth/sso';
 import { motion } from 'framer-motion';
 import { ArrowRight, Play, Star, Zap, Shield, TrendingUp, Users, CheckCircle, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -231,17 +232,15 @@ export function WhyChoose() {
               animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
               transition={{ duration: 0.8, delay: 1.6 }}
             >
-              <Link href="https://accounts.codevertexitsolutions.com/signup">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button size="lg" className="bg-primary hover:bg-brand-800 text-white text-base md:text-lg h-12 md:h-14 px-6 md:px-8 w-full sm:w-auto shadow-lg">
-                    Get Started - Free
-                    <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
-                  </Button>
-                </motion.div>
-              </Link>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button onClick={() => { void startSSOSignup(); }} size="lg" className="bg-primary hover:bg-brand-800 text-white text-base md:text-lg h-12 md:h-14 px-6 md:px-8 w-full sm:w-auto shadow-lg">
+                  Get Started - Free
+                  <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+              </motion.div>
               <Link href="#demo">
                 <motion.div
                   whileHover={{ scale: 1.05 }}

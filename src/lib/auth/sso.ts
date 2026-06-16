@@ -100,7 +100,10 @@ export interface SSOTokenResponse {
  * Generates verifier/challenge/state, persists the verifier+state, then returns
  * the URL the caller should navigate to.
  */
-export async function buildAuthorizeUrl(returnTo?: string): Promise<string> {
+export async function buildAuthorizeUrl(
+  returnTo?: string,
+  opts?: { screenHint?: "signup" | "login" },
+): Promise<string> {
   const verifier = generateCodeVerifier();
   const challenge = await generateCodeChallenge(verifier);
   const state = generateState();
@@ -117,12 +120,31 @@ export async function buildAuthorizeUrl(returnTo?: string): Promise<string> {
   url.searchParams.set("state", state);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
+  // A "signup" hint routes new users to the SSO signup wizard (auth-api honours
+  // prompt=create / screen_hint=signup). The PKCE verifier is stored on THIS
+  // origin above, so the post-signup authorize redirect lands back on our
+  // /auth/callback with a code we can exchange.
+  if (opts?.screenHint === "signup") {
+    url.searchParams.set("prompt", "create");
+    url.searchParams.set("screen_hint", "signup");
+  }
   return url.toString();
 }
 
 /** Start the SSO login by redirecting the browser to the authorize endpoint. */
 export async function startSSOLogin(returnTo?: string): Promise<void> {
   const authorizeUrl = await buildAuthorizeUrl(returnTo);
+  window.location.href = authorizeUrl;
+}
+
+/**
+ * Start the SSO sign-up flow. Mirrors startSSOLogin but asks the SSO to show the
+ * signup wizard first. After signup → login the flow returns here via the OIDC
+ * authorize redirect, so a brand-new ISP provider lands straight on their
+ * dashboard with a session — no manual "go back to the service" step.
+ */
+export async function startSSOSignup(returnTo?: string): Promise<void> {
+  const authorizeUrl = await buildAuthorizeUrl(returnTo, { screenHint: "signup" });
   window.location.href = authorizeUrl;
 }
 
