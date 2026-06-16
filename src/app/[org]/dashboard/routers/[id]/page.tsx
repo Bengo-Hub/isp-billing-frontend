@@ -17,6 +17,7 @@ import {
   useEnrollRouterVpn,
   useCreateRouterBackup,
   useDownloadRouterBackup,
+  useDeleteRouterBackup,
   useListRouterBackups,
   useTestRouterConnection,
   useRouterAgentStatus,
@@ -24,7 +25,7 @@ import {
   useRouterPayments,
 } from '@/features/routers/api';
 import { DeviceEventsTab } from '@/features/routers/components/DeviceEventsTab';
-import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle, CreditCard, HardDrive, Lock } from 'lucide-react';
+import { Copy, Eye, EyeOff, RefreshCw, Settings, AlertCircle, Wifi, Download, Power, CheckCircle, CreditCard, HardDrive, Lock, Trash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -52,6 +53,7 @@ export default function RouterDetailsPage() {
   const enrollVpnMutation = useEnrollRouterVpn();
   const backupMutation = useCreateRouterBackup();
   const downloadBackupMutation = useDownloadRouterBackup();
+  const deleteBackupMutation = useDeleteRouterBackup();
   const testConnectionMutation = useTestRouterConnection();
   const disconnectMutation = useDisconnectUser();
 
@@ -586,22 +588,38 @@ export default function RouterDetailsPage() {
                         <td className="py-4 px-4">{b.created_at ? new Date(b.created_at).toLocaleString() : 'N/A'}</td>
                         <td className="py-4 px-4">{b.completed_at ? new Date(b.completed_at).toLocaleString() : '-'}</td>
                         <td className="py-4 px-4 text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => downloadBackupMutation.mutate({ routerId, backupId: b.id })}
-                            disabled={!b.downloadable || downloadBackupMutation.isPending}
-                            title={
-                              b.downloadable
-                                ? 'Download the .backup file'
-                                : b.status === 'pending'
-                                ? 'Waiting for the router agent to upload the backup file (~30s after the next poll)'
-                                : 'Backup file not available (created before file upload was supported, or upload failed)'
-                            }
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            {b.downloadable ? 'Download' : b.status === 'pending' ? 'Awaiting upload…' : 'Unavailable'}
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadBackupMutation.mutate({ routerId, backupId: b.id })}
+                              disabled={!b.downloadable || downloadBackupMutation.isPending}
+                              title={
+                                b.downloadable
+                                  ? 'Download the .backup file'
+                                  : b.status === 'pending'
+                                  ? 'Waiting for the router agent to upload the backup file (~30s after the next poll)'
+                                  : 'Backup file not available (created before file upload was supported, or upload failed)'
+                              }
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              {b.downloadable ? 'Download' : b.status === 'pending' ? 'Awaiting upload…' : 'Unavailable'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                if (confirm(`Delete backup "${b.name}"? This removes it from the router and the platform.`)) {
+                                  deleteBackupMutation.mutate({ routerId, backupId: b.id });
+                                }
+                              }}
+                              disabled={deleteBackupMutation.isPending}
+                              title="Delete this backup (removes the file from the router and the platform)"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

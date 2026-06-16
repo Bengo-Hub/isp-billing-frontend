@@ -587,6 +587,27 @@ export function useDownloadRouterBackup() {
   });
 }
 
+// Delete a backup — queues an agent action to remove the .backup file from the
+// router (NAT-safe), then deletes the DB row so it leaves the table.
+export function useDeleteRouterBackup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ routerId, backupId }: { routerId: number; backupId: number }) => {
+      const { data } = await api.delete(`/routers/${routerId}/backups/${backupId}`);
+      return data;
+    },
+    onSuccess: (data, { routerId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.routers.detail(String(routerId)), 'backups'],
+      });
+      toast.success(data?.message || 'Backup deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to delete backup');
+    },
+  });
+}
+
 // Router sync operations
 export function useSyncRouter() {
   const queryClient = useQueryClient();
