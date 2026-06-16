@@ -81,6 +81,8 @@ async function refreshSSOAccessToken(): Promise<string | null> {
             30 * 24 * 60 * 60
           }; SameSite=Lax`;
         }
+        // Tiny middleware auth marker (the token cookie can exceed the 4KB limit).
+        document.cookie = `cv_authed=1; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
       }
       return accessToken;
     } catch {

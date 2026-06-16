@@ -208,6 +208,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             if (refresh_token) {
               document.cookie = `refresh-token=${refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
             }
+            // Tiny middleware auth marker (the token cookie can exceed the 4KB limit).
+            document.cookie = `cv_authed=1; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
           }
 
           authLogger.debug('[Auth Store] Extracted from response:', {
@@ -415,6 +417,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         if (typeof document !== 'undefined') {
           document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           document.cookie = 'refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          document.cookie = 'cv_authed=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         }
 
         set({
@@ -469,6 +472,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             if (newRefreshToken) {
               document.cookie = `refresh-token=${newRefreshToken}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
             }
+            // Tiny middleware auth marker (the token cookie can exceed the 4KB limit).
+            document.cookie = `cv_authed=1; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
           }
 
           set({

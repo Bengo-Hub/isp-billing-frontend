@@ -69,8 +69,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get auth token from cookies
-  const authToken = request.cookies.get('auth-token')?.value;
+  // Auth presence for the edge check. The api-client reads the real token from
+  // localStorage; admin/SSO JWTs embed the full permission set and exceed the
+  // browser's ~4KB per-cookie limit, so the auth-token cookie is often dropped.
+  // We therefore rely on a tiny `cv_authed` marker cookie (set alongside the
+  // token), falling back to auth-token for older/small-token sessions.
+  const authToken = request.cookies.get('cv_authed')?.value || request.cookies.get('auth-token')?.value;
 
   // Debug logging
   const allCookies = request.cookies.getAll();

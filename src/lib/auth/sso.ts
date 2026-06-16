@@ -216,7 +216,29 @@ export function persistSSOSession(tokens: SSOTokenResponse): void {
         30 * 24 * 60 * 60
       }; SameSite=Lax`;
     }
+    // The api-client reads the token from localStorage; the only consumer of a
+    // cookie is the edge middleware's presence check. Admin/SSO JWTs embed the
+    // full permission set and routinely exceed the browser's ~4KB per-cookie
+    // limit, so the auth-token cookie above is silently dropped and protected
+    // routes bounce to /login. Set a tiny, always-fits session marker that the
+    // middleware checks instead.
+    setSessionMarker();
   }
+}
+
+/** Name of the small auth-presence cookie checked by the edge middleware. */
+export const SESSION_MARKER_COOKIE = "cv_authed";
+
+/** Set the tiny middleware auth-presence marker (safe regardless of token size). */
+export function setSessionMarker(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_MARKER_COOKIE}=1; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+}
+
+/** Clear the middleware auth-presence marker (on logout). */
+export function clearSessionMarker(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_MARKER_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }
 
 /** True when the active session was issued by the central SSO (vs local login). */
