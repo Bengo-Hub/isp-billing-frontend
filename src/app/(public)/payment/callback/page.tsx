@@ -76,9 +76,12 @@ export default function PaymentCallbackPage() {
     }
   }, []);
 
-  // Poll hotspot payment status until completed
+  // Poll hotspot payment status until completed. The FIRST check runs
+  // immediately (no leading delay) — with the NATS consumer the backend marks
+  // the purchase completed almost instantly, so this usually returns on attempt
+  // #1. The backend GET also synchronously verifies treasury as a fallback.
   const pollHotspotStatus = useCallback(async (slug: string, ref: string): Promise<HotspotPaymentStatus | null> => {
-    const maxAttempts = 30; // 30 * 3s = 90s max
+    const maxAttempts = 45; // ~90s ceiling at 2s interval
     for (let i = 0; i < maxAttempts; i++) {
       try {
         // Accept either the ApiResponse<T> shape or a raw payload (some portal endpoints
@@ -93,7 +96,7 @@ export default function PaymentCallbackPage() {
       } catch {
         // Continue polling
       }
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
     return null;
   }, []);
@@ -250,7 +253,14 @@ export default function PaymentCallbackPage() {
     if (connectStartedRef.current) return;
     const username = hotspotData?.hotspot_username;
     const password = hotspotData?.hotspot_password;
-    const loginUrl = hotspotData?.login_url;
+    // Prefer the backend-supplied gateway login URL; if it's somehow missing,
+    // fall back to the standard hotspot gateway so we still AUTHENTICATE the
+    // device instead of bare-redirecting an unauthenticated client (which the
+    // no-cert hotspot closes -> ERR_CONNECTION_CLOSED).
+    const loginUrl = hotspotData?.login_url
+      || (username && password
+        ? `http://172.31.0.1/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+        : undefined);
     if (username && password && loginUrl && orgSlug) {
       connectStartedRef.current = true;
       (async () => {
@@ -258,7 +268,9 @@ export default function PaymentCallbackPage() {
         loginToHotspot(loginUrl, username, password, redirectUrl);
       })();
     } else {
-      // No hotspot gateway login available — fall back to a plain redirect.
+      // Truly no credentials (should not happen for a completed hotspot
+      // purchase) — last-resort plain redirect.
+      console.warn('[payment/callback] no hotspot credentials available; bare redirect');
       setRedirectCountdown(6);
     }
   }, [hotspotData, orgSlug, redirectUrl]);

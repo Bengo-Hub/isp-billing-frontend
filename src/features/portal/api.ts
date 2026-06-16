@@ -230,11 +230,13 @@ export function usePaymentStatus(orgSlug: string, reference?: string) {
     },
     enabled: !!orgSlug && !!reference,
     refetchInterval: (query) => {
-      // Poll every 5 seconds until payment is completed
+      // Poll every 2 seconds until payment is completed (the backend confirms
+      // instantly via the NATS consumer, with a synchronous treasury verify
+      // fallback) — keeps the in-portal wait snappy.
       if (query.state.data?.is_completed) {
         return false;
       }
-      return 5000;
+      return 2000;
     },
   });
 }
