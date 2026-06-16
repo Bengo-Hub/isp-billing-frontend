@@ -68,6 +68,15 @@ export function DeviceDetailsStep({
   const startPingMonitoring = async () => {
     if (!sessionId || !ipAddress) return;
 
+    // Router identity (e.g. MikroTik1) is embedded in the backend-generated
+    // bootstrap command. Pass it so the backend can resolve THIS session from a
+    // prior router check-in (NAT-safe) even after a page refresh created a new
+    // session_id — otherwise a refresh restarts the futile cloud-ping loop.
+    const identity = (() => {
+      const m = provisioningCommand?.match(/[?&]identity=([^&"\s]+)/);
+      return m ? decodeURIComponent(m[1]) : undefined;
+    })();
+
     try {
       await apiClient.post(
         `/provisioning/bootstrap/ping/start/${sessionId}`,
@@ -78,7 +87,8 @@ export function DeviceDetailsStep({
             api_port: parseInt(apiPort) || 8728,
             interval_seconds: 2.0,
             max_attempts: 30,
-            timeout_ms: 1000
+            timeout_ms: 1000,
+            ...(identity ? { identity } : {}),
           }
         }
       );
