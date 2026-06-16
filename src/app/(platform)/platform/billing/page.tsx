@@ -17,7 +17,6 @@ import {
   usePlatformBillingStats,
   usePlatformInvoices,
   usePlatformPayments,
-  usePlatformWhatsAppSubscriptions,
   type PlatformPayment,
   type PlatformInvoice,
 } from '@/features/platform/billing-api';
@@ -47,7 +46,6 @@ export default function PlatformBillingPage() {
     page: 1,
     page_size: 10,
   });
-  const { data: subscriptions, isLoading: subscriptionsLoading } = usePlatformWhatsAppSubscriptions();
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -94,7 +92,6 @@ export default function PlatformBillingPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -217,54 +214,6 @@ export default function PlatformBillingPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="subscriptions" className="space-y-4">
-          <Card className="p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">WhatsApp Subscriptions</h2>
-            {subscriptionsLoading ? (
-              <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-12 bg-gray-200 animate-pulse rounded" />
-                ))}
-              </div>
-            ) : subscriptions?.length ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Organization</TableHead>
-                      <TableHead>Provider</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Messages (Month)</TableHead>
-                      <TableHead>Total Messages</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>Next Billing</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {subscriptions.map((sub) => (
-                      <TableRow key={sub.id}>
-                        <TableCell className="font-medium">{sub.organization_name}</TableCell>
-                        <TableCell className="capitalize">{sub.provider_type}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(sub.status)}>{sub.status}</Badge>
-                        </TableCell>
-                        <TableCell>{sub.messages_sent_this_month.toLocaleString()}</TableCell>
-                        <TableCell>{sub.total_messages_sent.toLocaleString()}</TableCell>
-                        <TableCell>{format(new Date(sub.start_date), 'MMM dd, yyyy')}</TableCell>
-                        <TableCell>{format(new Date(sub.next_billing_date), 'MMM dd, yyyy')}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                <Receipt className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No subscriptions found</p>
-              </div>
-            )}
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

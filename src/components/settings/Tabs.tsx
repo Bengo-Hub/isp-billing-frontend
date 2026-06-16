@@ -3,33 +3,26 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { Switch } from '@/components/ui/switch';
-import { WhatsAppSubscriptionDialog } from '@/components/whatsapp/WhatsAppSubscriptionDialog';
 import FileUpload from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
+import { config } from '@/lib/config';
 import {
   DEFAULT_TIMEZONE,
   TIMEZONE_OPTIONS,
-  NotificationSettings,
-  WhatsAppSettings,
   useBrandingSettings,
   useBusinessSettings,
   useDeleteLogo,
   useHotspotSettings,
-  useNotificationSettings,
   useOrganizationDetails,
   usePPPoESettings,
   useSaveBrandingSettings,
   useSaveBusinessSettings,
   useSaveHotspotSettings,
-  useSaveNotificationSettings,
   useSaveOrganizationDetails,
   useSavePPPoESettings,
   useSaveSetting,
-  useSaveWhatsAppSettings,
   useSettings,
   useUploadLogo,
-  useWhatsAppSettings,
 } from '@/features/settings/api';
 import {
   PayoutRecipientType,
@@ -57,8 +50,6 @@ const tabs = [
   { id: 'payments', label: 'Payments' },
   { id: 'pppoe', label: 'PPPoE' },
   { id: 'hotspot', label: 'Hotspot' },
-  { id: 'sms', label: 'SMS Gateway' },
-  { id: 'whatsapp', label: 'WhatsApp' },
   { id: 'notifications', label: 'Notifications' },
 ];
 
@@ -90,8 +81,6 @@ export default function SettingsTabs() {
         {active === 'payments' && <PaymentsTab />}
         {active === 'pppoe' && <PPPoETab />}
         {active === 'hotspot' && <HotspotTab />}
-        {active === 'sms' && <SMSTab />}
-        {active === 'whatsapp' && <WhatsAppTab />}
         {active === 'notifications' && <NotificationsTab />}
       </div>
     </div>
@@ -1155,530 +1144,41 @@ function HotspotTab() {
   );
 }
 
-function SMSTab() {
-  const { data = {} as any } = useSettings('sms');
-  const save = useSaveSetting('sms');
-
-  // Permission checks
-  const { canManagePlatformSecrets, isSuperuser, isAdmin } = usePermissions();
-  const canViewSecrets = canManagePlatformSecrets() || isSuperuser();
-  const canSelectGateway = isAdmin() || isSuperuser();
-
-  // Providers
-  const [smsProvider, setSmsProvider] = useState<'twilio' | 'africastalking'>(data['sms.gateway_provider'] ?? 'twilio');
-  const cfg = useGatewayConfig('sms', smsProvider);
-  const saveCfg = useSaveGatewayConfig('sms', smsProvider);
-  const testCfg = useTestGateway('sms', smsProvider);
-
-  return (
-    <div className="space-y-6">
-      {/* Gateway Selection - Available to ISP Admin */}
-      <Card className="p-6">
-        <form id="form-sms" onSubmit={(e) => { e.preventDefault(); save.mutate({
-          'sms.gateway_provider': (e.currentTarget.elements.namedItem('provider') as HTMLInputElement).value,
-          'sms.enable_balance_alert': (e.currentTarget.elements.namedItem('balance') as HTMLInputElement).checked,
-        }); }} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-700">SMS Gateway</label>
-              <select name="provider" defaultValue={smsProvider} onChange={(e) => setSmsProvider(e.target.value as any)} className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm">
-                <option value="twilio">Twilio</option>
-                <option value="africastalking">Africa's Talking</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <input name="balance" type="checkbox" defaultChecked={!!data['sms.enable_balance_alert']} />
-              <span className="text-sm text-gray-700">Enable SMS Balance Alert</span>
-            </div>
-          </div>
-          <div className="flex gap-3 justify-end">
-            <Button type="submit">Save changes</Button>
-          </div>
-        </form>
-      </Card>
-
-      {/* SMS Provider Configuration - Platform Owner Only */}
-      {canViewSecrets ? (
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="h-4 w-4 text-amber-600" />
-            <div className="text-sm font-semibold">{smsProvider === 'twilio' ? 'Twilio' : "Africa's Talking"} Configuration</div>
-            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Platform Only</span>
-          </div>
-          <form onSubmit={(e) => { e.preventDefault();
-            const form = e.currentTarget.elements as any;
-            const payload: Record<string, string> = smsProvider === 'twilio' ? {
-              account_sid: form['sid'].value || '',
-              auth_token: form['token'].value || '',
-              phone_number: form['phone'].value || '',
-            } : {
-              username: form['at_user'].value || '',
-              api_key: form['at_key'].value || '',
-            };
-            saveCfg.mutate(payload);
-          }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {smsProvider === 'twilio' ? (
-              <>
-                <Input name="sid" placeholder="Account SID" defaultValue={cfg.data?.configuration?.account_sid ?? ''} />
-                <Input name="token" placeholder="Auth Token" type="password" defaultValue={cfg.data?.configuration?.auth_token ?? ''} />
-                <Input name="phone" placeholder="Phone Number" defaultValue={cfg.data?.configuration?.phone_number ?? ''} />
-              </>
-            ) : (
-              <>
-                <Input name="at_user" placeholder="Username" defaultValue={cfg.data?.configuration?.username ?? ''} />
-                <Input name="at_key" placeholder="API Key" type="password" defaultValue={cfg.data?.configuration?.api_key ?? ''} />
-              </>
-            )}
-            <div className="col-span-full flex flex-col sm:flex-row gap-3 sm:justify-end">
-              <Button type="submit" className="w-full sm:w-auto">Save</Button>
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => testCfg.mutate({})}>Test</Button>
-            </div>
-          </form>
-        </Card>
-      ) : null}
-    </div>
-  );
-}
-
-function WhatsAppTab() {
-  // Per-event WhatsApp toggles + templates persist to the dedicated
-  // /tenant/settings/whatsapp endpoint (OrganizationSettings columns the
-  // senders actually read). The subscription/billing UI below uses separate
-  // endpoints and is left untouched.
-  const { data: settings, isLoading } = useWhatsAppSettings();
-  const save = useSaveWhatsAppSettings();
-  const [form, setForm] = useState<Partial<WhatsAppSettings>>({});
-  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (settings) setForm(settings);
-  }, [settings]);
-
-  const set = <K extends keyof WhatsAppSettings>(k: K, v: WhatsAppSettings[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
-
-  const provider = form.whatsapp_provider || 'apiwap';
-
-  const WA_PAY_TAGS = ['@username', '@password', '@package_name', '@expiry_date', '@company_name'];
-  const WA_EXP_TAGS = ['@username', '@package_name', '@expiry_date', '@days_left', '@company_name'];
-
-  return (
-    <div className="space-y-6">
-      {/* Subscription Status & Management */}
-      <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold text-gray-900">WhatsApp Subscription</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Send WhatsApp notifications to your customers via {provider.toUpperCase()} gateway.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="ml-4"
-                onClick={() => setSubscriptionDialogOpen(true)}
-              >
-                Manage Subscription
-              </Button>
-            </div>
-            <div className="mt-3 flex items-center gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Monthly Fee:</span>
-                <span className="ml-2 font-semibold text-gray-900">KES 500</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Status:</span>
-                <span className="ml-2 inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                  Active
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* WhatsApp Settings Form */}
-      <Card className="p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
-        ) : (
-        <form id="form-whatsapp" onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate(form);
-        }} className="space-y-6">
-          {/* Enable WhatsApp & Provider Selection */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <label className="text-sm font-medium text-gray-900">Enable WhatsApp Notifications</label>
-                <p className="text-xs text-gray-500 mt-1">Send notifications to customers via WhatsApp</p>
-              </div>
-              <Switch
-                checked={!!form.whatsapp_enabled}
-                onCheckedChange={(v) => set('whatsapp_enabled', v)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700">WhatsApp Provider</label>
-              <select
-                value={provider}
-                onChange={(e) => set('whatsapp_provider', e.target.value)}
-                className="mt-2 flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-              >
-                <option value="apiwap">APIWAP (Recommended)</option>
-                <option value="twilio" disabled>Twilio (Coming Soon)</option>
-                <option value="messagebird" disabled>MessageBird (Coming Soon)</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Select your WhatsApp messaging provider</p>
-            </div>
-          </div>
-
-          {/* Payment Confirmation */}
-          <div className="border-t pt-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Payment Confirmation</h4>
-            <div className="space-y-4">
-              <NotifTemplateBlock
-                title="Hotspot payment confirmation"
-                enabled={!!form.send_hotspot_payment_confirmation_whatsapp}
-                onToggle={(v) => set('send_hotspot_payment_confirmation_whatsapp', v)}
-                template={form.hotspot_payment_confirmation_whatsapp ?? ''}
-                onTemplate={(v) => set('hotspot_payment_confirmation_whatsapp', v)}
-                placeholder="Hello @username! You have successfully subscribed to @package_name..."
-                tags={WA_PAY_TAGS}
-              />
-              <NotifTemplateBlock
-                title="PPPoE payment confirmation"
-                enabled={!!form.send_pppoe_payment_confirmation_whatsapp}
-                onToggle={(v) => set('send_pppoe_payment_confirmation_whatsapp', v)}
-                template={form.pppoe_payment_confirmation_whatsapp ?? ''}
-                onTemplate={(v) => set('pppoe_payment_confirmation_whatsapp', v)}
-                placeholder="Hello @username! Your subscription is active..."
-                tags={WA_PAY_TAGS}
-              />
-            </div>
-          </div>
-
-          {/* Expiry Notification */}
-          <div className="border-t pt-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Expiry Notification</h4>
-            <div className="space-y-4">
-              <NotifTemplateBlock
-                title="Hotspot expiry notification"
-                enabled={!!form.send_hotspot_expiry_notification_whatsapp}
-                onToggle={(v) => set('send_hotspot_expiry_notification_whatsapp', v)}
-                template={form.hotspot_expiry_notification_whatsapp ?? ''}
-                onTemplate={(v) => set('hotspot_expiry_notification_whatsapp', v)}
-                placeholder="Dear @username, your @package_name access has expired."
-                tags={WA_EXP_TAGS}
-              />
-              <NotifTemplateBlock
-                title="PPPoE expiry notification"
-                enabled={!!form.send_pppoe_expiry_notification_whatsapp}
-                onToggle={(v) => set('send_pppoe_expiry_notification_whatsapp', v)}
-                template={form.pppoe_expiry_notification_whatsapp ?? ''}
-                onTemplate={(v) => set('pppoe_expiry_notification_whatsapp', v)}
-                placeholder="Dear @username, your @package_name subscription has expired."
-                tags={WA_EXP_TAGS}
-              />
-            </div>
-          </div>
-
-          {/* Expiry Reminder */}
-          <div className="border-t pt-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Expiry Reminder (before expiry)</h4>
-            <div className="space-y-4">
-              <NotifTemplateBlock
-                title="Hotspot expiry reminder"
-                enabled={!!form.send_hotspot_expiry_reminder_whatsapp}
-                onToggle={(v) => set('send_hotspot_expiry_reminder_whatsapp', v)}
-                template={form.hotspot_expiry_reminder_whatsapp ?? ''}
-                onTemplate={(v) => set('hotspot_expiry_reminder_whatsapp', v)}
-                placeholder="Hi @username, your @package_name expires on @expiry_date (@days_left days)."
-                tags={WA_EXP_TAGS}
-              />
-              <NotifTemplateBlock
-                title="PPPoE expiry reminder"
-                enabled={!!form.send_pppoe_expiry_reminder_whatsapp}
-                onToggle={(v) => set('send_pppoe_expiry_reminder_whatsapp', v)}
-                template={form.pppoe_expiry_reminder_whatsapp ?? ''}
-                onTemplate={(v) => set('pppoe_expiry_reminder_whatsapp', v)}
-                placeholder="Hi @username, your subscription expires on @expiry_date (@days_left days)."
-                tags={WA_EXP_TAGS}
-              />
-            </div>
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-blue-800">
-                  <strong>Fallback Strategy:</strong> If WhatsApp delivery fails, notifications automatically fall back to SMS (using your configured SMS gateway), then to email if email notifications are enabled.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3 justify-end pt-4">
-            <Button type="submit" disabled={save.isPending}>
-              {save.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save WhatsApp Settings
-            </Button>
-          </div>
-        </form>
-        )}
-      </Card>
-
-      {/* WhatsApp Subscription Dialog */}
-      <WhatsAppSubscriptionDialog
-        open={subscriptionDialogOpen}
-        onOpenChange={setSubscriptionDialogOpen}
-        onSuccess={() => {
-          // Optionally refresh settings or show success message
-          setSubscriptionDialogOpen(false);
-        }}
-      />
-    </div>
-  );
-}
-
-// Reusable "enable toggle + SMS/text template" block for the Notifications tab.
-function NotifTemplateBlock({
-  title,
-  enabled,
-  onToggle,
-  template,
-  onTemplate,
-  placeholder,
-  tags,
-}: {
-  title: string;
-  enabled: boolean;
-  onToggle: (v: boolean) => void;
-  template: string;
-  onTemplate: (v: string) => void;
-  placeholder: string;
-  tags: string[];
-}) {
-  return (
-    <div className="border border-gray-200 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-medium text-gray-700">{title}</label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => onToggle(e.target.checked)}
-            className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
-          />
-          <span className="text-xs text-gray-600">Send</span>
-        </label>
-      </div>
-      <textarea
-        rows={3}
-        value={template}
-        onChange={(e) => onTemplate(e.target.value)}
-        className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-        placeholder={placeholder}
-      />
-      <div className="mt-1 flex flex-wrap gap-1">
-        <span className="text-xs text-gray-500">Available tags:</span>
-        {tags.map((t) => (
-          <code key={t} className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">{t}</code>
-        ))}
-      </div>
-    </div>
-  );
-}
-
+// Notifications & messaging (SMS gateway, WhatsApp subscription, email + the
+// per-event notification templates) are centralized in notifications-api /
+// notifications-ui. ISP admins manage messaging credits and the WhatsApp
+// subscription there; this tab links out instead of driving parallel writes.
 function NotificationsTab() {
-  // Dedicated endpoint (OrganizationSettings) — the columns the SMS/email
-  // senders actually read. Previously this tab wrote mismatched dotted keys to
-  // the generic Configuration store, so admin edits never reached the senders.
-  const { data: settings, isLoading } = useNotificationSettings();
-  const save = useSaveNotificationSettings();
-  const [form, setForm] = useState<Partial<NotificationSettings>>({});
-
-  useEffect(() => {
-    if (settings) setForm(settings);
-  }, [settings]);
-
-  const set = <K extends keyof NotificationSettings>(k: K, v: NotificationSettings[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
-
-  if (isLoading) {
-    return <div className="p-6 text-sm text-gray-500">Loading notification settings…</div>;
-  }
-
-  const PAY_TAGS = ['@username', '@password', '@package_name', '@expiry_date', '@company_name'];
-  const EXP_TAGS = ['@username', '@package_name', '@expiry_date', '@days_left', '@company_name'];
+  const creditsUrl = `${config.notificationsUiUrl}/billing/credits`;
+  const whatsappUrl = `${config.notificationsUiUrl}/billing/whatsapp`;
 
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">System Notifications</h3>
-        <form
-          id="form-notifications"
-          onSubmit={(e) => {
-            e.preventDefault();
-            save.mutate(form);
-          }}
-          className="space-y-6"
-        >
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <label className="text-sm font-medium text-gray-900">MikroTik Status Notifications</label>
-              <p className="text-xs text-gray-500 mt-1">Receive notifications about MikroTik router status changes</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={!!form.enable_mikrotik_status_notifications}
-              onChange={(e) => set('enable_mikrotik_status_notifications', e.target.checked)}
-              className="w-5 h-5 text-brand-600 rounded focus:ring-brand-500"
-            />
-          </div>
-
-          {/* Payment confirmation SMS */}
-          <div className="border-t pt-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Payment Confirmation SMS</h4>
-            <div className="space-y-4">
-              <NotifTemplateBlock
-                title="Hotspot payment confirmation"
-                enabled={!!form.send_hotspot_payment_confirmation}
-                onToggle={(v) => set('send_hotspot_payment_confirmation', v)}
-                template={form.hotspot_payment_confirmation_sms ?? ''}
-                onTemplate={(v) => set('hotspot_payment_confirmation_sms', v)}
-                placeholder="Dear @username, you have successfully subscribed to @package_name..."
-                tags={PAY_TAGS}
-              />
-              <NotifTemplateBlock
-                title="PPPoE payment confirmation"
-                enabled={!!form.send_pppoe_payment_confirmation}
-                onToggle={(v) => set('send_pppoe_payment_confirmation', v)}
-                template={form.pppoe_payment_confirmation_sms ?? ''}
-                onTemplate={(v) => set('pppoe_payment_confirmation_sms', v)}
-                placeholder="Dear @username, subscription to @package_name is active..."
-                tags={PAY_TAGS}
-              />
-            </div>
-          </div>
-
-          {/* Expiry notification SMS */}
-          <div className="border-t pt-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Expiry Notification SMS</h4>
-            <div className="space-y-4">
-              <NotifTemplateBlock
-                title="Hotspot expiry notification"
-                enabled={!!form.send_hotspot_expiry_notification}
-                onToggle={(v) => set('send_hotspot_expiry_notification', v)}
-                template={form.hotspot_expiry_notification_sms ?? ''}
-                onTemplate={(v) => set('hotspot_expiry_notification_sms', v)}
-                placeholder="Dear @username, your @package_name access has expired."
-                tags={EXP_TAGS}
-              />
-              <NotifTemplateBlock
-                title="PPPoE expiry notification"
-                enabled={!!form.send_pppoe_expiry_notification}
-                onToggle={(v) => set('send_pppoe_expiry_notification', v)}
-                template={form.pppoe_expiry_notification_sms ?? ''}
-                onTemplate={(v) => set('pppoe_expiry_notification_sms', v)}
-                placeholder="Dear @username, your @package_name subscription has expired."
-                tags={EXP_TAGS}
-              />
-            </div>
-          </div>
-
-          {/* Expiry reminder SMS */}
-          <div className="border-t pt-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Expiry Reminder SMS (before expiry)</h4>
-            <div className="space-y-4">
-              <NotifTemplateBlock
-                title="Hotspot expiry reminder"
-                enabled={!!form.send_hotspot_expiry_reminder}
-                onToggle={(v) => set('send_hotspot_expiry_reminder', v)}
-                template={form.hotspot_expiry_reminder_sms ?? ''}
-                onTemplate={(v) => set('hotspot_expiry_reminder_sms', v)}
-                placeholder="Hi @username, your @package_name expires on @expiry_date (@days_left days)."
-                tags={EXP_TAGS}
-              />
-              <NotifTemplateBlock
-                title="PPPoE expiry reminder"
-                enabled={!!form.send_pppoe_expiry_reminder}
-                onToggle={(v) => set('send_pppoe_expiry_reminder', v)}
-                template={form.pppoe_expiry_reminder_sms ?? ''}
-                onTemplate={(v) => set('pppoe_expiry_reminder_sms', v)}
-                placeholder="Hi @username, your subscription expires on @expiry_date (@days_left days)."
-                tags={EXP_TAGS}
-              />
-            </div>
-          </div>
-
-          {/* Email reminders (PPPoE) */}
-          <div className="border-t pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-semibold text-gray-900">Email Subscription Reminders</h4>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={!!form.enable_email_subscription_reminders}
-                  onChange={(e) => set('enable_email_subscription_reminders', e.target.checked)}
-                  className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
-                />
-                <span className="text-xs text-gray-600">Enable</span>
-              </label>
-            </div>
-
-            <div className="space-y-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!form.send_pppoe_email_reminders}
-                  onChange={(e) => set('send_pppoe_email_reminders', e.target.checked)}
-                  className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
-                />
-                <span className="text-sm text-gray-700">Send email reminders to PPPoE users</span>
-              </label>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700">Email Subject for PPPoE Users</label>
-                <Input
-                  value={form.pppoe_email_reminder_subject ?? ''}
-                  onChange={(e) => set('pppoe_email_reminder_subject', e.target.value)}
-                  placeholder="Your subscription expires in @days_left days"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700">Email Message for PPPoE Users</label>
-                <textarea
-                  rows={4}
-                  value={form.pppoe_email_reminder_message ?? ''}
-                  onChange={(e) => set('pppoe_email_reminder_message', e.target.value)}
-                  className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                  placeholder="Dear @first_name, your internet will expire in @days_left days on @expiry_date..."
-                />
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <span className="text-xs text-gray-500">Available tags:</span>
-                  {['@first_name', '@username', '@days_left', '@expiry_date', '@package_name', '@company_name'].map((t) => (
-                    <code key={t} className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">{t}</code>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3 justify-end pt-4">
-            <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Saving…' : 'Save Notification Settings'}
-            </Button>
-          </div>
-        </form>
+        <h3 className="text-sm font-semibold text-gray-900 mb-1">Notifications &amp; Messaging</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          SMS, email and WhatsApp notifications &mdash; including messaging credits and your
+          WhatsApp subscription &mdash; are now managed centrally in the notifications console.
+          Configure gateways, templates, credit top-ups and your WhatsApp plan there.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <a
+            href={creditsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            Manage SMS credits
+          </a>
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Manage WhatsApp subscription
+          </a>
+        </div>
       </Card>
     </div>
   );

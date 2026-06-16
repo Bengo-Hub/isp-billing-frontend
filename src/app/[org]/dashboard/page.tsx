@@ -19,8 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RouterFilter } from '@/components/filters/RouterFilter';
 import { useDashboardAnalytics, useDashboardCharts } from '@/features/dashboard/api';
 import { useRecentActivity } from '@/features/dashboard/hooks';
-import { useTenantSmsBalance } from '@/features/sms/api';
-import { Activity, MessageSquare, Users, Wallet } from 'lucide-react';
+import { Activity, Users, Wallet } from 'lucide-react';
 import { useState } from 'react';
 
 const LOG_LEVEL_COLORS: Record<string, string> = {
@@ -90,8 +89,8 @@ export default function DashboardPage() {
     }
   );
 
-  // Fetch SMS balance for current user's organization
-  const { data: smsBalance } = useTenantSmsBalance();
+  // SMS balance / messaging credits are managed centrally in notifications-ui;
+  // the dashboard no longer surfaces an SMS-balance widget here.
 
   if (isLoading) {
     return (
@@ -136,7 +135,6 @@ export default function DashboardPage() {
       {/* Top stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
         <StatsCard title="Amount this month" value={`Ksh ${data?.billing?.total_revenue?.toLocaleString() ?? 0}`} icon={Wallet} />
-        <StatsCard title="SMS balance" value={`Ksh ${smsBalance?.current_balance?.toLocaleString() ?? 0}`} icon={MessageSquare} />
         <StatsCard title="Total clients" value={data?.subscriptions?.total_subscriptions ?? 0} icon={Users} />
         <StatsCard title="Active users" value={data?.subscriptions?.active_subscriptions ?? 0} icon={Activity} />
       </div>

@@ -12,9 +12,7 @@ import {
     Globe,
     LayoutDashboard,
     LogOut,
-    Mail,
     Menu,
-    MessageSquare,
     Package,
     Settings,
     Shield,
@@ -75,16 +73,8 @@ const navigation: NavigationItem[] = [
     ]
   },
 
-  // Communication Section - ISP Admin, Technicians
-  {
-    section: 'Communication',
-    roles: ['superuser', 'admin', 'technician'],
-    items: [
-      { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare, module: 'sms' },
-      { name: 'Emails', href: '/dashboard/emails', icon: Mail, module: 'sms' },
-      { name: 'Campaigns', href: '/dashboard/campaigns', icon: MessageSquare, module: 'sms', roles: ['superuser', 'admin'] },
-    ]
-  },
+  // Notifications & messaging (SMS / Email / WhatsApp / campaigns) are now
+  // centralized in notifications-ui — managed there, not in this dashboard.
 
   // Devices - ISP Admin, Technicians
   {
