@@ -1,88 +1,10 @@
 import { api } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-
-export interface RegisterData {
-  username: string;
-  email: string;
-  password: string;
-  full_name: string;
-  phone_number?: string;
-  company_name?: string;
-}
-
-export interface ForgotPasswordData {
-  email: string;
-}
-
-export interface ResetPasswordData {
-  token: string;
-  new_password: string;
-}
 
 export interface ChangePasswordData {
   current_password: string;
   new_password: string;
-}
-
-export interface VerificationData {
-  token: string;
-  verification_type: 'email' | 'phone';
-}
-
-// Register/Signup
-export function useRegister() {
-  const router = useRouter();
-  
-  return useMutation({
-    mutationFn: async (data: RegisterData) => {
-      const response = await api.post('/auth/register', data);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Registration successful! Please check your email to verify your account.');
-      router.push('/login');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Registration failed');
-    },
-  });
-}
-
-// Forgot Password
-export function useForgotPassword() {
-  return useMutation({
-    mutationFn: async (data: ForgotPasswordData) => {
-      const response = await api.post('/auth/forgot-password', data);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Password reset instructions sent to your email');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to send reset email');
-    },
-  });
-}
-
-// Reset Password
-export function useResetPassword() {
-  const router = useRouter();
-  
-  return useMutation({
-    mutationFn: async (data: ResetPasswordData) => {
-      const response = await api.post('/auth/reset-password', data);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Password reset successfully! You can now login with your new password.');
-      router.push('/login');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to reset password');
-    },
-  });
 }
 
 // Change Password
@@ -97,41 +19,6 @@ export function useChangePassword() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to change password');
-    },
-  });
-}
-
-// Verify User (Email/Phone)
-export function useVerifyUser() {
-  const router = useRouter();
-  
-  return useMutation({
-    mutationFn: async (data: VerificationData) => {
-      const response = await api.post('/auth/verify', data);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Account verified successfully! You can now login.');
-      router.push('/login');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Verification failed');
-    },
-  });
-}
-
-// Resend Verification
-export function useResendVerification() {
-  return useMutation({
-    mutationFn: async () => {
-      const response = await api.post('/auth/resend-verification');
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Verification email sent successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to send verification');
     },
   });
 }

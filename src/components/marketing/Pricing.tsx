@@ -265,7 +265,7 @@ export function Pricing() {
                     ))}
                   </ul>
 
-                  <Link href="/signup" className="block relative z-10">
+                  <Link href="https://accounts.codevertexitsolutions.com/signup" className="block relative z-10">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <Button
                         variant={plan.buttonVariant}

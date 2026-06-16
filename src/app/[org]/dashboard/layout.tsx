@@ -1,7 +1,6 @@
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import { Sidebar } from '@/components/dashboard/Sidebar';
-import { LicenceGuard } from '@/components/licence/LicenceGuard';
 import { RBACProvider } from '@/components/rbac/RBACProvider';
 import { BrandingProvider } from '@/components/theme/BrandingProvider';
 import { OrgProvider } from '@/components/org/OrgProvider';
@@ -29,11 +28,11 @@ export default async function DashboardLayout({ children, params }: DashboardLay
               <div className="flex-1 flex flex-col lg:ml-64 min-w-0">
                 <DashboardHeader />
                 <main className="flex-1 overflow-y-auto overflow-x-hidden">
-                  <LicenceGuard>
-                    <div className="min-h-full w-full">
-                      {children}
-                    </div>
-                  </LicenceGuard>
+                  {/* Local licence gating retired — ISP subscription status is
+                      owned by subscriptions-api. */}
+                  <div className="min-h-full w-full">
+                    {children}
+                  </div>
                 </main>
               </div>
             </div>

@@ -108,14 +108,6 @@ export interface User {
 }
 
 /**
- * 2FA challenge state when login requires additional verification
- */
-export interface TwoFactorChallenge {
-  tempToken: string;
-  message: string;
-}
-
-/**
  * Auth state interface
  */
 interface AuthState {
@@ -127,8 +119,6 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  // 2FA challenge state
-  twoFactorChallenge: TwoFactorChallenge | null;
 }
 
 /**
@@ -148,9 +138,6 @@ interface AuthActions {
    * Returns the resolved user so the callback page can compute its redirect.
    */
   completeSSOLogin: (code: string) => Promise<User | null>;
-  complete2FALogin: (tempToken: string, code: string) => Promise<void>;
-  clear2FAChallenge: () => void;
-  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -163,16 +150,6 @@ interface AuthActions {
   hasRole: (roles: UserRole | UserRole[]) => boolean;
   isSuperuser: () => boolean;
   isAdmin: () => boolean;
-}
-
-interface RegisterData {
-  email: string;
-  username: string;
-  password: string;
-  first_name?: string;
-  last_name?: string;
-  phone?: string;
-  company_name?: string;
 }
 
 /**
@@ -190,7 +167,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      twoFactorChallenge: null,
 
       // Actions
       login: async (username: string, password: string) => {
@@ -217,19 +193,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
           // API response is wrapped: { data: { access_token, user, customer_portal, organization, ... } }
           const responseData = (response.data as any).data || response.data;
-
-          // Check if 2FA is required
-          if (responseData.requires_2fa) {
-            authLogger.info('[Auth Store] 2FA required, storing challenge token');
-            set({
-              isLoading: false,
-              twoFactorChallenge: {
-                tempToken: responseData.temp_token,
-                message: responseData.message || 'Enter your authentication code',
-              },
-            });
-            return;
-          }
 
           const { access_token, refresh_token, user: backendUser, customer_portal, organization } = responseData;
 
@@ -436,155 +399,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const message =
             error instanceof Error ? error.message : "SSO sign-in failed";
           set({ isLoading: false, error: message, isAuthenticated: false });
-          throw error;
-        }
-      },
-
-      // Complete login with 2FA verification
-      complete2FALogin: async (tempToken: string, code: string) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await api.post('/auth/2fa/authenticate', {
-            temp_token: tempToken,
-            code: code.trim(),
-          });
-
-          const responseData = (response.data as any).data || response.data;
-          const { access_token, refresh_token, user: backendUser, customer_portal, organization } = responseData;
-
-          // Store tokens in localStorage for API client
-          localStorage.setItem("auth-token", access_token);
-          if (refresh_token) {
-            localStorage.setItem("refresh-token", refresh_token);
-          }
-
-          // Also store in cookies for middleware access
-          if (typeof document !== 'undefined') {
-            document.cookie = `auth-token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-            if (refresh_token) {
-              document.cookie = `refresh-token=${refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
-            }
-          }
-
-          // Normalize user role
-          const normalizedUser = backendUser
-            ? ({
-                ...backendUser,
-                role: ((): UserRole => {
-                  switch ((backendUser as any).role) {
-                    case 'platform_owner':
-                      return 'superuser';
-                    case 'isp_admin':
-                      return 'admin';
-                    case 'isp_technician':
-                      return 'technician';
-                    default:
-                      return 'customer';
-                  }
-                })(),
-                permissions: normalizePermissions((backendUser as any).permissions ?? []),
-              } as User)
-            : null;
-
-          // Extract organization info for ISP users (admin, technician)
-          const organizationInfo = organization ? {
-            organization_id: organization.organization_id,
-            organization_slug: organization.organization_slug,
-            organization_name: organization.organization_name,
-          } : null;
-
-          // Extract customer portal info for customers
-          const customerPortalInfo = customer_portal ? {
-            organization_slug: customer_portal.organization_slug,
-            subscription_type: customer_portal.subscription_type as 'hotspot' | 'pppoe',
-            portal_url: customer_portal.portal_url,
-          } : null;
-
-          set({
-            user: normalizedUser,
-            accessToken: access_token,
-            refreshToken: refresh_token,
-            organizationInfo,
-            customerPortalInfo,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-            twoFactorChallenge: null,
-          });
-
-          authLogger.info('[Auth Store] 2FA login successful');
-        } catch (error) {
-          const message = error instanceof Error ? error.message : '2FA verification failed';
-          set({
-            isLoading: false,
-            error: message,
-          });
-          throw error;
-        }
-      },
-
-      // Clear 2FA challenge state (e.g., when user cancels)
-      clear2FAChallenge: () => {
-        set({ twoFactorChallenge: null, error: null });
-      },
-
-      register: async (data: RegisterData) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await api.post("/auth/register", data);
-          
-          // API response is wrapped: { data: { access_token, user, ... } }
-          const responseData = (response.data as any).data || response.data;
-          const { access_token, refresh_token, user } = responseData;
-
-          localStorage.setItem("auth-token", access_token);
-          if (refresh_token) {
-            localStorage.setItem("refresh-token", refresh_token);
-          }
-
-          // Also store in cookies for middleware access
-          if (typeof document !== 'undefined') {
-            document.cookie = `auth-token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-            if (refresh_token) {
-              document.cookie = `refresh-token=${refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
-            }
-          }
-
-          // Normalize role and permissions for frontend
-          const normalizedUser = {
-            ...user,
-            role: ((): UserRole => {
-              switch ((user as any).role) {
-                case 'platform_owner':
-                  return 'superuser';
-                case 'isp_admin':
-                  return 'admin';
-                case 'isp_technician':
-                  return 'technician';
-                default:
-                  return 'customer';
-              }
-            })(),
-            permissions: normalizePermissions((user as any).permissions ?? []),
-          } as User;
-
-          set({
-            user: normalizedUser,
-            accessToken: access_token,
-            refreshToken: refresh_token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Registration failed";
-          set({
-            isLoading: false,
-            error: message,
-          });
           throw error;
         }
       },

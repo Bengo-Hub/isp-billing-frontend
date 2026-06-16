@@ -5,10 +5,7 @@ import type { NextRequest } from 'next/server';
 const PUBLIC_ROUTES = [
   '/',
   '/login',
-  '/signup',
-  '/forgot-password',
-  '/reset-password',
-  '/verify-email',
+  '/staff-login',
   '/contact',
   '/payment/callback',
   '/auth/callback', // Codevertex SSO callback (token exchange happens client-side here)

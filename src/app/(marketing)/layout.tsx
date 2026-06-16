@@ -13,7 +13,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   // Hide navbar on auth pages (login, signup)
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthPage = pathname === '/login' || pathname === '/staff-login';
 
   useEffect(() => {
     const handleScroll = () => {

@@ -48,7 +48,7 @@ export function LoginForm({ inline = false }: { inline?: boolean }) {
         </h1>
         <p className="text-sm text-gray-500">
           or{' '}
-          <a href="/signup" className="text-pink-500 hover:text-pink-600 font-medium">
+          <a href="https://accounts.codevertexitsolutions.com/signup" className="text-pink-500 hover:text-pink-600 font-medium">
             sign up for an account
           </a>
         </p>

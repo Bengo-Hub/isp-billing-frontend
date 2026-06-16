@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { useAuth } from '@/lib/auth';
 import { useOrg } from '@/components/org/OrgProvider';
-import { Bell, ChevronDown, Filter, KeyRound, LogOut, Search, Settings, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Bell, ChevronDown, Filter, KeyRound, LogOut, Search, Settings, UserCog, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -64,12 +64,6 @@ export function DashboardHeader() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel>Account</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <Link href={`/${orgSlug}/dashboard/security/2fa`}>
-                <ShieldCheck className="h-4 w-4" /> 2FA Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href={`/${orgSlug}/dashboard/settings`}>
                 <span className="flex items-center gap-2"><Settings className="h-4 w-4" /> Settings</span>
