@@ -7,7 +7,9 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { PaymentMethodSelector } from '@/components/portal/PaymentProviders';
+import { ServiceUnavailableCard } from '@/components/portal/ServiceUnavailableCard';
 import { TermsConditionsModal } from '@/components/portal/TermsConditionsModal';
+import type { ProviderContact } from '@/features/portal/api';
 import { useHotspotPackages, usePaymentStatus, usePortalConfig, usePurchasePackage } from '@/features/portal/api';
 import { AlertCircle, CheckCircle, Clock, Loader2, Star, Wifi, Zap, Phone, Calendar, LogOut, CreditCard } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -32,6 +34,9 @@ export default function HotspotCustomerPortal() {
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [selectedPaymentMethod] = useState('paystack'); // Default to Paystack
   const [currentSession, setCurrentSession] = useState<any | null>(null);
+  // Set when a purchase 403s with code='provider_subscription_inactive' — the
+  // provider's own subscription has lapsed. Triggers the customer-safe card.
+  const [providerInactiveContact, setProviderInactiveContact] = useState<ProviderContact | null>(null);
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const { data: packages, isLoading: packagesLoading } = useHotspotPackages(orgSlug);
@@ -124,8 +129,15 @@ export default function HotspotCustomerPortal() {
       } else if (result.reference) {
         setPaymentReference(result.reference);
       }
-    } catch {
+    } catch (err: any) {
       setPurchasingPackageId(null);
+      const code = err?.code ?? err?.response?.data?.detail?.code;
+      if (code === 'provider_subscription_inactive') {
+        const contact: ProviderContact | undefined =
+          err?.details?.contact ?? err?.response?.data?.detail?.contact;
+        setPaymentModalOpen(false);
+        setProviderInactiveContact(contact ?? {});
+      }
     }
   };
 
@@ -146,6 +158,18 @@ export default function HotspotCustomerPortal() {
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: primaryColor }} />
       </div>
+    );
+  }
+
+  // Provider service unavailable — the ISP's own subscription has lapsed. Show
+  // the customer-safe "temporarily unavailable" card instead of the buy UI.
+  if (config?.provider_active === false || providerInactiveContact) {
+    return (
+      <ServiceUnavailableCard
+        contact={providerInactiveContact ?? config?.provider_contact}
+        primaryColor={primaryColor}
+        organizationName={config?.organization_name}
+      />
     );
   }
 

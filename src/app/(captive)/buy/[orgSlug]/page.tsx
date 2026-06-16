@@ -4,7 +4,9 @@ export const dynamic = 'force-dynamic';
 
 import { ConnectLoginModal } from '@/components/portal/ConnectLoginModal';
 import { AcceptedPaymentsRow, PaymentMethodSelector } from '@/components/portal/PaymentProviders';
+import { ServiceUnavailableCard } from '@/components/portal/ServiceUnavailableCard';
 import { TermsConditionsModal } from '@/components/portal/TermsConditionsModal';
+import type { ProviderContact } from '@/features/portal/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -35,6 +37,10 @@ export default function CaptiveBuyPackagesPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  // Set when a purchase is rejected because the PROVIDER's subscription lapsed
+  // (HTTP 403 code='provider_subscription_inactive'). Carries the provider
+  // contact so we can show the customer-facing "temporarily unavailable" card.
+  const [providerInactiveContact, setProviderInactiveContact] = useState<ProviderContact | null>(null);
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const { data: packages, isLoading: packagesLoading } = useHotspotPackages(orgSlug);
@@ -140,7 +146,17 @@ export default function CaptiveBuyPackagesPage() {
       } else if (result.reference) {
         setPaymentReference(result.reference);
       }
-    } catch {
+    } catch (err: any) {
+      // Provider's own subscription has lapsed → show the friendly
+      // "temporarily unavailable" card (not a payment-failed toast).
+      const code = err?.code ?? err?.response?.data?.detail?.code;
+      if (code === 'provider_subscription_inactive') {
+        const contact: ProviderContact | undefined =
+          err?.details?.contact ?? err?.response?.data?.detail?.contact;
+        setPaymentModalOpen(false);
+        setProviderInactiveContact(contact ?? {});
+        return;
+      }
       showToast.paymentFailed();
     }
   };
@@ -296,6 +312,20 @@ export default function CaptiveBuyPackagesPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: primaryColor }} />
       </div>
+    );
+  }
+
+  // Provider service unavailable — the ISP's own subscription has lapsed. Replace
+  // the entire buy/redeem UI with a friendly, customer-safe "temporarily
+  // unavailable" card (config flag OR a purchase 403 set this). NEVER show
+  // billing/expiry wording to end customers.
+  if (config?.provider_active === false || providerInactiveContact) {
+    return (
+      <ServiceUnavailableCard
+        contact={providerInactiveContact ?? config?.provider_contact}
+        primaryColor={primaryColor}
+        organizationName={config?.organization_name}
+      />
     );
   }
 

@@ -5,6 +5,19 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 // Types
 // =========================================================================
 
+/**
+ * Provider (ISP) contact details surfaced to end-customers when the provider's
+ * own subscription has lapsed and the captive/portal buy flow is unavailable.
+ */
+export interface ProviderContact {
+  name?: string;
+  phone?: string;
+  email?: string;
+  whatsapp?: string;
+  address?: string;
+  city?: string;
+}
+
 export interface PortalConfig {
   organization_name: string;
   logo_url?: string;
@@ -16,6 +29,13 @@ export interface PortalConfig {
   show_packages: boolean;
   allow_guest_purchases: boolean;
   redirect_url?: string;
+  /**
+   * False when the provider's (ISP's) own subscription has lapsed — the buy/
+   * renew UI is then replaced with a friendly "temporarily unavailable" card.
+   */
+  provider_active?: boolean;
+  /** Provider contact shown on the unavailable card so customers can reach them. */
+  provider_contact?: ProviderContact;
 }
 
 export interface HotspotPackage {

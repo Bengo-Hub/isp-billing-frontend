@@ -3,8 +3,10 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ServiceUnavailableCard } from '@/components/portal/ServiceUnavailableCard';
 import { TermsConditionsModal } from '@/components/portal/TermsConditionsModal';
 import { useAuthStore } from '@/lib/store/auth';
+import type { ProviderContact } from '@/features/portal/api';
 import {
     usePaymentStatus,
     usePortalConfig,
@@ -40,6 +42,8 @@ export default function PPPoEPortalPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
+  // Set when a renew 403s with code='provider_subscription_inactive'.
+  const [providerInactiveContact, setProviderInactiveContact] = useState<ProviderContact | null>(null);
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const { data: dashboard, isLoading: dashboardLoading, refetch: refetchDashboard } = usePPPoEDashboard(orgSlug);
@@ -73,8 +77,15 @@ export default function PPPoEPortalPage() {
       if (result.reference) {
         setPaymentReference(result.reference);
       }
-    } catch {
-      // Error handled by mutation
+    } catch (err: any) {
+      // Provider's own subscription has lapsed → show the customer-safe card.
+      const code = err?.code ?? err?.response?.data?.detail?.code;
+      if (code === 'provider_subscription_inactive') {
+        const contact: ProviderContact | undefined =
+          err?.details?.contact ?? err?.response?.data?.detail?.contact;
+        setProviderInactiveContact(contact ?? {});
+      }
+      // Other errors handled by mutation state.
     }
   };
 
@@ -99,6 +110,18 @@ export default function PPPoEPortalPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: primaryColor }} />
       </div>
+    );
+  }
+
+  // Provider service unavailable — the ISP's own subscription has lapsed. Show
+  // the customer-safe "temporarily unavailable" card instead of the renew UI.
+  if (config?.provider_active === false || providerInactiveContact) {
+    return (
+      <ServiceUnavailableCard
+        contact={providerInactiveContact ?? config?.provider_contact}
+        primaryColor={primaryColor}
+        organizationName={config?.organization_name}
+      />
     );
   }
 

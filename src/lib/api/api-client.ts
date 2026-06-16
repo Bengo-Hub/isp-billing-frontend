@@ -281,6 +281,40 @@ function createApiClient(): AxiosInstance {
         }
       }
 
+      // ── Subscription-inactive 403 discrimination ──────────────────────────
+      // When the backend rejects a request because the tenant's subscription has
+      // lapsed it returns 403 with code=subscription_inactive (or upgrade=true).
+      // This is NOT an auth failure — do NOT logout/redirect. Swallow it (with a
+      // gentle toast) and let the dashboard <SubscriptionBanner> drive the UX.
+      // The nested `detail.code` shape is also checked (FastAPI HTTPException).
+      if (error.response?.status === 403) {
+        const body = error.response?.data as
+          | (ApiErrorResponse & {
+              code?: string;
+              upgrade?: boolean;
+              detail?: { code?: string };
+            })
+          | undefined;
+        const isSubscription403 =
+          body?.code === 'subscription_inactive' ||
+          body?.upgrade === true ||
+          body?.error?.code === 'subscription_inactive' ||
+          body?.detail?.code === 'subscription_inactive';
+
+        if (isSubscription403) {
+          if (typeof window !== 'undefined') {
+            try {
+              const { showToast } = await import('@/lib/utils/toast');
+              showToast.error('An active subscription is required');
+            } catch {
+              // toast is best-effort
+            }
+          }
+          // Reject quietly so callers can ignore it; no logout/redirect.
+          return Promise.reject(error);
+        }
+      }
+
       // Transform error to ApiError
       if (error.response?.data?.error) {
         const { code, message, details, field_errors } = error.response.data.error;
@@ -290,6 +324,21 @@ function createApiClient(): AxiosInstance {
           error.response.status,
           details,
           field_errors
+        );
+      }
+
+      // FastAPI HTTPException shape: { detail: { code, message, ...extra } } or
+      // { detail: "string" }. Preserve the structured detail (e.g. the captive
+      // provider_subscription_inactive payload carries contact info the buy
+      // page renders) by surfacing it as the ApiError code + details.
+      const detail = (error.response?.data as { detail?: unknown } | undefined)?.detail;
+      if (detail && typeof detail === "object") {
+        const d = detail as { code?: string; message?: string } & Record<string, unknown>;
+        throw new ApiError(
+          d.message || error.message || "Request failed",
+          d.code || "ERROR",
+          error.response?.status || 0,
+          d
         );
       }
 

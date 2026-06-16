@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/dashboard/Sidebar';
 import { RBACProvider } from '@/components/rbac/RBACProvider';
 import { BrandingProvider } from '@/components/theme/BrandingProvider';
 import { OrgProvider } from '@/components/org/OrgProvider';
+import { SubscriptionBanner } from '@/components/subscription/SubscriptionBanner';
 import { ReactNode } from 'react';
 
 interface DashboardLayoutProps {
@@ -29,7 +30,10 @@ export default async function DashboardLayout({ children, params }: DashboardLay
                 <DashboardHeader />
                 <main className="flex-1 overflow-y-auto overflow-x-hidden">
                   {/* Local licence gating retired — ISP subscription status is
-                      owned by subscriptions-api. */}
+                      owned by subscriptions-api. The shared subscription banner
+                      (expiry / grace / past-due) replaces the old LicenceGuard
+                      and renders ONLY here, in the tenant-admin dashboard. */}
+                  <SubscriptionBanner />
                   <div className="min-h-full w-full">
                     {children}
                   </div>
