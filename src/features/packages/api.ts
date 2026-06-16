@@ -16,6 +16,9 @@ export type PlanItem = {
   upload_speed?: number;
   time_limit?: number;        // HOURS, -1 = unlimited
   validity_days?: number;
+  // Authoritative access window in MINUTES when set (>0). When null, the backend
+  // falls back to validity_days (days). Carries sub-day precision.
+  duration_minutes?: number | null;
   concurrent_sessions?: number;
   speed?: string;
   duration?: string;
@@ -25,6 +28,41 @@ export type PlanItem = {
   start_time?: string;
   end_time?: string;
 };
+
+/**
+ * Render a human-readable duration label from a total number of minutes.
+ *
+ * When `totalMinutes` is null/0, derive from `fallbackValidityDays` (days).
+ * Examples: 30 → "30 min", 90 → "1 hr 30 min", 60 → "1 hr", 120 → "2 hrs",
+ * 1440 → "1 day", 10080 → "7 days", 43200 → "30 days".
+ */
+export function formatDuration(
+  totalMinutes?: number | null,
+  fallbackValidityDays?: number | null
+): string {
+  let minutes = totalMinutes != null && totalMinutes > 0 ? totalMinutes : 0;
+  if (minutes <= 0) {
+    const days = fallbackValidityDays != null && fallbackValidityDays > 0 ? fallbackValidityDays : 0;
+    minutes = days * 1440;
+  }
+  if (minutes <= 0) return '-';
+
+  // Whole days → render in days.
+  if (minutes % 1440 === 0) {
+    const days = minutes / 1440;
+    return `${days} ${days === 1 ? 'day' : 'days'}`;
+  }
+
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+  if (hours > 0) parts.push(`${hours} ${hours === 1 ? 'hr' : 'hrs'}`);
+  if (mins > 0) parts.push(`${mins} min`);
+  return parts.join(' ');
+}
 
 // Fallback data for development/demo only
 const plansFallback = {
@@ -160,6 +198,8 @@ export interface PlanCreateData {
   time_limit?: number;
   time_limit_type?: string;
   validity_days?: number;
+  // Authoritative access window in MINUTES (carries sub-day precision).
+  duration_minutes?: number | null;
   concurrent_sessions?: number;
   enable_burst?: boolean;
   burst_download?: number;

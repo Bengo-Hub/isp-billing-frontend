@@ -106,17 +106,18 @@ export default function QuickTemplatesDialog({ open, onOpenChange, onSelectTempl
       const template = templates.find(t => t.id === selectedTemplate);
       if (!template) return;
 
-      // Map template to CreatePackageDialog form format
-      const durationMap: Record<string, string> = {
-        '1 Hour': '1_hour',
-        '24 Hours': '1_day',
-        '1 Month': '1_month',
+      // Map template to CreatePackageDialog form format. `duration` is passed as a
+      // string of TOTAL MINUTES so the dialog's duration composer can decompose it.
+      const durationMinutesMap: Record<string, string> = {
+        '1 Hour': '60',
+        '24 Hours': '1440',
+        '1 Month': '43200',
       };
 
       const templateData: PackageTemplateData = {
         type: template.type,
         name: template.name,
-        duration: durationMap[template.duration] || '1_day',
+        duration: durationMinutesMap[template.duration] || '1440',
         price: template.price.toString(),
         deviceLimit: '1',
         speed: template.speed.split('/')[0].replace('M', ''),

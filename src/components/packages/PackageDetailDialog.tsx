@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { type PlanItem } from '@/features/packages/api';
+import { formatDuration, type PlanItem } from '@/features/packages/api';
 import {
   Package,
   DollarSign,
@@ -128,7 +128,7 @@ export default function PackageDetailDialog({
                 <div>
                   <p className="text-sm text-gray-600">Duration</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {packageData.duration || 'N/A'}
+                    {formatDuration(packageData.duration_minutes, packageData.validity_days)}
                   </p>
                 </div>
               </div>

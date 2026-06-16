@@ -15,6 +15,7 @@ import {
   useDeletePlan,
   useActivatePlan,
   useDeactivatePlan,
+  formatDuration as formatDurationLabel,
   type PlanItem,
 } from '@/features/packages/api';
 import {
@@ -120,26 +121,19 @@ export default function PackageTable({
     return pkg.speed || '-';
   };
 
-  // Effective access window: validity_days (calendar) capped by time_limit (HOURS).
-  // Mirrors the captive buy-page logic so the list matches what customers see —
-  // e.g. a 1-hour package (validity_days=1, time_limit=1) reads "1 Hour", not the
-  // old hardcoded "2 Hours" fallback.
+  // Effective access window. Prefer the authoritative duration_minutes (carries
+  // sub-day precision); otherwise fall back to validity_days (calendar) capped by
+  // time_limit (HOURS). e.g. a 90-min package reads "1 hr 30 min".
   const formatDuration = (pkg: PlanItem) => {
+    if (pkg.duration_minutes != null && pkg.duration_minutes > 0) {
+      return formatDurationLabel(pkg.duration_minutes);
+    }
     const days = pkg.validity_days ?? 0;
     const tl = pkg.time_limit ?? -1; // hours, -1 = unlimited
-    let hours = days * 24;
-    if (tl > 0) hours = hours > 0 ? Math.min(hours, tl) : tl;
-    if (hours <= 0) return pkg.duration || '-';
-    if (hours < 1) return `${Math.round(hours * 60)} min`;
-    if (hours === 1) return '1 Hour';
-    if (hours % 24 === 0) {
-      const d = hours / 24;
-      if (d === 1) return '1 Day';
-      if (d === 7) return '7 Days';
-      if (d === 30) return '1 Month';
-      return `${d} Days`;
-    }
-    return `${hours} Hours`;
+    let minutes = days * 1440;
+    if (tl > 0) minutes = minutes > 0 ? Math.min(minutes, tl * 60) : tl * 60;
+    if (minutes <= 0) return pkg.duration || '-';
+    return formatDurationLabel(minutes);
   };
 
   const matchesTab = (pkg: PlanItem) => {

@@ -13,9 +13,51 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useCreatePlan, useUpdatePlan, usePlan } from '@/features/packages/api';
+import { useCreatePlan, useUpdatePlan, usePlan, formatDuration, type PlanItem } from '@/features/packages/api';
 import { ArrowLeft, ArrowRight, DollarSign, Loader2, Package, Settings, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+/** Decompose a total number of minutes into Days / Hours / Minutes string fields
+ *  for the duration composer inputs. 0/empty stays empty (never defaults to 1 day). */
+function decomposeMinutes(totalMinutes: number): {
+  durationDays: string;
+  durationHours: string;
+  durationMinutes: string;
+} {
+  const total = Number.isFinite(totalMinutes) && totalMinutes > 0 ? Math.floor(totalMinutes) : 0;
+  if (total <= 0) {
+    return { durationDays: '', durationHours: '', durationMinutes: '' };
+  }
+  const days = Math.floor(total / 1440);
+  const hours = Math.floor((total % 1440) / 60);
+  const mins = total % 60;
+  return {
+    durationDays: days > 0 ? String(days) : '',
+    durationHours: hours > 0 ? String(hours) : '',
+    durationMinutes: mins > 0 ? String(mins) : '',
+  };
+}
+
+// Quick-preset chips: label + the total minutes they populate into the composer.
+const durationPresets: { label: string; minutes: number }[] = [
+  { label: '5 min', minutes: 5 },
+  { label: '15 min', minutes: 15 },
+  { label: '30 min', minutes: 30 },
+  { label: '45 min', minutes: 45 },
+  { label: '1 hr', minutes: 60 },
+  { label: '1 hr 30 min', minutes: 90 },
+  { label: '2 hrs', minutes: 120 },
+  { label: '2 hrs 30 min', minutes: 150 },
+  { label: '3 hrs', minutes: 180 },
+  { label: '6 hrs', minutes: 360 },
+  { label: '12 hrs', minutes: 720 },
+  { label: '1 day', minutes: 1440 },
+  { label: '7 days', minutes: 10080 },
+  { label: '1 month', minutes: 43200 },
+  { label: '3 months', minutes: 129600 },
+  { label: '6 months', minutes: 259200 },
+  { label: '1 year', minutes: 525600 },
+];
 
 interface CreatePackageDialogProps {
   open: boolean;
@@ -69,7 +111,9 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
     type: initialData?.type || '',
     name: initialData?.name || '',
     description: initialData?.description || '',
-    duration: initialData?.duration || '',
+    // Duration composer: the access window broken into Days / Hours / Minutes.
+    // `initialData.duration` (when provided by a template) is a string of total minutes.
+    ...decomposeMinutes(Number(initialData?.duration) || 0),
 
     // Speed & Performance
     uploadSpeed: initialData?.uploadSpeed || '',
@@ -117,7 +161,7 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
         type: initialData.type || '',
         name: initialData.name || '',
         description: initialData.description || '',
-        duration: initialData.duration || '',
+        ...decomposeMinutes(Number(initialData.duration) || 0),
         uploadSpeed: initialData.uploadSpeed || '',
         downloadSpeed: initialData.downloadSpeed || '',
         price: initialData.price || '',
@@ -155,44 +199,40 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
     { value: 'BOTH', label: 'Both (Hotspot & PPPoE)' }
   ];
 
-  const durations = [
-    { value: '1', label: '1 Hour', hours: 1, cycle: 'ONE_TIME' },
-    { value: '2', label: '2 Hours', hours: 2, cycle: 'ONE_TIME' },
-    { value: '7', label: '7 Hours', hours: 7, cycle: 'ONE_TIME' },
-    { value: '24', label: '1 Day', hours: 24, cycle: 'DAILY' },
-    { value: '144', label: '6 Days', hours: 144, cycle: 'WEEKLY' },
-    { value: '720', label: '1 Month', hours: 720, cycle: 'MONTHLY' },
-    { value: '2160', label: '3 Months', hours: 2160, cycle: 'QUARTERLY' },
-    { value: '4320', label: '6 Months', hours: 4320, cycle: 'QUARTERLY' },
-    { value: '8760', label: '1 Year', hours: 8760, cycle: 'YEARLY' }
-  ];
+  // Decompose a saved plan's authoritative duration into Days/Hours/Minutes.
+  // Prefer duration_minutes (>0); else legacy fallback: validity_days*1440 capped
+  // by time_limit (hours). Never defaults to "1 Day" when a real value exists.
+  const decomposePlanDuration = (p: PlanItem) => {
+    const dm = Number(p?.duration_minutes);
+    if (dm && dm > 0) return decomposeMinutes(dm);
+    const total = (Number(p?.validity_days) || 0) * 1440;
+    const tl = Number(p?.time_limit); // hours, -1 = unlimited
+    let minutes = total;
+    if (tl && tl > 0) minutes = total > 0 ? Math.min(total, tl * 60) : tl * 60;
+    return decomposeMinutes(minutes);
+  };
 
-  // Reverse-map a saved plan's validity_days/time_limit back to a duration bucket.
-  const matchDuration = (p: any): string => {
-    const tl = Number(p?.time_limit);
-    if (tl && tl > 0) {
-      const byTime = durations.find(d => d.hours === tl);
-      if (byTime) return byTime.value;
-    }
-    const hrs = (Number(p?.validity_days) || 0) * 24;
-    const exact = durations.find(d => d.hours === hrs);
-    if (exact) return exact.value;
-    if (hrs > 0) {
-      return durations.reduce((a, c) =>
-        Math.abs(c.hours - hrs) < Math.abs(a.hours - hrs) ? c : a, durations[0]).value;
-    }
-    return '';
+  // Composed total minutes from the D/H/M inputs.
+  const durationMinutesTotal =
+    (parseInt(formData.durationDays) || 0) * 1440 +
+    (parseInt(formData.durationHours) || 0) * 60 +
+    (parseInt(formData.durationMinutes) || 0);
+
+  const applyDurationPreset = (minutes: number) => {
+    const parts = decomposeMinutes(minutes);
+    setFormData(prev => ({ ...prev, ...parts }));
   };
 
   // EDIT MODE: when the full plan loads, prefill EVERY field from it.
   useEffect(() => {
     if (!isEdit || !editPlan) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const p = editPlan as any;
     setFormData({
       type: p.plan_type || '',
       name: p.name || '',
       description: p.description || '',
-      duration: matchDuration(p),
+      ...decomposePlanDuration(p as PlanItem),
       uploadSpeed: p.upload_speed != null ? String(p.upload_speed) : '',
       downloadSpeed: p.download_speed != null ? String(p.download_speed) : '',
       price: p.price != null ? String(p.price) : '',
@@ -239,8 +279,21 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
     }
   };
 
+  // Derive a sensible billing cycle from the composed access window.
+  const deriveBillingCycle = (
+    minutes: number
+  ): 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'ONE_TIME' => {
+    const days = minutes / 1440;
+    if (days < 1) return 'ONE_TIME';
+    if (days === 1) return 'DAILY';
+    if (days < 30) return 'WEEKLY';
+    if (days < 90) return 'MONTHLY';
+    if (days < 365) return 'QUARTERLY';
+    return 'YEARLY';
+  };
+
   const handleSubmit = () => {
-    const durationData = durations.find(d => d.value === formData.duration);
+    const durationMinutes = durationMinutesTotal;
 
     const planData = {
       name: formData.name,
@@ -248,8 +301,11 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
       plan_type: formData.type as 'INTERNET' | 'HOTSPOT' | 'PPPOE' | 'BOTH',
       price: parseFloat(formData.price) || 0,
       currency: formData.currency || 'KES',
-      billing_cycle: (durationData?.cycle || 'MONTHLY') as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'ONE_TIME',
-      validity_days: Math.ceil((durationData?.hours || 720) / 24),
+      billing_cycle: deriveBillingCycle(durationMinutes),
+      // Authoritative window in minutes (carries sub-day precision).
+      duration_minutes: durationMinutes,
+      // Backend column is NOT NULL; keep at least 1 day for the legacy fallback.
+      validity_days: Math.max(1, Math.ceil(durationMinutes / 1440)),
 
       // Speed settings
       download_speed: parseInt(formData.downloadSpeed) || 0,
@@ -304,7 +360,9 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
           type: '',
           name: '',
           description: '',
-          duration: '',
+          durationDays: '',
+          durationHours: '',
+          durationMinutes: '',
           uploadSpeed: '',
           downloadSpeed: '',
           price: '',
@@ -339,7 +397,7 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return formData.type && formData.name && formData.duration;
+        return !!formData.type && !!formData.name && durationMinutesTotal > 0;
       case 2:
         return formData.uploadSpeed && formData.downloadSpeed;
       case 3:
@@ -451,22 +509,86 @@ export default function CreatePackageDialog({ open, onOpenChange, editId, initia
                   </div>
 
                   <div>
-                    <Label htmlFor="duration" className="text-sm font-medium text-gray-700">
+                    <Label className="text-sm font-medium text-gray-700">
                       Duration *
                     </Label>
-                    <select
-                      id="duration"
-                      value={formData.duration}
-                      onChange={(e) => handleInputChange('duration', e.target.value)}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="">Select an option</option>
-                      {durations.map(duration => (
-                        <option key={duration.value} value={duration.value}>
-                          {duration.label}
-                        </option>
-                      ))}
-                    </select>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      The access window for this package. Pick a preset or compose Days / Hours / Minutes.
+                    </p>
+
+                    {/* Quick presets */}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {durationPresets.map((preset) => {
+                        const active = durationMinutesTotal === preset.minutes;
+                        return (
+                          <button
+                            key={preset.minutes}
+                            type="button"
+                            onClick={() => applyDurationPreset(preset.minutes)}
+                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              active
+                                ? 'bg-brand-600 text-white border-brand-600'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Composer: Days / Hours / Minutes */}
+                    <div className="mt-3 grid grid-cols-3 gap-3">
+                      <div>
+                        <Label htmlFor="durationDays" className="text-xs font-medium text-gray-600">
+                          Days
+                        </Label>
+                        <Input
+                          id="durationDays"
+                          type="number"
+                          min={0}
+                          value={formData.durationDays}
+                          onChange={(e) => handleInputChange('durationDays', e.target.value)}
+                          placeholder="0"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="durationHours" className="text-xs font-medium text-gray-600">
+                          Hours
+                        </Label>
+                        <Input
+                          id="durationHours"
+                          type="number"
+                          min={0}
+                          value={formData.durationHours}
+                          onChange={(e) => handleInputChange('durationHours', e.target.value)}
+                          placeholder="0"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="durationMinutes" className="text-xs font-medium text-gray-600">
+                          Minutes
+                        </Label>
+                        <Input
+                          id="durationMinutes"
+                          type="number"
+                          min={0}
+                          max={59}
+                          value={formData.durationMinutes}
+                          onChange={(e) => handleInputChange('durationMinutes', e.target.value)}
+                          placeholder="0"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+
+                    {durationMinutesTotal > 0 && (
+                      <p className="text-xs text-brand-600 mt-2 font-medium">
+                        Total: {formatDuration(durationMinutesTotal)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
