@@ -586,21 +586,22 @@ export default function RouterDetailsPage() {
                         <td className="py-4 px-4">{b.created_at ? new Date(b.created_at).toLocaleString() : 'N/A'}</td>
                         <td className="py-4 px-4">{b.completed_at ? new Date(b.completed_at).toLocaleString() : '-'}</td>
                         <td className="py-4 px-4 text-right">
-                          {b.downloadable ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => downloadBackupMutation.mutate({ routerId, backupId: b.id })}
-                              disabled={downloadBackupMutation.isPending}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Download
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-gray-400">
-                              {b.status === 'pending' ? 'Awaiting upload…' : '—'}
-                            </span>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadBackupMutation.mutate({ routerId, backupId: b.id })}
+                            disabled={!b.downloadable || downloadBackupMutation.isPending}
+                            title={
+                              b.downloadable
+                                ? 'Download the .backup file'
+                                : b.status === 'pending'
+                                ? 'Waiting for the router agent to upload the backup file (~30s after the next poll)'
+                                : 'Backup file not available (created before file upload was supported, or upload failed)'
+                            }
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            {b.downloadable ? 'Download' : b.status === 'pending' ? 'Awaiting upload…' : 'Unavailable'}
+                          </Button>
                         </td>
                       </tr>
                     ))}
