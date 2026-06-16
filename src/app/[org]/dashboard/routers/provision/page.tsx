@@ -291,36 +291,19 @@ export default function ProvisionPage() {
       console.error('Failed to scan device:', error);
       setDeviceConnected(false);
 
-      const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to connect to device';
-      toast.error(`Scan failed: ${errorMessage}`);
-
-      // Allow manual configuration if scan fails
-      const fallbackInterfaces = ['ether1', 'ether2', 'ether3', 'ether4', 'ether5', 'ether6', 'ether7', 'ether8', 'sfp1'];
-      setAvailablePorts(fallbackInterfaces);
-      setDeviceInfo({
-        interfaces: fallbackInterfaces,
-        services: [{ name: 'hotspot', active: false, available: true }, { name: 'pppoe', active: false, available: true }],
-        current_subnet: '',
-        available_services: ['hotspot', 'pppoe'],
-        system_info: { model: 'Manual Configuration', version: 'Unknown' }
-      } as any);
-      setSelectedPorts(fallbackInterfaces.filter((port: string) => port !== interfaceName));
-
-      // Use default LAN subnet (same as successful scan)
-      updateConfiguration({
-        subnetAddress: '172.31.0.0',
-        cidr: '16',
-        useCustomSubnet: false,  // Use default, user can override if needed
-      });
-      setNetworkConfig({
-        network: '172.31.0.0/16',
-        gateway: '172.31.0.1',
-        dhcpPool: '172.31.0.2 - 172.31.255.254',
-      });
-
-      // Still proceed to let user configure manually
-      toast.warning('Using default interface list. Please configure network settings manually.');
-      setStep(3);
+      // NO hardcoded fallback interfaces. Surface the REAL failure so the operator
+      // understands the issue (e.g. re-run the bootstrap command on the router)
+      // instead of silently configuring ghost ports. Stay on the current step —
+      // don't fabricate a device or auto-advance.
+      const errorMessage =
+        error?.response?.data?.detail ||
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        'Could not read the device interfaces. Re-run the bootstrap command on the router, then try again.';
+      setAvailablePorts([]);
+      setDeviceInfo(null);
+      setSelectedPorts([]);
+      toast.error(`Device scan failed: ${errorMessage}`);
     } finally {
       setScanningDevice(false);
     }
