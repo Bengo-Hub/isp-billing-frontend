@@ -16,6 +16,7 @@ import {
   useRebootRouter,
   useEnrollRouterVpn,
   useCreateRouterBackup,
+  useDownloadRouterBackup,
   useListRouterBackups,
   useTestRouterConnection,
   useRouterAgentStatus,
@@ -50,6 +51,7 @@ export default function RouterDetailsPage() {
   const rebootMutation = useRebootRouter();
   const enrollVpnMutation = useEnrollRouterVpn();
   const backupMutation = useCreateRouterBackup();
+  const downloadBackupMutation = useDownloadRouterBackup();
   const testConnectionMutation = useTestRouterConnection();
   const disconnectMutation = useDisconnectUser();
 
@@ -556,7 +558,7 @@ export default function RouterDetailsPage() {
               </Button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              Backups run on the router via the polling agent (<code>/system/backup/save</code>) and the file is kept on the device.
+              Backups run on the router via the polling agent (<code>/system/backup/save</code>), then the <code>.backup</code> file is uploaded to the platform for download. Backups are automatically deleted after 2 days.
             </p>
             {backups && backups.length > 0 ? (
               <div className="overflow-x-auto">
@@ -568,6 +570,7 @@ export default function RouterDetailsPage() {
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Requested</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-700">Completed</th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -582,6 +585,23 @@ export default function RouterDetailsPage() {
                         </td>
                         <td className="py-4 px-4">{b.created_at ? new Date(b.created_at).toLocaleString() : 'N/A'}</td>
                         <td className="py-4 px-4">{b.completed_at ? new Date(b.completed_at).toLocaleString() : '-'}</td>
+                        <td className="py-4 px-4 text-right">
+                          {b.downloadable ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadBackupMutation.mutate({ routerId, backupId: b.id })}
+                              disabled={downloadBackupMutation.isPending}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              {b.status === 'pending' ? 'Awaiting upload…' : '—'}
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

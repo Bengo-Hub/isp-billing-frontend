@@ -405,6 +405,7 @@ export interface RouterBackup {
   backup_type: string;
   size_bytes?: number | null;
   message?: string | null;
+  downloadable?: boolean;
   created_at?: string;
   completed_at?: string | null;
 }
