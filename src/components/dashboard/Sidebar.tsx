@@ -27,7 +27,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface NavItem {
   name: string;
@@ -168,6 +168,21 @@ function getCustomerNavigation(orgSlug: string, subscriptionType: string): Navig
 export function Sidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close the mobile drawer on navigation.
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll while the mobile drawer is open (native-app feel).
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const { userRole, canAccessModule } = useRBACStore();
   const { user, logout, customerPortalInfo, organizationInfo } = useAuthStore();
 
@@ -277,18 +292,21 @@ export function Sidebar() {
         )}
       </button>
 
-      {/* Mobile overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 z-40 bg-black/60"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      {/* Mobile overlay (fades in/out with the drawer) */}
+      <div
+        className={`lg:hidden fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
+          isMobileMenuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+        aria-hidden="true"
+      />
 
-      {/* Sidebar */}
-      <aside className={`w-64 bg-sidebar text-sidebar-foreground min-h-screen flex flex-col border-r border-sidebar-border ${
-        isMobileMenuOpen ? 'fixed inset-y-0 z-50' : 'hidden lg:flex lg:fixed lg:inset-y-0'
-      }`}>
+      {/* Sidebar — drawer on mobile (slides in), static on desktop */}
+      <aside
+        className={`w-64 bg-sidebar text-sidebar-foreground min-h-screen flex flex-col border-r border-sidebar-border fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
         {/* Logo */}
         <div className="p-6 border-b border-sidebar-border">
           <LogoArea />

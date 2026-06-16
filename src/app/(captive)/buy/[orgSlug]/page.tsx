@@ -711,7 +711,7 @@ export default function CaptiveBuyPackagesPage() {
 
         {/* Payment Modal - Mobile Optimized */}
         <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-          <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md p-0 mx-auto">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-md p-0 max-h-[90vh] overflow-y-auto overflow-x-hidden">
             <div className="p-4 sm:p-6 w-full overflow-x-hidden">
               <DialogHeader className="mb-4 sm:mb-6">
                 <DialogTitle className="text-lg sm:text-xl">Complete Purchase</DialogTitle>

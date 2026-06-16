@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/components/auth/AuthProvider'
+import { PwaSplash } from '@/components/pwa/PwaSplash'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -39,6 +40,7 @@ export default function RootLayout({
         <ThemeProvider defaultTheme="system" storageKey="codevertex-theme">
           <AuthProvider>
             <QueryClientProvider>
+              <PwaSplash />
               {children}
               <Toaster position="top-right" />
             </QueryClientProvider>
