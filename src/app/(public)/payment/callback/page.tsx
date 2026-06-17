@@ -81,7 +81,7 @@ export default function PaymentCallbackPage() {
   // the purchase completed almost instantly, so this usually returns on attempt
   // #1. The backend GET also synchronously verifies treasury as a fallback.
   const pollHotspotStatus = useCallback(async (slug: string, ref: string): Promise<HotspotPaymentStatus | null> => {
-    const maxAttempts = 45; // ~90s ceiling at 2s interval
+    const maxAttempts = 150; // ~5min ceiling at 2s — covers slow M-Pesa STK PIN entry + webhook
     for (let i = 0; i < maxAttempts; i++) {
       try {
         // Accept either the ApiResponse<T> shape or a raw payload (some portal endpoints
@@ -291,6 +291,24 @@ export default function PaymentCallbackPage() {
     return () => clearTimeout(timer);
   }, [redirectCountdown, redirectUrl]);
 
+  // Force LIGHT theme on this public payment page. It lives in the (public) route
+  // group (not (captive)), so without this it inherits the device's system dark
+  // mode and the card renders dark/unreadable. Mirrors the captive layout.
+  useEffect(() => {
+    const root = document.documentElement;
+    const prevHadDark = root.classList.contains('dark');
+    root.classList.remove('dark');
+    root.classList.add('light');
+    root.style.colorScheme = 'light';
+    return () => {
+      root.style.colorScheme = '';
+      if (prevHadDark) {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      }
+    };
+  }, []);
+
   const primaryColor = '#9100B0';
 
   return (
@@ -300,11 +318,26 @@ export default function PaymentCallbackPage() {
           {/* Loading State */}
           {status === 'loading' && (
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: `${primaryColor}1a` }}
+              >
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: primaryColor }} />
               </div>
-              <h1 className="text-xl font-semibold text-gray-900 mb-2">Verifying Payment</h1>
-              <p className="text-gray-500">Please wait while we confirm your payment...</p>
+              <h1 className="text-xl font-semibold text-gray-900 mb-2">Confirming your payment…</h1>
+              <p className="text-gray-500">
+                {paymentType === 'hotspot_purchase'
+                  ? 'Almost there — this can take up to a minute after you approve the M-Pesa/Paystack prompt on your phone. Keep this page open.'
+                  : 'Please wait while we confirm your payment…'}
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-5 text-sm font-medium underline"
+                style={{ color: primaryColor }}
+              >
+                Already paid? Check again
+              </button>
             </div>
           )}
 
@@ -718,13 +751,25 @@ export default function PaymentCallbackPage() {
               )}
 
               <div className="flex flex-col gap-3">
-                {paymentType === 'hotspot_purchase' && orgSlug ? (
-                  <Link href={`/${orgSlug}/portal/hotspot`}>
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                      <Home className="w-4 h-4 mr-2" />
-                      Back to Portal
+                {paymentType === 'hotspot_purchase' ? (
+                  <>
+                    <Button
+                      className="w-full"
+                      style={{ backgroundColor: primaryColor }}
+                      onClick={() => window.location.reload()}
+                    >
+                      <Loader2 className="w-4 h-4 mr-2" />
+                      Check payment status again
                     </Button>
-                  </Link>
+                    {orgSlug && (
+                      <Link href={`/${orgSlug}/portal/hotspot`}>
+                        <Button variant="outline" className="w-full">
+                          <Home className="w-4 h-4 mr-2" />
+                          Back to Portal
+                        </Button>
+                      </Link>
+                    )}
+                  </>
                 ) : paymentType === 'pppoe_renewal' && orgSlug ? (
                   <Link href={`/${orgSlug}/portal/pppoe`}>
                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
