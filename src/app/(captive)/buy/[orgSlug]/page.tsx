@@ -6,6 +6,7 @@ import { ConnectLoginModal } from '@/components/portal/ConnectLoginModal';
 import { AcceptedPaymentsRow, PaymentMethodSelector } from '@/components/portal/PaymentProviders';
 import { ServiceUnavailableCard } from '@/components/portal/ServiceUnavailableCard';
 import { TermsConditionsModal } from '@/components/portal/TermsConditionsModal';
+import { TreasuryPaymentModal } from '@bengo-hub/shared-ui-lib';
 import type { ProviderContact } from '@/features/portal/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -41,6 +42,19 @@ export default function CaptiveBuyPackagesPage() {
   // (HTTP 403 code='provider_subscription_inactive'). Carries the provider
   // contact so we can show the customer-facing "temporarily unavailable" card.
   const [providerInactiveContact, setProviderInactiveContact] = useState<ProviderContact | null>(null);
+  // In-app embedded checkout (shared-ui-lib TreasuryPaymentModal) props; set on
+  // purchase so the customer pays without leaving the captive portal.
+  const [treasuryPay, setTreasuryPay] = useState<{
+    intentId: string;
+    tenant: string;
+    amount: number;
+    currency: string;
+    initiateUrl?: string;
+    referenceId: string;
+    referenceType?: string;
+    email?: string;
+    description?: string;
+  } | null>(null);
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const { data: packages, isLoading: packagesLoading } = useHotspotPackages(orgSlug);
@@ -141,7 +155,22 @@ export default function CaptiveBuyPackagesPage() {
         payment_method: selectedPaymentMethod,
       });
 
-      if (result.checkout_url) {
+      if (result.intent_id) {
+        // Embedded in-app checkout — no full-page redirect, no dark callback.
+        setPaymentModalOpen(false);
+        setTreasuryPay({
+          intentId: result.intent_id,
+          tenant: result.tenant_id || '',
+          amount: result.amount ?? 0,
+          currency: result.currency || 'KES',
+          initiateUrl: result.initiate_url,
+          referenceId: result.reference,
+          referenceType: result.reference_type,
+          email: isPaystack ? (email || 'codevertexitsolutions@gmail.com') : undefined,
+          description: packages?.find((p) => p.id === selectedPackage)?.name,
+        });
+      } else if (result.checkout_url) {
+        // Fallback: full-page redirect to the shared pay page.
         window.location.href = result.checkout_url;
       } else if (result.reference) {
         setPaymentReference(result.reference);
@@ -829,6 +858,35 @@ export default function CaptiveBuyPackagesPage() {
         orgSlug={orgSlug}
         primaryColor={primaryColor}
       />
+
+      {/* In-app embedded checkout — customer pays without leaving the captive
+          portal; confirmation arrives instantly via postMessage, then the
+          payment-status poll returns the credentials and auto-connects. */}
+      {treasuryPay && (
+        <TreasuryPaymentModal
+          open={!!treasuryPay}
+          onOpenChange={(o) => { if (!o) setTreasuryPay(null); }}
+          paymentIntentId={treasuryPay.intentId}
+          tenantSlug={treasuryPay.tenant}
+          amount={treasuryPay.amount}
+          currency={treasuryPay.currency}
+          description={treasuryPay.description}
+          initiateUrl={treasuryPay.initiateUrl}
+          customerEmail={treasuryPay.email}
+          referenceId={treasuryPay.referenceId}
+          referenceType={treasuryPay.referenceType}
+          onPaymentConfirmed={() => {
+            // Trigger the status poll (returns hotspot creds + login_url) which
+            // the existing effect uses to auto-connect the device.
+            setPaymentReference(treasuryPay.referenceId);
+            setTreasuryPay(null);
+          }}
+          onPaymentFailed={() => {
+            setTreasuryPay(null);
+            showToast.paymentFailed();
+          }}
+        />
+      )}
     </div>
   );
 }

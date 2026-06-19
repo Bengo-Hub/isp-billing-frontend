@@ -69,6 +69,13 @@ export interface PurchaseResponse {
   instructions?: string;
   checkout_url?: string;
   status: string;
+  // Embedded TreasuryPaymentModal fields (in-app iframe checkout).
+  intent_id?: string;
+  initiate_url?: string;
+  tenant_id?: string;
+  amount?: number;
+  currency?: string;
+  reference_type?: string;
 }
 
 export interface VoucherRedeemRequest {
