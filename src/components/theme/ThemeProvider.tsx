@@ -24,7 +24,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
+  defaultTheme = 'light',
   storageKey = 'codevertex-theme',
   ...props
 }: ThemeProviderProps) {
@@ -42,17 +42,24 @@ export function ThemeProvider({
     root.classList.remove('light', 'dark');
 
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light';
+      // Only follow the OS preference when the user has explicitly opted into
+      // "system" via the manual toggle (a stored preference exists). With no
+      // stored preference, default to light instead of following the OS.
+      const hasStoredPreference =
+        typeof window !== 'undefined' && localStorage.getItem(storageKey) !== null;
+
+      const systemTheme =
+        hasStoredPreference &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
 
       root.classList.add(systemTheme);
       return;
     }
 
     root.classList.add(theme);
-  }, [theme]);
+  }, [theme, storageKey]);
 
   const value = {
     theme,
