@@ -246,3 +246,22 @@ export function isSSOSession(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(SSO_SESSION_FLAG) === "1";
 }
+
+/**
+ * Best-effort POST to revoke the central SSO session server-side: deletes the
+ * user's Redis session_token keys + DB sessions and clears the bb_session
+ * cookie. Only relevant for SSO sessions (local-login sessions have no SSO
+ * server session). Never throws.
+ */
+export async function revokeSsoServerSession(accessToken?: string | null): Promise<void> {
+  try {
+    await fetch(`${SSO_BASE_URL}/api/v1/auth/logout`, {
+      method: "POST",
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      credentials: "include",
+      keepalive: true,
+    });
+  } catch {
+    /* best-effort: still clear local state + redirect */
+  }
+}

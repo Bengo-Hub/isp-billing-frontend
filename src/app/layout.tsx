@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system" storageKey="codevertex-theme">
+        <ThemeProvider defaultTheme="light" storageKey="codevertex-theme">
           <AuthProvider>
             <QueryClientProvider>
               <PwaSplash />

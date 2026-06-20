@@ -406,6 +406,17 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       logout: () => {
+        // For SSO sessions, revoke the central session server-side (Redis
+        // session_token keys + DB sessions) before clearing local tokens. Local
+        // password sessions have no SSO server session, so this is skipped.
+        // keepalive lets the POST finish across the /login navigation below.
+        if (typeof window !== "undefined" && localStorage.getItem("auth-source-sso") === "1") {
+          const token = localStorage.getItem("auth-token") ?? get().accessToken;
+          void import("@/lib/auth/sso").then(({ revokeSsoServerSession }) =>
+            revokeSsoServerSession(token),
+          );
+        }
+
         localStorage.removeItem("auth-token");
         localStorage.removeItem("refresh-token");
         // Clear the SSO-session marker so a subsequent local login refreshes
