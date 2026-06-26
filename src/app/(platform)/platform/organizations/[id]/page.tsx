@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useOrganizations,
-  useSubscriptionTiers,
   OrganizationStatus,
 } from '@/features/platform/api';
 import {
@@ -59,7 +58,6 @@ export default function OrganizationDetailPage({
   const orgId = Number(id);
 
   const { data, isLoading } = useOrganizations({ page_size: 100 });
-  const { data: tiers } = useSubscriptionTiers();
 
   const org = data?.items.find((o) => o.id === orgId);
 
@@ -72,10 +70,10 @@ export default function OrganizationDetailPage({
     });
   };
 
+  // Subscription plans/tiers are owned by subscriptions-api; reference the
+  // assigned plan by id here (resolve the name in subscriptions-api).
   const tierName =
-    org?.subscription_tier_id != null
-      ? tiers?.find((t) => t.id === org.subscription_tier_id)?.name || `Tier #${org.subscription_tier_id}`
-      : 'None';
+    org?.subscription_tier_id != null ? `Plan #${org.subscription_tier_id}` : 'None';
 
   return (
     <div className="space-y-6">

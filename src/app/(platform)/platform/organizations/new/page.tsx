@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCreateOrganization, useSubscriptionTiers, OrganizationType } from '@/features/platform/api';
-import { ArrowLeft, Building, MapPin, Settings, Bell, Palette, Award } from 'lucide-react';
+import { useCreateOrganization, OrganizationType } from '@/features/platform/api';
+import { config } from '@/lib/config';
+import { ArrowLeft, Building, MapPin, Settings, Bell, Palette, Award, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NewOrganizationPage() {
   const router = useRouter();
   const createOrg = useCreateOrganization();
-  const { data: tiers } = useSubscriptionTiers();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -30,7 +30,6 @@ export default function NewOrganizationPage() {
     notification_email: '',
     notification_phone: '',
     sms_sender_id: '',
-    subscription_tier_id: undefined as number | undefined,
     trial_days: 14,
     max_routers: 5,
     max_customers: 100,
@@ -61,13 +60,6 @@ export default function NewOrganizationPage() {
       slug: prev.slug || generateSlug(name),
     }));
   };
-
-  // Filter tiers by organization type
-  const availableTiers = tiers?.filter(tier => {
-    if (formData.organization_type === 'hotspot') return tier.tier_type === 'hotspot';
-    if (formData.organization_type === 'pppoe') return tier.tier_type === 'pppoe';
-    return true; // hybrid can use either
-  }) || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -339,23 +331,26 @@ export default function NewOrganizationPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Subscription Tier
+                Subscription Plan
               </label>
-              <select
-                value={formData.subscription_tier_id || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, subscription_tier_id: e.target.value ? parseInt(e.target.value) : undefined }))}
-                className="w-full h-10 px-3 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <option value="">No Tier (Custom Limits)</option>
-                {availableTiers.map((tier) => (
-                  <option key={tier.id} value={tier.id}>
-                    {tier.name} - KES {tier.base_monthly_fee.toLocaleString()}/mo
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Select a tier or use custom limits below
-              </p>
+              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                <span className="flex-1">
+                  Subscription plans &amp; tiers are managed in subscriptions-api. This
+                  organization is created with the custom limits below; assign a plan in
+                  subscriptions-api.
+                </span>
+                {config.subscriptionsUiUrl ? (
+                  <a
+                    href={config.subscriptionsUiUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-blue-700 hover:text-blue-900 whitespace-nowrap"
+                  >
+                    Manage plans
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : null}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

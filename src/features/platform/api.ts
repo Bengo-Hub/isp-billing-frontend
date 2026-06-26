@@ -393,44 +393,9 @@ export function useFullAnalytics() {
 // =========================================================================
 // Subscription Tiers
 // =========================================================================
-
-export interface SubscriptionTier {
-  id: number;
-  name: string;
-  description: string;
-  tier_type: 'hotspot' | 'pppoe';
-  base_monthly_fee: number;
-  earnings_threshold?: number;
-  earnings_percentage?: number;
-  min_customers?: number;
-  max_customers?: number;
-  per_customer_fee?: number;
-  max_routers: number;
-  max_staff_users: number;
-  max_sms_per_month?: number;
-  trial_days: number;
-  is_active: boolean;
-  is_default: boolean;
-  display_order: number;
-  badge_text?: string;
-  badge_color?: string;
-  features: Record<string, boolean>;
-  created_at: string;
-  updated_at: string;
-}
-
-// NOTE: Subscription plans/tiers & entitlements are OWNED by subscriptions-api.
-// Tier create/update/delete/seed mutations were removed from the platform UI in
-// favour of authoring canonical plans/limits in subscriptions-api. Only the
-// read query below remains (legacy local pricing used by platform billing).
-export function useSubscriptionTiers(tierType?: 'hotspot' | 'pppoe', includeInactive: boolean = false) {
-  return useQuery({
-    queryKey: ['platform-subscription-tiers', tierType, includeInactive],
-    queryFn: async (): Promise<SubscriptionTier[]> => {
-      const params: any = { include_inactive: includeInactive };
-      if (tierType) params.tier_type = tierType;
-      const { data } = await api.get('/platform/tiers/', { params });
-      return data;
-    },
-  });
-}
+//
+// Subscription plans/tiers & entitlements are OWNED by subscriptions-api, and
+// the platform `/platform/tiers` endpoints (admin + public) were removed. The
+// SubscriptionTier type and the useSubscriptionTiers read hook were retired
+// here: the platform UI no longer reads or writes local tiers. Author and edit
+// canonical plans/limits in subscriptions-api.
