@@ -244,22 +244,6 @@ export function useDownloadInvoice() {
   });
 }
 
-// Email Invoice
-export function useEmailInvoice() {
-  return useMutation({
-    mutationFn: async ({ invoiceId, email }: { invoiceId: number; email?: string }) => {
-      const response = await api.post(`/billing/invoices/${invoiceId}/email`, { email });
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Invoice emailed successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to email invoice');
-    },
-  });
-}
-
 // Mark Invoice as Paid
 export function useMarkInvoicePaid() {
   const queryClient = useQueryClient();

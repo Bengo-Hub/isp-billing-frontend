@@ -391,63 +391,6 @@ export function useFullAnalytics() {
 }
 
 // =========================================================================
-// ISP SMS Purchases
-// =========================================================================
-
-export interface ISPSMSPurchase {
-  id: number;
-  organization_id: number;
-  organization_name: string;
-  amount: number;
-  sms_credits: number;
-  status: string;
-  payment_reference?: string;
-  purchased_at: string;
-  current_balance: number;
-}
-
-export interface ISPSMSPurchasesResponse {
-  purchases: ISPSMSPurchase[];
-  total: number;
-  total_revenue: number;
-  total_sms_sold: number;
-}
-
-export function useISPSMSPurchases(limit: number = 50) {
-  return useQuery({
-    queryKey: ['platform-isp-sms-purchases', limit],
-    queryFn: async (): Promise<ISPSMSPurchasesResponse> => {
-      const { data } = await api.get('/platform/sms-gateways/isp-purchases', { params: { limit } });
-      return data;
-    },
-  });
-}
-
-// =========================================================================
-// Platform SMS Gateway Balance (Real AT Balance)
-// =========================================================================
-
-export interface PlatformSMSBalance {
-  success: boolean;
-  balance: number;
-  currency: string;
-  provider: string;
-  environment: string;
-  message?: string;
-}
-
-export function usePlatformSMSBalance() {
-  return useQuery({
-    queryKey: ['platform-sms-balance'],
-    queryFn: async (): Promise<PlatformSMSBalance> => {
-      const { data } = await api.get('/platform/sms-gateways/balance');
-      return data;
-    },
-    refetchInterval: 60000, // Refresh every minute
-  });
-}
-
-// =========================================================================
 // Subscription Tiers
 // =========================================================================
 

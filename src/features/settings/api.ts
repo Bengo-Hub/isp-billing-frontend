@@ -452,55 +452,6 @@ export function useSaveNotificationSettings() {
 }
 
 // =========================================================================
-// WhatsApp settings — dedicated endpoint (OrganizationSettings): per-event
-// toggles + templates the WhatsApp sender reads.
-// =========================================================================
-export interface WhatsAppSettings {
-  whatsapp_provider: string | null;
-  whatsapp_enabled: boolean;
-  send_hotspot_payment_confirmation_whatsapp: boolean;
-  hotspot_payment_confirmation_whatsapp: string;
-  send_pppoe_payment_confirmation_whatsapp: boolean;
-  pppoe_payment_confirmation_whatsapp: string;
-  send_hotspot_expiry_notification_whatsapp: boolean;
-  hotspot_expiry_notification_whatsapp: string;
-  send_pppoe_expiry_notification_whatsapp: boolean;
-  pppoe_expiry_notification_whatsapp: string;
-  send_hotspot_expiry_reminder_whatsapp: boolean;
-  hotspot_expiry_reminder_whatsapp: string;
-  send_pppoe_expiry_reminder_whatsapp: boolean;
-  pppoe_expiry_reminder_whatsapp: string;
-}
-
-export function useWhatsAppSettings() {
-  return useQuery({
-    queryKey: ['tenant-settings', 'whatsapp'],
-    queryFn: async (): Promise<WhatsAppSettings> => {
-      const { data } = await api.get('/tenant/settings/whatsapp');
-      return data;
-    },
-    staleTime: 60_000,
-  });
-}
-
-export function useSaveWhatsAppSettings() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (settings: Partial<WhatsAppSettings>) => {
-      const { data } = await api.patch('/tenant/settings/whatsapp', settings);
-      return data;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tenant-settings', 'whatsapp'] });
-      toast.success('WhatsApp settings saved successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to save WhatsApp settings');
-    },
-  });
-}
-
-// =========================================================================
 // Branding settings — dedicated endpoint (OrganizationSettings / Organization).
 // =========================================================================
 export interface BrandingSettings {
