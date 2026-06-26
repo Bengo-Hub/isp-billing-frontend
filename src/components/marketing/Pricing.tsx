@@ -10,38 +10,24 @@ import { useInView } from 'react-intersection-observer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-/** Fallback plans when the API is unavailable */
+/** Fallback plan when the API is unavailable — the single pay-as-you-grow plan
+ *  (base KES 500/mo + 3% of hotspot revenue above KES 10k + KES 35 per active
+ *  PPPoE subscriber/mo). Covers hotspot AND PPPoE, no feature limits. */
 const fallbackPlans = [
   {
-    name: 'Hotspot Plan',
-    tag: 'Popular',
-    price: 'KSh 500/mo + 2% above 10K',
-    description: 'Perfect for growing Hotspot ISPs',
+    name: 'ISP Billing',
+    tag: 'Pay as you grow',
+    price: 'KSh 500/mo + 3% above 10K',
+    description: 'Hotspot + PPPoE — no feature limits',
     features: [
-      'Unlimited customers',
-      'Automated MikroTik provisioning',
-      'M-Pesa STK Push billing',
+      'Unlimited MikroTik routers & users',
+      '3% of hotspot revenue (only above KSh 10,000/mo)',
+      'KSh 35 per active PPPoE subscriber/mo',
+      'Automated provisioning + M-Pesa/Paystack billing',
       'Voucher system & captive portal',
-      'SMS notifications',
-      'Real-time dashboard',
+      'Real-time dashboard & analytics',
     ],
     popular: true,
-    trial_days: 14,
-  },
-  {
-    name: 'PPPoE Plan',
-    tag: null,
-    price: 'From KSh 1,000/mo',
-    description: 'Ideal for established PPPoE ISPs',
-    features: [
-      'Multi-router support',
-      'Automated PPPoE server setup',
-      'M-Pesa & Paystack payments',
-      'Customer self-service portal',
-      'SMS & email notifications',
-      'Revenue analytics',
-    ],
-    popular: false,
     trial_days: 14,
   },
 ];
