@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 
 // =========================================================================
 // Types
@@ -220,13 +221,69 @@ export function useSessionStatus(orgSlug: string, sessionToken?: string) {
   });
 }
 
+// Terminal payment states the poll must STOP on (besides success). The backend
+// reports these on the `status` field; once seen there is nothing to wait for.
+const TERMINAL_PAYMENT_STATES = ['failed', 'cancelled', 'canceled', 'expired', 'abandoned'];
+
+// Bounded poll ceiling: 2s interval × 150 = ~5 minutes, matching the payment
+// callback page's `maxAttempts`. Covers slow M-Pesa STK PIN entry + webhook,
+// then stops so the UI can show a "taken too long" fallback instead of
+// spinning forever.
+const PAYMENT_POLL_INTERVAL_MS = 2000;
+const PAYMENT_POLL_MAX_ATTEMPTS = 150;
+
+/**
+ * True once the payment poll has reached a terminal outcome: completed, a
+ * terminal failure/cancel status, or the bounded max-attempt ceiling. The
+ * "Waiting for Payment" UI uses this to STOP showing an infinite spinner.
+ *
+ * `attempts` MUST be the COMBINED count of successful + failed fetches
+ * (`dataUpdateCount + errorUpdateCount`). On a captive device the status
+ * endpoint may be unreachable, so the query only ever errors and
+ * `dataUpdateCount` stays at 0 — counting errors too is what guarantees the
+ * spinner is actually bounded in that case.
+ */
+export function isPaymentPollDone(status: PaymentStatus | undefined, attempts: number): boolean {
+  if (status?.is_completed) return true;
+  if (status?.status && TERMINAL_PAYMENT_STATES.includes(status.status.toLowerCase())) return true;
+  return attempts >= PAYMENT_POLL_MAX_ATTEMPTS;
+}
+
+/** Combined success + error fetch count for a payment-status query. */
+function paymentPollAttempts(query: {
+  state: { dataUpdateCount: number; errorUpdateCount: number };
+}): number {
+  return query.state.dataUpdateCount + query.state.errorUpdateCount;
+}
+
 /**
  * Check payment status by reference.
+ *
+ * The poll is BOUNDED: it stops immediately on success (`is_completed`), on a
+ * terminal failed/cancelled status, OR after ~5 minutes (PAYMENT_POLL_MAX_ATTEMPTS
+ * fetches — success OR error). It never loops forever.
+ *
+ * Returns the React Query result plus a `pollDone` flag the UI uses to render a
+ * terminal fallback (success / failed / "taken too long") instead of an infinite
+ * spinner. `pollDone` is computed from the cumulative attempt count tracked here
+ * (the observer result does NOT expose `dataUpdateCount`/`errorUpdateCount`),
+ * which is why we count attempts in `queryFn` itself — covering the captive case
+ * where the status endpoint is unreachable and every fetch errors.
  */
 export function usePaymentStatus(orgSlug: string, reference?: string) {
-  return useQuery({
+  // Cumulative attempt count (success OR failure). Reset whenever the reference
+  // changes so a brand-new purchase starts its poll window fresh.
+  const attemptsRef = useRef(0);
+  const lastRefRef = useRef<string | undefined>(reference);
+  if (lastRefRef.current !== reference) {
+    lastRefRef.current = reference;
+    attemptsRef.current = 0;
+  }
+
+  const query = useQuery({
     queryKey: ['payment-status', orgSlug, reference],
     queryFn: async (): Promise<PaymentStatus> => {
+      attemptsRef.current += 1;
       // Normalize responses from portal endpoints which sometimes return
       // either `{ success, data }` or a plain payload object.
       const resp = await api.get(`/portal/hotspot/${orgSlug}/payment/status`, {
@@ -236,16 +293,32 @@ export function usePaymentStatus(orgSlug: string, reference?: string) {
       return payload;
     },
     enabled: !!orgSlug && !!reference,
-    refetchInterval: (query) => {
-      // Poll every 2 seconds until payment is completed (the backend confirms
-      // instantly via the NATS consumer, with a synchronous treasury verify
-      // fallback) — keeps the in-portal wait snappy.
-      if (query.state.data?.is_completed) {
-        return false;
-      }
-      return 2000;
+    // Don't let React Query's own retry/backoff stretch the bounded window or
+    // mask the polling cadence — each interval tick is our single attempt.
+    retry: false,
+    refetchInterval: (q) => {
+      const data = q.state.data;
+      // STOP on a terminal success state.
+      if (data?.is_completed) return false;
+      // STOP on a terminal failed/cancelled/expired status — nothing left to wait for.
+      if (data?.status && TERMINAL_PAYMENT_STATES.includes(data.status.toLowerCase())) return false;
+      // STOP after the bounded ceiling so we never poll forever; the UI shows a
+      // "taken too long / check again" fallback instead. Count BOTH successful
+      // and failed fetches: on a captive device the status endpoint may be
+      // unreachable, so only counting successes would let the spinner run
+      // forever. This is the captive-safe bound.
+      if (paymentPollAttempts(q) >= PAYMENT_POLL_MAX_ATTEMPTS) return false;
+      // Otherwise keep the in-portal wait snappy (backend confirms ~instantly
+      // via the NATS consumer with a synchronous treasury verify fallback).
+      return PAYMENT_POLL_INTERVAL_MS;
     },
+    // Keep polling even while the tab/page is backgrounded so a confirmation
+    // that lands during the M-Pesa PIN entry is still picked up promptly.
+    refetchIntervalInBackground: true,
   });
+
+  const pollDone = isPaymentPollDone(query.data, attemptsRef.current);
+  return { ...query, attempts: attemptsRef.current, pollDone };
 }
 
 // =========================================================================

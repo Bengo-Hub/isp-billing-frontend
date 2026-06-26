@@ -62,7 +62,17 @@ export default function CaptiveBuyPackagesPage() {
   const { primaryColor } = usePortalBranding(orgSlug);
   const purchaseMutation = usePurchasePackage(orgSlug);
   const redeemMutation = useRedeemVoucher(orgSlug);
-  const { data: paymentStatus } = usePaymentStatus(orgSlug, paymentReference || undefined);
+  const paymentStatusQuery = usePaymentStatus(orgSlug, paymentReference || undefined);
+  const { data: paymentStatus } = paymentStatusQuery;
+  // The poll is bounded (see usePaymentStatus). `pollDone` is true once it has
+  // stopped without a completed payment (success, terminal-failed, or the
+  // ~5-min attempt ceiling — counting failed fetches too, so the bound holds
+  // even when a captive device can't reach the status endpoint). We then show a
+  // "taken too long" fallback instead of an infinite spinner.
+  const paymentPollDone = paymentStatusQuery.pollDone;
+  const paymentTerminalFailed =
+    !!paymentStatus?.status &&
+    ['failed', 'cancelled', 'canceled', 'expired', 'abandoned'].includes(paymentStatus.status.toLowerCase());
 
   useEffect(() => {
     if (!selectedPaymentMethod) {
@@ -158,6 +168,16 @@ export default function CaptiveBuyPackagesPage() {
       if (result.intent_id) {
         // Embedded in-app checkout — no full-page redirect, no dark callback.
         setPaymentModalOpen(false);
+        // Start the SAME-ORIGIN status poll immediately (billing backend, which
+        // the router walled-garden reaches), NOT only when the iframe posts
+        // `treasury:payment_confirmed`. On a captive device the embedded
+        // checkout iframe is hosted off-network (books.codevertexitsolutions.com),
+        // so its confirmation message may never arrive — relying on it makes the
+        // confirm hang until the modal's 10-minute countdown expires (Issue 4).
+        // Polling the same-origin endpoint flips us to success the moment the
+        // backend confirms. The pending full-screen UI is suppressed while the
+        // modal is open (see the `!treasuryPay` guard below).
+        if (result.reference) setPaymentReference(result.reference);
         setTreasuryPay({
           intentId: result.intent_id,
           tenant: result.tenant_id || '',
@@ -301,6 +321,10 @@ export default function CaptiveBuyPackagesPage() {
   // `username`/`password` aliases defensively.
   useEffect(() => {
     if (paymentStatus?.is_completed) {
+      // The same-origin poll confirmed success — close the embedded checkout
+      // modal immediately (don't wait on its iframe message / 10-min countdown)
+      // so the success screen + auto-connect take over right away (Issue 4).
+      if (treasuryPay) setTreasuryPay(null);
       const ps = paymentStatus as typeof paymentStatus & {
         hotspot_username?: string;
         hotspot_password?: string;
@@ -406,8 +430,48 @@ export default function CaptiveBuyPackagesPage() {
     );
   }
 
-  // Payment pending
-  if (paymentReference && !paymentStatus?.is_completed) {
+  // Payment pending / terminal. The status poll is BOUNDED (usePaymentStatus):
+  // it stops on success, on a terminal failed/cancelled status, or after a sane
+  // max window — so this never spins forever.
+  // While the embedded checkout modal is open (`treasuryPay` set) we keep the
+  // modal visible and let the same-origin poll run quietly underneath; this
+  // pending full-screen UI only takes over once the modal has closed.
+  if (paymentReference && !treasuryPay && !paymentStatus?.is_completed) {
+    // Terminal outcome reached without success → show a clear, actionable
+    // fallback instead of an infinite spinner.
+    if (paymentPollDone) {
+      const isFailed = paymentTerminalFailed;
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor }}>
+          <Card className="max-w-md w-full p-8 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-amber-500" />
+            <h2 className="text-xl font-bold mb-2">
+              {isFailed ? 'Payment Not Completed' : 'Still Waiting…'}
+            </h2>
+            <p className="text-gray-600 mb-4">
+              {isFailed
+                ? (paymentStatus?.message || 'Your payment could not be completed. Please try again.')
+                : 'This is taking longer than expected. If you have already paid, check again — otherwise you can try a new purchase.'}
+            </p>
+            <div className="flex flex-col gap-2">
+              {!isFailed && (
+                <Button
+                  onClick={() => paymentStatusQuery.refetch()}
+                  style={{ backgroundColor: primaryColor }}
+                  className="w-full"
+                >
+                  Already paid? Check again
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setPaymentReference(null)} className="w-full">
+                {isFailed ? 'Try Again' : 'Cancel'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor }}>
         <Card className="max-w-md w-full p-8 text-center">
@@ -860,14 +924,23 @@ export default function CaptiveBuyPackagesPage() {
       />
 
       {/* In-app embedded checkout — customer pays without leaving the captive
-          portal; confirmation arrives instantly via postMessage, then the
-          payment-status poll returns the credentials and auto-connects. */}
+          portal. The SAME-ORIGIN status poll (started when this opened) is the
+          authoritative confirmation path on a captive device, since the iframe
+          is hosted off-network and its postMessage may never reach us. When the
+          poll confirms, the success-effect above closes this modal and
+          auto-connects; the iframe's own messages are treated as a fast-path. */}
       {treasuryPay && (
         <TreasuryPaymentModal
           open={!!treasuryPay}
           onOpenChange={(o) => { if (!o) setTreasuryPay(null); }}
           paymentIntentId={treasuryPay.intentId}
-          tenantSlug={treasuryPay.tenant}
+          // Brand/logo/QR on the treasury-ui pay page are resolved from the
+          // `?tenant=` param. Pass the human-readable org SLUG (same value the
+          // working ordering-frontend passes), NOT the backend's tenant UUID —
+          // a UUID doesn't match a tenant, so the pay page falls back to the
+          // generic "Codevertex Africa Limited" branding and a broken logo/QR
+          // (Issue 3). The slug renders the ISP's correct brand assets.
+          tenantSlug={orgSlug}
           amount={treasuryPay.amount}
           currency={treasuryPay.currency}
           description={treasuryPay.description}
@@ -876,14 +949,20 @@ export default function CaptiveBuyPackagesPage() {
           referenceId={treasuryPay.referenceId}
           referenceType={treasuryPay.referenceType}
           onPaymentConfirmed={() => {
-            // Trigger the status poll (returns hotspot creds + login_url) which
-            // the existing effect uses to auto-connect the device.
-            setPaymentReference(treasuryPay.referenceId);
+            // Fast-path when the iframe message DOES reach us (e.g. asset host
+            // walled-gardened): close the modal and let the already-running
+            // same-origin poll surface credentials + auto-connect. `paymentReference`
+            // was set when the modal opened, so the poll is already live.
+            if (!paymentReference) setPaymentReference(treasuryPay.referenceId);
             setTreasuryPay(null);
           }}
           onPaymentFailed={() => {
+            // This also fires on the modal's internal 10-minute COUNTDOWN expiry,
+            // which on a captive device is a false negative (the iframe simply
+            // never confirmed). Don't toast a hard failure or drop the reference —
+            // just close the modal and let the bounded same-origin poll decide
+            // the real outcome (success / failed / "taken too long" fallback).
             setTreasuryPay(null);
-            showToast.paymentFailed();
           }}
         />
       )}
