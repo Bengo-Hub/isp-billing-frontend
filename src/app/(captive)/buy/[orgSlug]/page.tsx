@@ -23,7 +23,7 @@ import { showToast } from '@/lib/utils/toast';
 import { AlertCircle, CheckCircle, Clock, Loader2, LogIn, Star, Ticket, Wifi, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export default function CaptiveBuyPackagesPage() {
   const params = useParams();
@@ -84,7 +84,14 @@ export default function CaptiveBuyPackagesPage() {
   // isp-billing gateway types to treasury's vocabulary (mpesa_* → mpesa) and
   // always default to "paystack,mpesa" so the filter is enforced even when the
   // available-gateways query came back empty or errored.
-  const allowedTreasuryMethods = (() => {
+  // Memoized so its string identity is stable across the ~2s status-poll
+  // re-renders. This is one of the props handed to the embedded
+  // TreasuryPaymentModal; keeping it (and every other prop) stable is what stops
+  // the modal's open-effect from re-running each render and re-showing its
+  // "Loading payment options…" overlay forever (the real root cause — the iframe
+  // src is already stable and never reloads; it's the lib overlay that flips back
+  // to "loading" on every parent re-render when props churn).
+  const allowedTreasuryMethods = useMemo(() => {
     const types = new Set<string>();
     for (const g of availableGateways ?? []) {
       const t = (g.gateway_type || '').toLowerCase();
@@ -99,8 +106,44 @@ export default function CaptiveBuyPackagesPage() {
     types.delete('manual');
     if (types.size === 0) return 'paystack,mpesa';
     return Array.from(types).join(',');
-  })();
+  }, [availableGateways]);
+  // Latest-value refs so the TreasuryPaymentModal handlers below can be wrapped
+  // in useCallback with an EMPTY dependency list — giving them a permanently
+  // stable identity. Inline arrow handlers (or handlers that close over
+  // paymentReference/treasuryPay) get a new identity on every status-poll
+  // re-render, which churns the modal's props and makes its internal open-effect
+  // re-run + re-show the "Loading payment options…" overlay forever. Reading the
+  // latest values from refs avoids that without staling the closure.
+  const paymentReferenceRef = useRef(paymentReference);
+  paymentReferenceRef.current = paymentReference;
+  const treasuryPayRef = useRef(treasuryPay);
+  treasuryPayRef.current = treasuryPay;
+
   const { primaryColor } = usePortalBranding(orgSlug);
+
+  // Identity-stable handlers for the embedded TreasuryPaymentModal (empty deps —
+  // they read latest state from refs). Stable handlers keep the modal's props
+  // unchanged across re-renders so its open-effect doesn't restart the iframe's
+  // "loading" overlay on every status poll.
+  const handleTreasuryOpenChange = useCallback((o: boolean) => {
+    if (!o) setTreasuryPay(null);
+  }, []);
+  const handleTreasuryConfirmed = useCallback(() => {
+    // Fast-path when the iframe message DOES reach us: close the modal and let
+    // the already-running same-origin poll surface credentials + auto-connect.
+    if (!paymentReferenceRef.current) {
+      const ref = treasuryPayRef.current?.referenceId;
+      if (ref) setPaymentReference(ref);
+    }
+    setTreasuryPay(null);
+  }, []);
+  const handleTreasuryFailed = useCallback(() => {
+    // Also fires on the modal's internal 10-min countdown expiry, which on a
+    // captive device is a false negative — just close and let the bounded
+    // same-origin poll decide the real outcome.
+    setTreasuryPay(null);
+  }, []);
+
   const purchaseMutation = usePurchasePackage(orgSlug);
   const redeemMutation = useRedeemVoucher(orgSlug);
   const paymentStatusQuery = usePaymentStatus(orgSlug, paymentReference || undefined);
@@ -1022,7 +1065,7 @@ export default function CaptiveBuyPackagesPage() {
       {treasuryPay && (
         <TreasuryPaymentModal
           open={!!treasuryPay}
-          onOpenChange={(o) => { if (!o) setTreasuryPay(null); }}
+          onOpenChange={handleTreasuryOpenChange}
           paymentIntentId={treasuryPay.intentId}
           // Brand/logo/QR on the treasury-ui pay page are resolved from the
           // `?tenant=` param. Pass the human-readable org SLUG (same value the
@@ -1042,22 +1085,8 @@ export default function CaptiveBuyPackagesPage() {
           customerEmail={treasuryPay.email}
           referenceId={treasuryPay.referenceId}
           referenceType={treasuryPay.referenceType}
-          onPaymentConfirmed={() => {
-            // Fast-path when the iframe message DOES reach us (e.g. asset host
-            // walled-gardened): close the modal and let the already-running
-            // same-origin poll surface credentials + auto-connect. `paymentReference`
-            // was set when the modal opened, so the poll is already live.
-            if (!paymentReference) setPaymentReference(treasuryPay.referenceId);
-            setTreasuryPay(null);
-          }}
-          onPaymentFailed={() => {
-            // This also fires on the modal's internal 10-minute COUNTDOWN expiry,
-            // which on a captive device is a false negative (the iframe simply
-            // never confirmed). Don't toast a hard failure or drop the reference —
-            // just close the modal and let the bounded same-origin poll decide
-            // the real outcome (success / failed / "taken too long" fallback).
-            setTreasuryPay(null);
-          }}
+          onPaymentConfirmed={handleTreasuryConfirmed}
+          onPaymentFailed={handleTreasuryFailed}
         />
       )}
     </div>
