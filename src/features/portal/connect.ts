@@ -49,6 +49,10 @@ export async function waitForUserReady(
   timeoutMs = 45000,
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
+  // The FIRST status check runs immediately (no leading delay): direct/VPN
+  // routers create the user synchronously and return ready=true on attempt #1,
+  // so the connect splash advances near-instantly. Only NAT routers (async
+  // create on the agent's next poll) fall through to the tight 2s loop.
   while (Date.now() < deadline) {
     try {
       const st = await checkConnectionStatus(orgSlug, username);
@@ -56,6 +60,6 @@ export async function waitForUserReady(
     } catch {
       // transient (captive client may briefly lose the cloud) — keep trying
     }
-    await new Promise((r) => setTimeout(r, 2500));
+    await new Promise((r) => setTimeout(r, 2000));
   }
 }

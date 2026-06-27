@@ -352,11 +352,12 @@ export default function CaptiveBuyPackagesPage() {
     // probe URL and causes a redirect loop back to this page. The redirect URL
     // is set by the ISP in settings (hotspot.redirect_url), default google.com.
     const dst = config?.redirect_url || 'https://www.google.com';
-    // Defer the navigation a tick so the "Connecting…" splash paints before
-    // the browser unloads this page for the MikroTik login endpoint.
+    // Defer the navigation a single paint frame so the "Connecting…" splash
+    // shows before the browser unloads this page for the MikroTik login
+    // endpoint. Kept minimal (150ms) so connect feels near-instant.
     setTimeout(() => {
       loginToHotspot(target, username, password, dst);
-    }, 600);
+    }, 150);
   };
 
   // Gate auto-login on the router actually having CREATED the user. After a

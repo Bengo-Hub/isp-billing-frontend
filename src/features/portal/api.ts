@@ -250,12 +250,16 @@ export function useSessionStatus(orgSlug: string, sessionToken?: string) {
 // reports these on the `status` field; once seen there is nothing to wait for.
 const TERMINAL_PAYMENT_STATES = ['failed', 'cancelled', 'canceled', 'expired', 'abandoned'];
 
-// Bounded poll ceiling: 2s interval × 150 = ~5 minutes, matching the payment
-// callback page's `maxAttempts`. Covers slow M-Pesa STK PIN entry + webhook,
-// then stops so the UI can show a "taken too long" fallback instead of
-// spinning forever.
-const PAYMENT_POLL_INTERVAL_MS = 2000;
-const PAYMENT_POLL_MAX_ATTEMPTS = 150;
+// Snappy poll cadence so the in-portal confirm feels near-instant: the backend
+// confirms payment almost immediately via the NATS consumer
+// (treasury.payment.succeeded) with a synchronous treasury verify fallback, so
+// a tight 1.5s tick surfaces success within a tick or two of it landing.
+// Bounded ceiling: 1.5s interval × 200 = ~5 minutes — same overall window as
+// before (covers slow M-Pesa STK PIN entry + webhook), then stops so the UI can
+// show a "taken too long" fallback instead of spinning forever. The FIRST fetch
+// runs immediately on mount (TanStack runs queryFn on enable, no leading delay).
+const PAYMENT_POLL_INTERVAL_MS = 1500;
+const PAYMENT_POLL_MAX_ATTEMPTS = 200;
 
 /**
  * True once the payment poll has reached a terminal outcome: completed, a

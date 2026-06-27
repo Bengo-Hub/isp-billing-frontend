@@ -81,7 +81,7 @@ export default function PaymentCallbackPage() {
   // the purchase completed almost instantly, so this usually returns on attempt
   // #1. The backend GET also synchronously verifies treasury as a fallback.
   const pollHotspotStatus = useCallback(async (slug: string, ref: string): Promise<HotspotPaymentStatus | null> => {
-    const maxAttempts = 150; // ~5min ceiling at 2s — covers slow M-Pesa STK PIN entry + webhook
+    const maxAttempts = 200; // ~5min ceiling at 1.5s — covers slow M-Pesa STK PIN entry + webhook
     for (let i = 0; i < maxAttempts; i++) {
       try {
         // Accept either the ApiResponse<T> shape or a raw payload (some portal endpoints
@@ -96,7 +96,7 @@ export default function PaymentCallbackPage() {
       } catch {
         // Continue polling
       }
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
     return null;
   }, []);
