@@ -3,24 +3,19 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import FileUpload from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
 import { config } from '@/lib/config';
 import {
   DEFAULT_TIMEZONE,
   TIMEZONE_OPTIONS,
-  useBrandingSettings,
   useBusinessSettings,
-  useDeleteLogo,
   useHotspotSettings,
   useOrganizationDetails,
   usePPPoESettings,
-  useSaveBrandingSettings,
   useSaveBusinessSettings,
   useSaveHotspotSettings,
   useSaveOrganizationDetails,
   useSavePPPoESettings,
-  useUploadLogo,
 } from '@/features/settings/api';
 import { OwnershipNotice } from '@/components/platform/OwnershipNotice';
 import { useAuthStore } from '@/lib/store/auth';
@@ -71,30 +66,19 @@ export default function SettingsTabs() {
   );
 }
 
-const DEFAULT_LOGO = '/images/logo/logo.png';
-
 function GeneralTab() {
-  const uploadLogo = useUploadLogo();
-  const deleteLogo = useDeleteLogo();
   // Organization name/email/phone/timezone persist to the dedicated
-  // /tenant/settings/organization endpoint. Brand fields (logo, colors,
-  // portal title/welcome) persist to /tenant/settings/branding, and
-  // legal/business fields (terms, etc.) to /tenant/settings/business. These
-  // are the columns the backend actually reads — the old system.* keys in the
-  // generic Configuration store never reached it.
+  // /tenant/settings/organization endpoint; legal/business fields (terms, etc.)
+  // to /tenant/settings/business. Branding (logo, colors, portal title/welcome)
+  // is NO LONGER edited here — it is owned by auth-api (the SoT) and managed in
+  // the accounts console; the captive portal reads it server-side. The branding
+  // section + its hooks were removed and replaced with an ownership link-out.
   const { data: org } = useOrganizationDetails();
   const saveOrg = useSaveOrganizationDetails();
-  const { data: branding } = useBrandingSettings();
-  const saveBranding = useSaveBrandingSettings();
   const { data: business } = useBusinessSettings();
   const saveBusiness = useSaveBusinessSettings();
 
-  const [logo, setLogo] = useState<string>(DEFAULT_LOGO);
   const [terms, setTerms] = useState<string>('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [primaryColor, setPrimaryColor] = useState<string>('#9100B0');
-  const [portalTitle, setPortalTitle] = useState<string>('');
-  const [portalWelcome, setPortalWelcome] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
   const [supportEmail, setSupportEmail] = useState<string>('');
   const [supportPhone, setSupportPhone] = useState<string>('');
@@ -108,16 +92,6 @@ function GeneralTab() {
       setSupportPhone(org.phone ?? '');
     }
   }, [org]);
-
-  // Sync branding form state once branding settings load.
-  useEffect(() => {
-    if (branding) {
-      setLogo(branding.logo_url || DEFAULT_LOGO);
-      if (branding.primary_color) setPrimaryColor(branding.primary_color);
-      setPortalTitle(branding.portal_title ?? '');
-      setPortalWelcome(branding.portal_welcome_message ?? '');
-    }
-  }, [branding]);
 
   // Sync legal/business form state once business settings load.
   useEffect(() => {
@@ -133,29 +107,7 @@ function GeneralTab() {
     }
   }, [org?.timezone]);
 
-  const isSaving = saveOrg.isPending || saveBranding.isPending || saveBusiness.isPending;
-
-  const handleLogoUpload = async (file: File | null) => {
-    if (file) {
-      setIsUploading(true);
-      try {
-        const result = await uploadLogo.mutateAsync(file);
-        if (result?.logo_url) {
-          setLogo(result.logo_url);
-        }
-      } finally {
-        setIsUploading(false);
-      }
-    } else {
-      // File removed - delete logo from server and reset to default
-      try {
-        await deleteLogo.mutateAsync();
-      } catch {
-        // Ignore errors when deleting (logo may not exist on server)
-      }
-      setLogo(DEFAULT_LOGO);
-    }
-  };
+  const isSaving = saveOrg.isPending || saveBusiness.isPending;
 
   return (
     <div className="space-y-6">
@@ -169,13 +121,6 @@ function GeneralTab() {
             email: supportEmail,
             phone: supportPhone,
             timezone,
-          });
-          // Brand fields -> branding endpoint.
-          saveBranding.mutate({
-            primary_color: primaryColor,
-            logo_url: logo,
-            portal_title: portalTitle,
-            portal_welcome_message: portalWelcome,
           });
           // Legal/business fields -> business endpoint.
           saveBusiness.mutate({
@@ -239,104 +184,19 @@ function GeneralTab() {
             <p className="text-xs text-gray-500 mt-1">Used to sync your routers&apos; clock to local time.</p>
           </div>
 
-          {/* Branding Section */}
+          {/* Branding & Appearance — centralized in auth-api (accounts console).
+              The logo, primary/secondary colors and portal title/welcome are
+              owned by auth-api (the SoT) and edited in the accounts console; the
+              captive portal reads them server-side. The local branding editor was
+              removed, mirroring the retired payout/notifications tabs. */}
           <div className="border-t pt-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-4">Branding & Appearance</h4>
-
-            {/* Logo Upload */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-gray-700">Company Logo</label>
-              <p className="text-xs text-gray-500 mb-2">Upload your company logo to personalize your dashboard and customer portal</p>
-              <FileUpload
-                name="logo"
-                accept="image/*"
-                maxSize={2}
-                previewUrl={logo}
-                disabled={isUploading}
-                onFileChange={handleLogoUpload}
-              />
-              {isUploading && (
-                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Uploading logo...
-                </p>
-              )}
-            </div>
-
-            {/* Brand Color */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Primary Brand Color</label>
-                <div className="flex gap-3 mt-2">
-                  <div className="flex-1">
-                    <Input
-                      type="text"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      placeholder="#9100B0"
-                      className="font-mono"
-                    />
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-10 w-20 rounded-md border border-gray-300 cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">This color will be applied across your dashboard and customer portal</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700">Portal Title</label>
-                <Input
-                  value={portalTitle}
-                  onChange={(e) => setPortalTitle(e.target.value)}
-                  placeholder="e.g., Codevertex WiFi"
-                />
-                <p className="text-xs text-gray-500 mt-1">Shown as the title on your customer / captive portal</p>
-              </div>
-            </div>
-
-            {/* Portal Welcome Message */}
-            <div className="mt-4">
-              <label className="text-sm font-medium text-gray-700">Portal Welcome Message</label>
-              <textarea
-                rows={3}
-                value={portalWelcome}
-                onChange={(e) => setPortalWelcome(e.target.value)}
-                className="mt-1 flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                placeholder="Welcome message shown to customers on your portal"
-              />
-            </div>
-
-            {/* Color Preview */}
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-xs font-medium text-gray-700 mb-2">Brand Color Preview:</p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-10 w-10 rounded-lg border-2 border-white shadow-sm"
-                  style={{ backgroundColor: primaryColor }}
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    Primary Button
-                  </button>
-                  <span
-                    className="px-3 py-2 text-sm font-medium rounded-md"
-                    style={{ color: primaryColor, backgroundColor: `${primaryColor}10` }}
-                  >
-                    Badge
-                  </span>
-                </div>
-              </div>
-            </div>
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">Branding &amp; Appearance</h4>
+            <OwnershipNotice
+              owner="auth-api"
+              description="Your logo, brand colors and portal title are managed centrally in the accounts console. Update them there once and they apply across your dashboard and customer / captive portal automatically."
+              manageUrl={config.accountsUiUrl || undefined}
+              manageLabel="Manage branding in accounts"
+            />
           </div>
 
           {/* Terms & Conditions */}

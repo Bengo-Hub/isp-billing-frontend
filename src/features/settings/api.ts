@@ -191,52 +191,12 @@ export function useResetSettings() {
   });
 }
 
-// Upload Logo
-export function useUploadLogo() {
-  const qc = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await api.post('/configuration/logo', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      return response.data;
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['settings', 'general'] });
-      toast.success('Logo uploaded successfully');
-      return data.logo_url;
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to upload logo');
-    },
-  });
-}
-
-// Delete Logo
-export function useDeleteLogo() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await api.delete('/configuration/logo');
-      return response.data;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['settings', 'general'] });
-      toast.success('Logo deleted successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to delete logo');
-    },
-  });
-}
+// NOTE: the logo upload/delete hooks (useUploadLogo / useDeleteLogo) were REMOVED
+// along with the rest of the tenant branding editor. Tenant branding (logo,
+// colors, portal title/welcome) is owned by auth-api (the SoT) and edited in the
+// accounts console — isp-billing stores no local branding. The captive portal
+// sources branding server-side from auth-api (see backend
+// app/services/auth_branding_client.py).
 
 // =========================================================================
 // Tenant Settings API (OrganizationSettings-based)
@@ -451,46 +411,11 @@ export function useSaveNotificationSettings() {
   });
 }
 
-// =========================================================================
-// Branding settings — dedicated endpoint (OrganizationSettings / Organization).
-// =========================================================================
-export interface BrandingSettings {
-  logo_url: string | null;
-  favicon_url: string | null;
-  primary_color: string;
-  secondary_color: string | null;
-  custom_css: string | null;
-  portal_title: string | null;
-  portal_welcome_message: string | null;
-}
-
-export function useBrandingSettings() {
-  return useQuery({
-    queryKey: ['tenant-settings', 'branding'],
-    queryFn: async (): Promise<BrandingSettings> => {
-      const { data } = await api.get('/tenant/settings/branding');
-      return data;
-    },
-    staleTime: 60_000,
-  });
-}
-
-export function useSaveBrandingSettings() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (settings: Partial<BrandingSettings>) => {
-      const { data } = await api.patch('/tenant/settings/branding', settings);
-      return data;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tenant-settings', 'branding'] });
-      toast.success('Branding settings saved successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to save branding settings');
-    },
-  });
-}
+// NOTE: branding settings (BrandingSettings interface + useBrandingSettings /
+// useSaveBrandingSettings hooks, GET/PATCH /tenant/settings/branding) were
+// REMOVED. Tenant branding is owned by auth-api and edited in the accounts
+// console; the captive portal reads it server-side via isp-billing's portal
+// config. The settings UI links out to the accounts console instead.
 
 // =========================================================================
 // Business settings — dedicated endpoint (OrganizationSettings): currency, tax,
