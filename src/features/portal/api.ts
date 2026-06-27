@@ -54,6 +54,23 @@ export interface HotspotPackage {
   is_unlimited_time: boolean;
   is_popular: boolean;
   features: string[];
+  /** HOTSPOT / PPPOE / INTERNET / BOTH. */
+  plan_type?: string;
+  /** Number of simultaneous devices the package allows. */
+  concurrent_sessions?: number;
+  /**
+   * Authoritative access window in MINUTES when set (> 0) — carries sub-day /
+   * sub-hour precision (e.g. 5 = 5 min). Null when the plan relies on the legacy
+   * validity_days (capped by time_limit) fallback.
+   */
+  duration_minutes?: number | null;
+  /**
+   * Effective access window in HOURS the customer ACTUALLY gets, computed by the
+   * backend's single source of truth (`ServicePlan.access_window_hours()`).
+   * <= 0 means no finite calendar window (e.g. unlimited time). The card renders
+   * the validity from this so it always matches what is provisioned.
+   */
+  access_window_hours?: number;
 }
 
 export interface PurchaseRequest {

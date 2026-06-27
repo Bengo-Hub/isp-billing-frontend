@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/components/auth/AuthProvider'
+import { OfflineUpdateBar } from '@/components/pwa/OfflineUpdateBar'
 import { PwaSplash } from '@/components/pwa/PwaSplash'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import type { Metadata } from 'next'
@@ -41,6 +42,7 @@ export default function RootLayout({
           <AuthProvider>
             <QueryClientProvider>
               <PwaSplash />
+              <OfflineUpdateBar />
               {children}
               <Toaster position="top-right" />
             </QueryClientProvider>

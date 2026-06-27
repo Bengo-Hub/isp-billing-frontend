@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAvailablePaymentGateways } from '@/features/payments/api';
+import { formatDuration } from '@/features/packages/api';
+import type { HotspotPackage } from '@/features/portal/api';
 import { useHotspotPackages, usePaymentStatus, usePortalConfig, usePurchasePackage, useRedeemVoucher } from '@/features/portal/api';
 import { loginToHotspot, waitForUserReady } from '@/features/portal/connect';
 import { usePortalBranding } from '@/hooks/use-portal-branding';
@@ -72,6 +74,32 @@ export default function CaptiveBuyPackagesPage() {
     isError: gatewaysError,
   } = useAvailablePaymentGateways();
   const gatewaysEmpty = gatewaysSettled && (availableGateways?.length ?? 0) === 0;
+
+  // Allowed payment methods passed into the embedded TreasuryPaymentModal so the
+  // treasury-ui pay page (loaded in an off-network iframe) ONLY offers the rails
+  // isp-billing has already filtered to (online-only — NEVER cash/COD/manual).
+  // The modal forwards this as `?gateways=` to treasury-ui; WITHOUT it the pay
+  // page falls back to its OWN full gateway list, which includes `cod` and spins
+  // "Loading payment options…" forever (Issue 2 root cause). We normalise the
+  // isp-billing gateway types to treasury's vocabulary (mpesa_* → mpesa) and
+  // always default to "paystack,mpesa" so the filter is enforced even when the
+  // available-gateways query came back empty or errored.
+  const allowedTreasuryMethods = (() => {
+    const types = new Set<string>();
+    for (const g of availableGateways ?? []) {
+      const t = (g.gateway_type || '').toLowerCase();
+      if (!t) continue;
+      if (t.startsWith('mpesa')) types.add('mpesa');
+      else if (t === 'card') types.add('paystack');
+      else types.add(t);
+    }
+    // Hard exclude any cash-like rail defensively (treasury platform gateway).
+    types.delete('cod');
+    types.delete('cash');
+    types.delete('manual');
+    if (types.size === 0) return 'paystack,mpesa';
+    return Array.from(types).join(',');
+  })();
   const { primaryColor } = usePortalBranding(orgSlug);
   const purchaseMutation = usePurchasePackage(orgSlug);
   const redeemMutation = useRedeemVoucher(orgSlug);
@@ -124,18 +152,6 @@ export default function CaptiveBuyPackagesPage() {
     return `Ksh ${amount}`;
   };
 
-  const formatValidity = (days: number) => {
-    if (days < 1) {
-      const hours = Math.round(days * 24);
-      if (hours === 1) return '1 Hour';
-      return `${hours} Hours`;
-    }
-    if (days === 1) return '1 Day';
-    if (days === 7) return '7 Days';
-    if (days === 30) return '1 Month';
-    return `${days} Days`;
-  };
-
   // data_limit is stored in GB (backend canonical), -1 = unlimited.
   const formatDataLimit = (dataLimitGB: number) => {
     if (dataLimitGB < 1) {
@@ -144,25 +160,29 @@ export default function CaptiveBuyPackagesPage() {
     return `${dataLimitGB} GB`;
   };
 
-  // time_limit is stored in HOURS in the backend (-1 = unlimited), NOT seconds.
-  const formatTime = (hours: number) => {
-    if (hours < 0) return 'Unlimited time';
-    if (hours <= 0) return '';
-    if (hours < 1) return `${Math.round(hours * 60)} Minutes`;
-    if (hours === 1) return '1 Hour';
-    if (hours % 24 === 0) return formatValidity(hours / 24);
-    return `${hours} Hours`;
-  };
-
-  // Effective access shown on the card: time_limit (hours) caps the validity_days
-  // window when set, so a "1 hour" package (validity_days=1, time_limit=1) reads
-  // "1 Hour" rather than "1 Day".
-  const formatAccessWindow = (pkg: { validity_days: number; time_limit: number }) => {
-    if (pkg.time_limit && pkg.time_limit > 0) {
-      const accessHours = Math.min((pkg.validity_days || 0) * 24, pkg.time_limit);
-      return formatTime(accessHours);
+  // Effective validity shown on the card — the SHORTER of duration_minutes /
+  // validity_days / time_limit, exactly what the customer actually gets. We use
+  // the SAME canonical `formatDuration` helper the admin package table uses, fed
+  // by the backend's authoritative `access_window_hours` (single source of truth:
+  // ServicePlan.access_window_hours()). Precedence:
+  //   1. access_window_hours (> 0)   → e.g. 5-min package = "5 min", not "1 Day".
+  //   2. duration_minutes (> 0)      → defensive fallback if the field is absent.
+  //   3. validity_days (capped by time_limit hours) → legacy fallback.
+  // A non-positive window means no finite calendar expiry (e.g. unlimited time).
+  const formatAccessWindow = (pkg: HotspotPackage): string => {
+    if (pkg.access_window_hours != null && pkg.access_window_hours > 0) {
+      return formatDuration(Math.round(pkg.access_window_hours * 60));
     }
-    return formatValidity(pkg.validity_days);
+    if (pkg.duration_minutes != null && pkg.duration_minutes > 0) {
+      return formatDuration(pkg.duration_minutes);
+    }
+    let minutes = (pkg.validity_days || 0) * 1440;
+    if (pkg.time_limit && pkg.time_limit > 0) {
+      const cap = pkg.time_limit * 60;
+      minutes = minutes > 0 ? Math.min(minutes, cap) : cap;
+    }
+    if (minutes <= 0) return pkg.is_unlimited_time ? 'Unlimited' : '';
+    return formatDuration(minutes);
   };
 
   const handlePurchase = async () => {
@@ -760,23 +780,35 @@ export default function CaptiveBuyPackagesPage() {
                         <div className="text-3xl sm:text-4xl font-bold mb-1" style={{ color: primaryColor }}>
                           {formatCurrency(pkg.price, pkg.currency)}
                         </div>
+                        {/* Effective validity — duration_minutes / access_window_hours
+                            aware, so a 5-min package reads "5 min", never "1 Day". */}
                         <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                           <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          <span>Valid for {formatAccessWindow(pkg)}</span>
+                          <span>
+                            {(() => {
+                              const v = formatAccessWindow(pkg);
+                              if (!v) return 'No expiry';
+                              return v === 'Unlimited' ? 'Unlimited access' : `Valid for ${v}`;
+                            })()}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Features Section - Flexible */}
+                      {/* Features Section - Flexible. Every field mapped from the
+                          package: speed (down/up), data limit, connection type and
+                          device count. */}
                       <div className="flex-grow space-y-2.5 sm:space-y-3 mb-4 sm:mb-6">
-                        {/* Speed */}
+                        {/* Speed (down / up Mbps) */}
                         <div className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
                           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center bg-gray-100 shrink-0">
                             <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: primaryColor }} />
                           </div>
-                          <span className="font-medium text-gray-700">{pkg.download_speed} Mbps / {pkg.upload_speed} Mbps</span>
+                          <span className="font-medium text-gray-700">
+                            {pkg.download_speed} Mbps <span className="text-gray-400">down</span> / {pkg.upload_speed} Mbps <span className="text-gray-400">up</span>
+                          </span>
                         </div>
 
-                        {/* Data */}
+                        {/* Data limit (Unlimited vs N GB/MB) */}
                         <div className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
                           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center bg-gray-100 shrink-0">
                             <Wifi className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: primaryColor }} />
@@ -788,8 +820,35 @@ export default function CaptiveBuyPackagesPage() {
                           </span>
                         </div>
 
-                        {/* Time limit is reflected in the "Valid for …" line above
-                            (effective access = min of validity_days and time_limit). */}
+                        {/* Connection type (Hotspot / PPPoE) */}
+                        {pkg.plan_type && (
+                          <div className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center bg-gray-100 shrink-0">
+                              <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: primaryColor }} />
+                            </div>
+                            <span className="font-medium text-gray-700 capitalize">
+                              {pkg.plan_type.toLowerCase() === 'pppoe'
+                                ? 'PPPoE'
+                                : pkg.plan_type.toLowerCase() === 'both'
+                                  ? 'Hotspot / PPPoE'
+                                  : pkg.plan_type.toLowerCase() === 'internet'
+                                    ? 'Internet'
+                                    : 'Hotspot'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Devices (concurrent sessions) */}
+                        {pkg.concurrent_sessions != null && pkg.concurrent_sessions > 0 && (
+                          <div className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center bg-gray-100 shrink-0">
+                              <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: primaryColor }} />
+                            </div>
+                            <span className="font-medium text-gray-700">
+                              {pkg.concurrent_sessions} {pkg.concurrent_sessions === 1 ? 'device' : 'devices'}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Button - Always at Bottom */}
@@ -972,6 +1031,10 @@ export default function CaptiveBuyPackagesPage() {
           // generic "Codevertex Africa Limited" branding and a broken logo/QR
           // (Issue 3). The slug renders the ISP's correct brand assets.
           tenantSlug={orgSlug}
+          // Restrict the in-iframe treasury-ui pay page to the online-only rails
+          // isp-billing filtered to — NEVER cash/COD. Without this the pay page
+          // loads its own gateway list (incl. cod) and spins forever (Issue 2).
+          allowedMethods={allowedTreasuryMethods}
           amount={treasuryPay.amount}
           currency={treasuryPay.currency}
           description={treasuryPay.description}

@@ -1,4 +1,26 @@
+import withPWAInit from "@ducanh2912/next-pwa";
 import type { NextConfig } from "next";
+
+// PWA / offline-shell + update detection. Uniform across the Codevertex fleet
+// (library-ui / pos-ui). IMPORTANT: next-pwa only runs under the WEBPACK builder
+// (`next build --webpack`) — Turbopack silently skips it, so sw.js would never
+// regenerate and clients would stay stuck on stale buy-page JS (the legacy
+// /gateways caller). With this + the shared OfflineBar's PwaUpdater banner, a new
+// deploy is detected and the user is prompted to reload.
+const withPWA = withPWAInit({
+  dest: "public",
+  // Enabled for production builds (next build --webpack regenerates sw.js);
+  // disabled in dev to avoid stale service-worker caching while iterating.
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  workboxOptions: {
+    skipWaiting: false,
+    clientsClaim: true,
+  },
+});
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -82,4 +104,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);
