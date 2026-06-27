@@ -20,28 +20,12 @@ import {
   useSaveHotspotSettings,
   useSaveOrganizationDetails,
   useSavePPPoESettings,
-  useSaveSetting,
-  useSettings,
   useUploadLogo,
 } from '@/features/settings/api';
-import {
-  PayoutRecipientType,
-  PayoutScheduleType,
-  useBanks,
-  useGatewayConfig,
-  usePayoutConfig,
-  usePayoutRecipientTypes,
-  usePayoutScheduleTypes,
-  useResolveAccount,
-  useSaveGatewayConfig,
-  useSavePayoutConfig,
-  useTestGateway,
-  useUpdatePayoutConfig
-} from '@/features/settings/gateways';
-import { usePermissions } from '@/lib/stores/rbac';
+import { OwnershipNotice } from '@/components/platform/OwnershipNotice';
 import { useAuthStore } from '@/lib/store/auth';
 import { useOrganization } from '@/features/platform/api';
-import { AlertCircle, CheckCircle2, Info, Loader2, Shield } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -378,463 +362,41 @@ function GeneralTab() {
   );
 }
 
+// Payouts and bank-account configuration are centralized in treasury-api /
+// treasury-ui. The isp-billing payout config / schedule-type / recipient-type
+// endpoints and the Paystack bank-listing endpoint were REMOVED, so this tab no
+// longer renders the payout/bank-settings form — it links out to treasury-ui
+// where ISPs manage payout schedules and bank accounts. Mirrors how Subscription
+// Tiers and the Notifications tab were retired to a centralized owner.
 function PaymentsTab() {
-  const { data = {} as any } = useSettings('payments');
-  const save = useSaveSetting('payments');
-
-  // Payout configuration
-  const { data: payoutConfig, isLoading: payoutLoading } = usePayoutConfig();
-  const { data: scheduleTypes = [] } = usePayoutScheduleTypes();
-  const { data: recipientTypes = [] } = usePayoutRecipientTypes();
-  const savePayoutConfig = useSavePayoutConfig();
-  const updatePayoutConfig = useUpdatePayoutConfig();
-
-  // Map currency to country for bank listing
-  const currencyToCountry: Record<string, string> = {
-    KES: 'kenya',
-    NGN: 'nigeria',
-    GHS: 'ghana',
-    ZAR: 'south-africa'
-  };
-
-  // Bank listing and account resolution - dynamic based on currency
-  const [bankCountry, setBankCountry] = useState('kenya');
-  const { data: banks = [], isLoading: banksLoading } = useBanks(bankCountry);
-  const resolveAccount = useResolveAccount();
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [accountVerified, setAccountVerified] = useState(false);
-
-  // Helper to copy URL to clipboard
-  const copyUrl = (url: string) => {
-    navigator.clipboard.writeText(url);
-    toast.success('URL copied to clipboard');
-  };
-
-  // Payout form state
-  const [payoutForm, setPayoutForm] = useState({
-    schedule_type: 'daily' as PayoutScheduleType,
-    payout_day: 1,
-    payout_time: '17:00',
-    recipient_type: 'kepss' as PayoutRecipientType,
-    bank_code: '',
-    bank_name: '',
-    account_number: '',
-    account_name: '',
-    mobile_number: '',
-    currency: 'KES',
-    min_payout_amount: 1000,
-  });
-
-  // Sync form with existing config
-  useEffect(() => {
-    if (payoutConfig) {
-      setPayoutForm({
-        schedule_type: payoutConfig.schedule_type as PayoutScheduleType,
-        payout_day: payoutConfig.payout_day || 1,
-        payout_time: payoutConfig.payout_time || '17:00',
-        recipient_type: payoutConfig.recipient_type as PayoutRecipientType,
-        bank_code: payoutConfig.bank_code || '',
-        bank_name: payoutConfig.bank_name || '',
-        account_number: payoutConfig.account_number || '',
-        account_name: payoutConfig.account_name || '',
-        mobile_number: payoutConfig.mobile_number || '',
-        currency: payoutConfig.currency || 'KES',
-        min_payout_amount: payoutConfig.min_payout_amount || 1000,
-      });
-      // Set bank country based on currency
-      const currency = payoutConfig.currency || 'KES';
-      setBankCountry(currencyToCountry[currency] || 'kenya');
-      // Mark as verified if account_name exists
-      if (payoutConfig.account_name) {
-        setAccountVerified(true);
-      }
-    }
-  }, [payoutConfig]);
-
-  // Handle bank selection - auto-fill bank name
-  const handleBankChange = (bankCode: string) => {
-    const selectedBank = banks.find(b => b.code === bankCode);
-    setPayoutForm(prev => ({
-      ...prev,
-      bank_code: bankCode,
-      bank_name: selectedBank?.name || '',
-      account_name: '' // Reset account name when bank changes
-    }));
-    // Reset verification when bank changes
-    setAccountVerified(false);
-  };
-
-  // Verify account number
-  const handleVerifyAccount = async () => {
-    if (!payoutForm.bank_code) {
-      toast.error('Please select a bank first');
-      return;
-    }
-    if (!payoutForm.account_number) {
-      toast.error('Please enter an account number');
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      const result = await resolveAccount.mutateAsync({
-        accountNumber: payoutForm.account_number,
-        bankCode: payoutForm.bank_code
-      });
-      setPayoutForm(prev => ({ ...prev, account_name: result.account_name }));
-      setAccountVerified(true);
-      toast.success(`Account verified: ${result.account_name}`);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to verify account');
-      setAccountVerified(false);
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  // Reset verification when account number changes
-  const handleAccountNumberChange = (value: string) => {
-    setPayoutForm({ ...payoutForm, account_number: value });
-    setAccountVerified(false);
-  };
-
-  // Handle currency change - update bank country and reset bank selection
-  const handleCurrencyChange = (currency: string) => {
-    const country = currencyToCountry[currency] || 'kenya';
-    setBankCountry(country);
-    setPayoutForm({
-      ...payoutForm,
-      currency,
-      bank_code: '',
-      bank_name: '',
-      account_number: '',
-      account_name: ''
-    });
-    setAccountVerified(false);
-  };
-
-  const handlePayoutSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload = {
-      ...payoutForm,
-      payout_day: ['weekly', 'monthly'].includes(payoutForm.schedule_type) ? payoutForm.payout_day : undefined,
-    };
-
-    if (payoutConfig) {
-      updatePayoutConfig.mutate(payload, {
-        onSuccess: () => toast.success('Payout configuration updated'),
-        onError: () => toast.error('Failed to update payout configuration'),
-      });
-    } else {
-      savePayoutConfig.mutate(payload, {
-        onSuccess: () => toast.success('Payout configuration saved'),
-        onError: () => toast.error('Failed to save payout configuration'),
-      });
-    }
-  };
-
-  const selectedRecipientType = recipientTypes.find(r => r.type === payoutForm.recipient_type);
-  const selectedScheduleType = scheduleTypes.find(s => s.type === payoutForm.schedule_type);
-  const showDaySelector = selectedScheduleType?.requires_day;
-  const isMobileMoney = ['mobile_money', 'mobile_money_business'].includes(payoutForm.recipient_type);
+  // Prefer the configured treasury-ui URL; fall back to a sensible default host
+  // (treasury/books console) when it isn't set in this env.
+  const treasuryBase = config.treasuryUiUrl || 'https://books.codevertexitsolutions.com';
+  const payoutsUrl = `${treasuryBase}/payouts`;
 
   return (
-    <div className="space-y-6 gap-2">
-      {/* Payout Configuration */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="text-sm font-semibold">Payout Configuration</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Configure how and when collected payments are disbursed to your account
-            </p>
-          </div>
-          {payoutConfig && (
-            <div className="flex items-center gap-2">
-              {payoutConfig.is_verified ? (
-                <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                  <CheckCircle2 className="h-3 w-3" /> Verified
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                  <AlertCircle className="h-3 w-3" /> Pending Verification
-                </span>
-              )}
-            </div>
-          )}
+    <div className="space-y-6">
+      <Card className="p-6 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Payouts &amp; Bank Accounts</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Payout schedules and bank-account configuration are now managed
+            centrally in the treasury console. Set up how and when collected
+            payments are disbursed, and manage your payout bank accounts, there.
+          </p>
         </div>
 
-        {payoutLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          </div>
-        ) : (
-          <form onSubmit={handlePayoutSubmit} className="space-y-4">
-            {/* Schedule Type */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-700">Payout Schedule</label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                  value={payoutForm.schedule_type}
-                  onChange={(e) => setPayoutForm({ ...payoutForm, schedule_type: e.target.value as PayoutScheduleType })}
-                >
-                  {scheduleTypes.map((type) => (
-                    <option key={type.type} value={type.type}>{type.name}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">{selectedScheduleType?.description}</p>
-              </div>
-
-              {showDaySelector && (
-                <div>
-                  <label className="text-sm text-gray-700">
-                    {payoutForm.schedule_type === 'weekly' ? 'Payout Day' : 'Payout Date'}
-                  </label>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                    value={payoutForm.payout_day}
-                    onChange={(e) => setPayoutForm({ ...payoutForm, payout_day: parseInt(e.target.value) })}
-                  >
-                    {selectedScheduleType?.day_options?.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="text-sm text-gray-700">Payout Time</label>
-                <Input 
-                  type="time" 
-                  value={payoutForm.payout_time}
-                  onChange={(e) => setPayoutForm({ ...payoutForm, payout_time: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-700 flex items-center gap-2">
-                  Minimum Payout Amount
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                    Gateway min: KES 10
-                  </span>
-                </label>
-                <Input
-                  type="number"
-                  min={10}
-                  step={1}
-                  value={payoutForm.min_payout_amount}
-                  onChange={(e) => setPayoutForm({ ...payoutForm, min_payout_amount: parseFloat(e.target.value) || 0 })}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Paystack enforces a KES 10 minimum per transfer. Payouts only trigger when balance exceeds this amount.
-                </p>
-              </div>
-            </div>
-
-            {/* Recipient Type */}
-            <div className="border-t pt-4">
-              <label className="text-sm text-gray-700 font-medium block mb-2">Payout Account (Paystack Transfer Recipient)</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-gray-700">Recipient Type</label>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                    value={payoutForm.recipient_type}
-                    onChange={(e) => setPayoutForm({ ...payoutForm, recipient_type: e.target.value as PayoutRecipientType })}
-                  >
-                    {recipientTypes.filter(r => r.is_enabled).map((type) => (
-                      <option key={type.type} value={type.type}>{type.name}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">{selectedRecipientType?.description}</p>
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-700">Currency</label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                    value={payoutForm.currency}
-                    onChange={(e) => handleCurrencyChange(e.target.value)}
-                  >
-                    <option value="KES">KES - Kenyan Shilling</option>
-                    <option value="NGN">NGN - Nigerian Naira</option>
-                    <option value="GHS">GHS - Ghanaian Cedi</option>
-                    <option value="ZAR">ZAR - South African Rand</option>
-                  </select>
-                </div>
-
-                {!isMobileMoney && (
-                  <>
-                    <div>
-                      <label className="text-sm text-gray-700">Bank Code</label>
-                      <Input
-                        placeholder="e.g., 033"
-                        value={payoutForm.bank_code}
-                        onChange={(e) => {
-                          const code = e.target.value;
-                          const matchedBank = banks.find(b => b.code === code);
-                          setPayoutForm(prev => ({
-                            ...prev,
-                            bank_code: code,
-                            bank_name: matchedBank?.name || prev.bank_name
-                          }));
-                          setAccountVerified(false);
-                        }}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Enter bank code or select from Bank Name dropdown</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-700">Bank Name</label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                        value={payoutForm.bank_code}
-                        onChange={(e) => handleBankChange(e.target.value)}
-                        disabled={banksLoading}
-                      >
-                        <option value="">Select a bank</option>
-                        {banks.map((bank) => (
-                          <option key={bank.code} value={bank.code}>
-                            {bank.name} ({bank.code})
-                          </option>
-                        ))}
-                      </select>
-                      {banksLoading && (
-                        <p className="text-xs text-gray-500 mt-1">Loading banks...</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-700">Account Number</label>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Account number"
-                          value={payoutForm.account_number}
-                          onChange={(e) => handleAccountNumberChange(e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleVerifyAccount}
-                          disabled={isVerifying || !payoutForm.bank_code || !payoutForm.account_number}
-                          className="shrink-0"
-                        >
-                          {isVerifying ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : accountVerified ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          ) : (
-                            'Verify'
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {accountVerified ? 'Account verified' : 'Enter account number and click Verify'}
-                      </p>
-                    </div>
-                  </>
-                )}
-
-                {isMobileMoney && (
-                  <>
-                    <div>
-                      <label className="text-sm text-gray-700">Mobile Money Provider</label>
-                      <select 
-                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                        value={payoutForm.bank_code}
-                        onChange={(e) => setPayoutForm({ ...payoutForm, bank_code: e.target.value })}
-                      >
-                        <option value="">Select provider</option>
-                        <option value="MPESA">M-PESA (Kenya)</option>
-                        <option value="MPPAYBILL">M-PESA Paybill (Kenya)</option>
-                        <option value="MPTILL">M-PESA Till (Kenya)</option>
-                        <option value="MTN">MTN Mobile Money (Ghana)</option>
-                        <option value="VODAFONE">Vodafone Cash (Ghana)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-700">
-                        {payoutForm.bank_code === 'MPPAYBILL' || payoutForm.bank_code === 'MPTILL' ? 'Paybill/Till Number' : 'Mobile Number'}
-                      </label>
-                      <Input 
-                        placeholder={payoutForm.bank_code === 'MPPAYBILL' || payoutForm.bank_code === 'MPTILL' ? 'Paybill/Till number' : '07XXXXXXXX'}
-                        value={payoutForm.mobile_number}
-                        onChange={(e) => setPayoutForm({ ...payoutForm, mobile_number: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <label className="text-sm text-gray-700">
-                    Account Holder Name
-                    {accountVerified && !isMobileMoney && (
-                      <span className="ml-2 text-xs text-green-600">(Verified)</span>
-                    )}
-                  </label>
-                  <Input
-                    placeholder={isMobileMoney ? "Name on account" : "Auto-filled after verification"}
-                    value={payoutForm.account_name}
-                    onChange={(e) => isMobileMoney && setPayoutForm({ ...payoutForm, account_name: e.target.value })}
-                    readOnly={!isMobileMoney}
-                    className={!isMobileMoney ? 'bg-gray-50 cursor-not-allowed' : ''}
-                  />
-                  {!isMobileMoney && !accountVerified && payoutForm.bank_code && payoutForm.account_number && (
-                    <p className="text-xs text-amber-600 mt-1">Click Verify to auto-fill this field</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Stats (if existing config) */}
-            {payoutConfig && (
-              <div className="border-t pt-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Total Payouts</span>
-                    <div className="font-semibold">{payoutConfig.total_payouts}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Total Amount</span>
-                    <div className="font-semibold">{payoutConfig.currency} {payoutConfig.total_payout_amount.toLocaleString()}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Last Payout</span>
-                    <div className="font-semibold">
-                      {payoutConfig.last_payout_at 
-                        ? new Date(payoutConfig.last_payout_at).toLocaleDateString() 
-                        : 'Never'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Last Amount</span>
-                    <div className="font-semibold">
-                      {payoutConfig.last_payout_amount 
-                        ? `${payoutConfig.currency} ${payoutConfig.last_payout_amount.toLocaleString()}` 
-                        : '-'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-3 justify-end pt-4">
-              <Button 
-                type="submit" 
-                disabled={savePayoutConfig.isPending || updatePayoutConfig.isPending}
-              >
-                {(savePayoutConfig.isPending || updatePayoutConfig.isPending) && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                {payoutConfig ? 'Update Payout Settings' : 'Save Payout Settings'}
-              </Button>
-            </div>
-          </form>
-        )}
+        <OwnershipNotice
+          owner="treasury-ui"
+          description="Payout configuration and bank accounts are owned by treasury-api. The payout & bank settings were removed from isp-billing — manage your payout schedule and recipient bank account in the treasury console."
+          manageUrl={payoutsUrl}
+          manageLabel="Manage payouts in treasury"
+        />
       </Card>
     </div>
   );
 }
+
 
 function PPPoETab() {
   const { data: settings, isLoading } = usePPPoESettings();

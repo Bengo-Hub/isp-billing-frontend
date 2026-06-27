@@ -428,33 +428,10 @@ export function useVerifyPaystackPayment(reference: string) {
   });
 }
 
-// List Banks for Paystack
-export function usePaystackBanks(country: string = 'kenya') {
-  return useQuery({
-    queryKey: ['paystack-banks', country],
-    queryFn: async (): Promise<any[]> => {
-      const { data } = await api.get(`/payments/paystack/banks/${country}`);
-      // Paystack wraps the list as { status, message, data: [...] }.
-      return Array.isArray(data) ? data : (data?.data ?? []);
-    },
-    enabled: !!country,
-  });
-}
-
-// Resolve Bank Account
-export function useResolvePaystackAccount() {
-  return useMutation({
-    mutationFn: async ({ accountNumber, bankCode }: { accountNumber: string; bankCode: string }) => {
-      const response = await api.get('/payments/paystack/resolve-account', {
-        params: { account_number: accountNumber, bank_code: bankCode },
-      });
-      return response.data;
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to resolve account');
-    },
-  });
-}
+// NOTE: Bank listing / account resolution (Paystack bank-listing +
+// resolve-account) were REMOVED from isp-billing. Payouts and bank-account
+// management are centralized in treasury-api/treasury-ui; the ISP-billing payout
+// and bank-listing endpoints no longer exist here.
 
 // =============================================================================
 // Available Payment Gateways
@@ -478,22 +455,30 @@ export interface AvailableGateway {
 /**
  * Get available payment gateways for current organization.
  * Returns only active gateways configured by platform admin.
+ *
+ * The queryFn does NOT swallow request failures into an empty array: doing so
+ * makes a real error indistinguishable from a legitimately empty list, and the
+ * captive buy page needs to tell them apart (empty → "no methods" notice;
+ * error → still selectable Paystack fallback). It simply NORMALISES the success
+ * payload (array, or {data:[]}, or null) to an array. On success with `[]` the
+ * query SETTLES (isSuccess=true, isPending=false) so the UI must render the
+ * methods/empty state — never an infinite spinner. Retries are bounded so a
+ * captive device that can't reach the endpoint doesn't loop forever.
  */
 export function useAvailablePaymentGateways() {
   return useQuery({
     queryKey: ['available-payment-gateways'],
     queryFn: async (): Promise<AvailableGateway[]> => {
-      try {
-        const { data } = await api.get('/payment-gateways/available');
-        const list: AvailableGateway[] = Array.isArray(data) ? data : (data?.data ?? []);
-        // Backend marks usable gateways with `is_active` (there is no `is_available`).
-        return list.filter((g) => g.is_active ?? g.is_available ?? true);
-      } catch (error: any) {
-        console.warn('Failed to fetch payment gateways:', error);
-        // Return empty array if fails - no fallback, just show what's available
-        return [];
-      }
+      const { data } = await api.get('/payment-gateways/available');
+      const list: AvailableGateway[] = Array.isArray(data) ? data : (data?.data ?? []);
+      // Backend marks usable gateways with `is_active` (there is no `is_available`).
+      return list.filter((g) => g.is_active ?? g.is_available ?? true);
     },
+    // Settings rarely change; cache briefly and bound retries so the spinner
+    // always resolves on a captive device.
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -58,7 +58,20 @@ export default function CaptiveBuyPackagesPage() {
 
   const { data: config, isLoading: configLoading } = usePortalConfig(orgSlug);
   const { data: packages, isLoading: packagesLoading } = useHotspotPackages(orgSlug);
-  const { data: availableGateways, isLoading: gatewaysLoading } = useAvailablePaymentGateways();
+  // Gateway list loading is driven by the query lifecycle, NOT by data.length.
+  // - isPending: the very first fetch is still in flight → show "Loading…".
+  // - isSuccess: the query has SETTLED; render the methods. A settled-but-empty
+  //   list ([]) is a valid result → show an empty state, never a spinner.
+  // - isError: the request failed (e.g. captive device couldn't reach the
+  //   endpoint, retries exhausted) → we still fall back to Paystack so the
+  //   customer can pay.
+  const {
+    data: availableGateways,
+    isPending: gatewaysPending,
+    isSuccess: gatewaysSettled,
+    isError: gatewaysError,
+  } = useAvailablePaymentGateways();
+  const gatewaysEmpty = gatewaysSettled && (availableGateways?.length ?? 0) === 0;
   const { primaryColor } = usePortalBranding(orgSlug);
   const purchaseMutation = usePurchasePackage(orgSlug);
   const redeemMutation = useRedeemVoucher(orgSlug);
@@ -81,12 +94,14 @@ export default function CaptiveBuyPackagesPage() {
         const paystackGateway = availableGateways.find(g => g.gateway_type === 'paystack');
         const defaultGateway = paystackGateway || availableGateways.find(g => g.is_primary) || availableGateways[0];
         setSelectedPaymentMethod(defaultGateway.gateway_type);
-      } else if (!gatewaysLoading && availableGateways?.length === 0) {
-        // Fallback to Paystack if no gateways configured
+      } else if (gatewaysSettled || gatewaysError) {
+        // The query has resolved (settled-empty) or failed (retries exhausted).
+        // Either way we are done waiting — fall back to Paystack so the customer
+        // can still pay rather than staring at a spinner.
         setSelectedPaymentMethod('paystack');
       }
     }
-  }, [availableGateways, selectedPaymentMethod, gatewaysLoading]);
+  }, [availableGateways, selectedPaymentMethod, gatewaysSettled, gatewaysError]);
 
   const macAddress = searchParams.get('mac') || searchParams.get('mac-address');
   const linkLogin = searchParams.get('link-login');
@@ -818,10 +833,26 @@ export default function CaptiveBuyPackagesPage() {
               </DialogHeader>
 
               <div className="space-y-4 sm:space-y-6 w-full">
-                {/* Payment Methods */}
-                {gatewaysLoading ? (
+                {/* Payment Methods.
+                    Gate on the query LIFECYCLE, not on data.length:
+                     - still on the first fetch → spinner.
+                     - settled-empty AND no usable fallback method selected →
+                       clear empty state (never an infinite spinner).
+                     - otherwise → render the methods (Paystack is always a
+                       working fallback, even when the list came back empty or
+                       the request errored). */}
+                {gatewaysPending ? (
                   <div className="text-center py-4">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                    <p className="text-xs text-gray-500 mt-2">Loading payment options…</p>
+                  </div>
+                ) : gatewaysEmpty && !selectedPaymentMethod ? (
+                  <div className="text-center py-6 px-4 rounded-xl border border-amber-200 bg-amber-50">
+                    <AlertCircle className="w-6 h-6 mx-auto mb-2 text-amber-500" />
+                    <p className="text-sm font-medium text-gray-800">No payment methods available right now</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Please try again shortly, or contact the operator if this continues.
+                    </p>
                   </div>
                 ) : (
                   <PaymentMethodSelector primaryColor={primaryColor} />
