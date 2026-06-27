@@ -398,21 +398,27 @@ export default function CaptiveBuyPackagesPage() {
   // (see the payment callback page); we also accept the legacy
   // `username`/`password` aliases defensively.
   useEffect(() => {
-    if (paymentStatus?.is_completed) {
+    // Only auto-connect on an actual SUCCESS. is_completed is also true for a
+    // FAILED payment, so gating on it alone would try to "connect" (and show the
+    // success screen) on a failed payment. Fall back to status==='completed' for
+    // an older backend that doesn't send is_success.
+    const succeeded =
+      paymentStatus?.is_success ??
+      (paymentStatus?.status?.toLowerCase() === 'completed');
+    if (paymentStatus?.is_completed && succeeded) {
       // The same-origin poll confirmed success — close the embedded checkout
       // modal immediately (don't wait on its iframe message / 10-min countdown)
       // so the success screen + auto-connect take over right away (Issue 4).
       if (treasuryPay) setTreasuryPay(null);
-      const ps = paymentStatus as typeof paymentStatus & {
-        hotspot_username?: string;
-        hotspot_password?: string;
-        login_url?: string;
-      };
       waitThenConnect(
-        ps.hotspot_username ?? ps.username,
-        ps.hotspot_password ?? ps.password,
-        ps.login_url,
+        paymentStatus.hotspot_username ?? paymentStatus.username,
+        paymentStatus.hotspot_password ?? paymentStatus.password,
+        paymentStatus.login_url,
       );
+    } else if (paymentStatus?.is_completed && !succeeded) {
+      // Terminal FAILURE — close the embedded modal so the failed-state screen
+      // (below) takes over instead of the success screen.
+      if (treasuryPay) setTreasuryPay(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentStatus]);
@@ -460,15 +466,17 @@ export default function CaptiveBuyPackagesPage() {
     );
   }
 
-  // Payment success
-  if (paymentStatus?.is_completed) {
+  // Payment success — ONLY on an actual success. is_completed is also true for a
+  // failed payment, so we additionally require is_success (or status==='completed'
+  // for an older backend). A completed-but-failed payment falls through to the
+  // terminal-failed screen below.
+  const paymentSucceeded =
+    paymentStatus?.is_success ??
+    (paymentStatus?.status?.toLowerCase() === 'completed');
+  if (paymentStatus?.is_completed && paymentSucceeded) {
     // The /payment/status endpoint returns hotspot_username/hotspot_password
     // for hotspot purchases; accept the legacy username/password aliases too.
-    const ps = paymentStatus as typeof paymentStatus & {
-      hotspot_username?: string;
-      hotspot_password?: string;
-      login_url?: string;
-    };
+    const ps = paymentStatus;
     const psUsername = ps.hotspot_username ?? ps.username;
     const psPassword = ps.hotspot_password ?? ps.password;
     return (
@@ -514,10 +522,13 @@ export default function CaptiveBuyPackagesPage() {
   // While the embedded checkout modal is open (`treasuryPay` set) we keep the
   // modal visible and let the same-origin poll run quietly underneath; this
   // pending full-screen UI only takes over once the modal has closed.
-  if (paymentReference && !treasuryPay && !paymentStatus?.is_completed) {
+  // Use !paymentSucceeded (not !is_completed) so a completed-but-FAILED payment
+  // lands here and shows the failed screen instead of the success screen above.
+  if (paymentReference && !treasuryPay && !paymentSucceeded) {
     // Terminal outcome reached without success → show a clear, actionable
-    // fallback instead of an infinite spinner.
-    if (paymentPollDone) {
+    // fallback instead of an infinite spinner. A completed-failed payment is
+    // also terminal, so treat poll-done OR a terminal-failed status as done.
+    if (paymentPollDone || paymentTerminalFailed) {
       const isFailed = paymentTerminalFailed;
       return (
         <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor }}>

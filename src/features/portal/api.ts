@@ -131,8 +131,16 @@ export interface PaymentStatus {
   status: string;
   message?: string;
   is_completed: boolean;
+  // is_completed is true for BOTH a successful and a failed terminal state;
+  // is_success is only true for an actually-paid purchase. Optional so an older
+  // backend (no is_success field) still type-checks — callers fall back to
+  // `status === 'completed'` in that case.
+  is_success?: boolean;
   username?: string;
   password?: string;
+  hotspot_username?: string;
+  hotspot_password?: string;
+  login_url?: string;
   voucher_code?: string;
 }
 
