@@ -16,7 +16,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@bengo-hub/shared-ui-lib": "github:Bengo-Hub/shared-ui-lib#v0.1.23",
+    "@bengo-hub/shared-ui-lib": "github:Bengo-Hub/shared-ui-lib#v0.1.26",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",

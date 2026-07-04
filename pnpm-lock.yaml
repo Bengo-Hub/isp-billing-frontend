@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@bengo-hub/shared-ui-lib':
-        specifier: github:Bengo-Hub/shared-ui-lib#v0.1.23
-        version: https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/77796131cf75421b1d360b3eac1ef25e41122dc1(lucide-react@0.563.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: github:Bengo-Hub/shared-ui-lib#v0.1.26
+        version: https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/f8f2166ea334556d82caedd7d74fda11bbb12eb2(lucide-react@0.563.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@ducanh2912/next-pwa':
         specifier: ^10.2.9
         version: 10.2.9(@types/babel__core@7.20.5)(next@16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(webpack@5.108.1(lightningcss@1.30.2)(postcss@8.5.6))
@@ -802,9 +802,9 @@ packages:
     resolution: {integrity: sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==}
     engines: {node: '>=6.9.0'}
 
-  '@bengo-hub/shared-ui-lib@https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/77796131cf75421b1d360b3eac1ef25e41122dc1':
-    resolution: {tarball: https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/77796131cf75421b1d360b3eac1ef25e41122dc1}
-    version: 0.1.23
+  '@bengo-hub/shared-ui-lib@https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/f8f2166ea334556d82caedd7d74fda11bbb12eb2':
+    resolution: {tarball: https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/f8f2166ea334556d82caedd7d74fda11bbb12eb2}
+    version: 0.1.26
     peerDependencies:
       lucide-react: '>=0.400.0'
       react: '>=18.0.0'
@@ -5879,7 +5879,7 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@bengo-hub/shared-ui-lib@https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/77796131cf75421b1d360b3eac1ef25e41122dc1(lucide-react@0.563.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@bengo-hub/shared-ui-lib@https://codeload.github.com/Bengo-Hub/shared-ui-lib/tar.gz/f8f2166ea334556d82caedd7d74fda11bbb12eb2(lucide-react@0.563.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
@@ -6984,7 +6984,7 @@ snapshots:
 
   '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.29.0
+      '@babel/code-frame': 7.29.7
       '@babel/runtime': 7.28.6
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
@@ -10113,7 +10113,7 @@ snapshots:
       minimizer-webpack-plugin: 5.6.1(lightningcss@1.30.2)(postcss@8.5.6)(webpack@5.108.1(lightningcss@1.30.2)(postcss@8.5.6))
       neo-async: 2.6.2
       schema-utils: 4.3.3
-      tapable: 2.3.0
+      tapable: 2.3.3
       watchpack: 2.5.2
       webpack-sources: 3.5.0
     transitivePeerDependencies:
