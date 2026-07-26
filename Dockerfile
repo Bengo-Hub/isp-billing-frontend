@@ -31,11 +31,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # IMPORTANT: Next.js bakes NEXT_PUBLIC_* env vars at build time
 # These MUST be set during docker build for production
-ARG NEXT_PUBLIC_API_URL=https://ispbillingapi.codevertexitsolutions.com/api/v1
-ARG NEXT_PUBLIC_WS_BASE_URL=wss://ispbillingapi.codevertexitsolutions.com
+ARG NEXT_PUBLIC_API_URL=https://ispbillingapi.codevertexafrica.com/api/v1
+ARG NEXT_PUBLIC_WS_BASE_URL=wss://ispbillingapi.codevertexafrica.com
 ARG NEXT_PUBLIC_APP_NAME="Codevertex ISP Billing"
-ARG NEXT_PUBLIC_APP_URL=https://ispbilling.codevertexitsolutions.com
-ARG NEXT_PUBLIC_NOTIFICATIONS_URL=https://notificationsapi.codevertexitsolutions.com
+ARG NEXT_PUBLIC_APP_URL=https://ispbilling.codevertexafrica.com
+ARG NEXT_PUBLIC_NOTIFICATIONS_URL=https://notificationsapi.codevertexafrica.com
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_WS_BASE_URL=$NEXT_PUBLIC_WS_BASE_URL

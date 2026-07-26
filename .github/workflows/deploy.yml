@@ -219,11 +219,11 @@ jobs:
           GIT_USER: ${{ secrets.GIT_USER || 'ISPBilling Bot' }}
           GIT_EMAIL: ${{ secrets.GIT_EMAIL || 'dev@bengobox.com' }}
           # Next.js build-time environment variables
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://ispbillingapi.codevertexitsolutions.com/api/v1' }}
-          NEXT_PUBLIC_WS_BASE_URL: ${{ secrets.NEXT_PUBLIC_WS_BASE_URL || 'wss://ispbillingapi.codevertexitsolutions.com' }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://ispbillingapi.codevertexafrica.com/api/v1' }}
+          NEXT_PUBLIC_WS_BASE_URL: ${{ secrets.NEXT_PUBLIC_WS_BASE_URL || 'wss://ispbillingapi.codevertexafrica.com' }}
           NEXT_PUBLIC_APP_NAME: 'Codevertex ISP Billing'
-          NEXT_PUBLIC_APP_URL: 'https://ispbilling.codevertexitsolutions.com'
-          NEXT_PUBLIC_NOTIFICATIONS_URL: 'https://notificationsapi.codevertexitsolutions.com'
+          NEXT_PUBLIC_APP_URL: 'https://ispbilling.codevertexafrica.com'
+          NEXT_PUBLIC_NOTIFICATIONS_URL: 'https://notificationsapi.codevertexafrica.com'
         run: |
           chmod +x build.sh
           ./build.sh
