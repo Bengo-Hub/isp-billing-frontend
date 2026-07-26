@@ -142,7 +142,7 @@ export function Hero() {
                   <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 </div>
                 <div className="flex-1 bg-card rounded px-3 py-1 text-sm text-muted-foreground">
-                  app.codevertexitsolutions.com
+                  app.codevertexafrica.com
                 </div>
               </div>
               

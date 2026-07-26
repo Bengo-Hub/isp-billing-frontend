@@ -429,7 +429,7 @@ the `isp-billing` namespace. The app is a containerized Next.js standalone serve
 ## 📧 Support
 
 For issues, questions, or contributions:
-- **Email**: support@codevertexitsolutions.com
+- **Email**: support@codevertexafrica.com
 - **Documentation**: See `/docs` folder
 - **GitHub Issues**: Create an issue in the repository
 

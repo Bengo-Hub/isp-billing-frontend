@@ -11,7 +11,7 @@ const fallbackByCategory: Record<SettingsCategory, SettingsMap> = {
     'system.company_name': 'Codevertex Africa Limited',
     'system.primary_color': '#9100B0',
     'system.font': 'Inter',
-    'system.support_email': 'support@codevertexitsolutions.com',
+    'system.support_email': 'support@codevertexafrica.com',
     'system.support_phone': '+254 743 793901',
     'system.require_terms_consent': true,
     'system.terms_text': 'By using our WiFi, you agree to fair usage and community-friendly rules.'

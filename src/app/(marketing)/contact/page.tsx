@@ -120,10 +120,10 @@ export default function ContactPage() {
                 </div>
               </div>
               <a 
-                href="mailto:info@codevertexitsolutions.com"
+                href="mailto:info@codevertexafrica.com"
                 className="text-[#9100B0] dark:text-[#9100B0] hover:text-[#6a0082] font-medium"
               >
-                info@codevertexitsolutions.com
+                info@codevertexafrica.com
               </a>
             </motion.div>
 

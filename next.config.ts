@@ -48,9 +48,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_NAME:
       process.env.NEXT_PUBLIC_APP_NAME || "Codevertex ISP Billing",
     NEXT_PUBLIC_APP_URL:
-      process.env.NEXT_PUBLIC_APP_URL || "https://ispbilling.codevertexitsolutions.com",
+      process.env.NEXT_PUBLIC_APP_URL || "https://ispbilling.codevertexafrica.com",
     NEXT_PUBLIC_NOTIFICATIONS_URL:
-      process.env.NEXT_PUBLIC_NOTIFICATIONS_URL || "https://notificationsapi.codevertexitsolutions.com",
+      process.env.NEXT_PUBLIC_NOTIFICATIONS_URL || "https://notificationsapi.codevertexafrica.com",
   },
 
   // Security headers for production

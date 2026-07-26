@@ -38,7 +38,7 @@ const TIMEOUT = 30000;
 // refresh request (thundering-herd guard). Local sessions are unaffected and
 // keep using the existing local /auth/refresh path below.
 const SSO_BASE_URL =
-  process.env.NEXT_PUBLIC_SSO_URL || "https://sso.codevertexitsolutions.com";
+  process.env.NEXT_PUBLIC_SSO_URL || "https://sso.codevertexafrica.com";
 const SSO_CLIENT_ID =
   process.env.NEXT_PUBLIC_SSO_CLIENT_ID || "isp-billing-ui";
 

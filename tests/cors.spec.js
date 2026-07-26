@@ -34,7 +34,7 @@ test('production frontend login + monitor CORS errors', async ({ page }) => {
   });
 
   // Go to production frontend login
-  await page.goto('https://ispbilling.codevertexitsolutions.com/login', { waitUntil: 'networkidle' });
+  await page.goto('https://ispbilling.codevertexafrica.com/login', { waitUntil: 'networkidle' });
 
   // Login using demo credentials
   await page.fill('input[name="username"]', 'demo');
@@ -45,7 +45,7 @@ test('production frontend login + monitor CORS errors', async ({ page }) => {
   ]);
 
   // Navigate to demo-isp dashboard (if not already redirected)
-  await page.goto('https://ispbilling.codevertexitsolutions.com/demo-isp/dashboard/', { waitUntil: 'networkidle' });
+  await page.goto('https://ispbilling.codevertexafrica.com/demo-isp/dashboard/', { waitUntil: 'networkidle' });
 
   // Wait a short while for XHRs to fire
   await page.waitForTimeout(5000);

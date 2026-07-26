@@ -20,10 +20,10 @@ export function Footer() {
       { name: 'API Documentation', href: '#' }
     ],
     company: [
-      { name: 'About Us', href: 'https://codevertexitsolutions.com/about' },
+      { name: 'About Us', href: 'https://codevertexafrica.com/about' },
       { name: 'Contact', href: '/contact' },
-      { name: 'Blog', href: 'https://codevertexitsolutions.com/blog' },
-      { name: 'Careers', href: 'https://codevertexitsolutions.com/careers' }
+      { name: 'Blog', href: 'https://codevertexafrica.com/blog' },
+      { name: 'Careers', href: 'https://codevertexafrica.com/careers' }
     ],
     support: [
       { name: 'Help Center', href: '#' },
@@ -102,7 +102,7 @@ export function Footer() {
                 transition={{ duration: 0.3 }}
               >
                 <Mail className="w-4 h-4 text-white/80" />
-                <span className="text-white/90 text-sm">info@codevertexitsolutions.com</span>
+                <span className="text-white/90 text-sm">info@codevertexafrica.com</span>
               </motion.div>
               <motion.div 
                 className="flex items-center gap-3"

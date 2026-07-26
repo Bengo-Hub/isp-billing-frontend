@@ -249,7 +249,7 @@ export default function CaptiveBuyPackagesPage() {
         // Start the SAME-ORIGIN status poll immediately (billing backend, which
         // the router walled-garden reaches), NOT only when the iframe posts
         // `treasury:payment_confirmed`. On a captive device the embedded
-        // checkout iframe is hosted off-network (books.codevertexitsolutions.com),
+        // checkout iframe is hosted off-network (books.codevertexafrica.com),
         // so its confirmation message may never arrive — relying on it makes the
         // confirm hang until the modal's 10-minute countdown expires (Issue 4).
         // Polling the same-origin endpoint flips us to success the moment the
@@ -1048,7 +1048,7 @@ export default function CaptiveBuyPackagesPage() {
               &copy; {new Date().getFullYear()} {config.organization_name}. All rights reserved.
             </p>
           )}
-          <a className="text-xs text-gray-400 link" href="https://codevertexitsolutions.com" target="_blank" rel="noopener noreferrer">Powered by Codevertex Africa Limited</a>
+          <a className="text-xs text-gray-400 link" href="https://codevertexafrica.com" target="_blank" rel="noopener noreferrer">Powered by Codevertex Africa Limited</a>
         </div>
       </div>
 

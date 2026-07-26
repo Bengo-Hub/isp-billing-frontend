@@ -231,7 +231,7 @@ function GeneralTab() {
 function PaymentsTab() {
   // Prefer the configured treasury-ui URL; fall back to a sensible default host
   // (treasury/books console) when it isn't set in this env.
-  const treasuryBase = config.treasuryUiUrl || 'https://books.codevertexitsolutions.com';
+  const treasuryBase = config.treasuryUiUrl || 'https://books.codevertexafrica.com';
   const payoutsUrl = `${treasuryBase}/payouts`;
 
   return (

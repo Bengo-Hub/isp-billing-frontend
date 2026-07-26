@@ -34,7 +34,7 @@ test('production frontend login + monitor CORS errors', async ({ page }) => {
   });
 
   // Directly hit production frontend and perform login
-  await page.goto('https://ispbilling.codevertexitsolutions.com/login', { waitUntil: 'networkidle' });
+  await page.goto('https://ispbilling.codevertexafrica.com/login', { waitUntil: 'networkidle' });
 
   await page.fill('input[name="username"]', 'demo');
   await page.fill('input[name="password"]', 'demo123');
@@ -43,7 +43,7 @@ test('production frontend login + monitor CORS errors', async ({ page }) => {
     page.click('button[type="submit"]')
   ]);
 
-  await page.goto('https://ispbilling.codevertexitsolutions.com/demo-isp/dashboard/', { waitUntil: 'networkidle' });
+  await page.goto('https://ispbilling.codevertexafrica.com/demo-isp/dashboard/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(5000);
 
   console.log('FOUND CORS ERRORS:', corsErrors);

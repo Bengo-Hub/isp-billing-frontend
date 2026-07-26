@@ -44,7 +44,7 @@ export const config = {
   treasuryUiUrl: process.env.NEXT_PUBLIC_TREASURY_UI_URL || '',      // treasury-api UI (invoices/payments)
   // notifications-api UI (SMS/email/WhatsApp messaging + messaging credits & WhatsApp subscription).
   // All notifications/messaging is centralized in notifications-ui; ISP-billing links OUT to it.
-  notificationsUiUrl: process.env.NEXT_PUBLIC_NOTIFICATIONS_UI_URL || 'https://notifications.codevertexitsolutions.com',
+  notificationsUiUrl: process.env.NEXT_PUBLIC_NOTIFICATIONS_UI_URL || 'https://notifications.codevertexafrica.com',
 
   // MikroTik Router Configuration
   // Default router IP for provisioning, ping checks, and form defaults

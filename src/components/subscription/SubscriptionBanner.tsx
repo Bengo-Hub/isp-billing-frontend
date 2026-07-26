@@ -13,7 +13,7 @@ import { useBranding } from '@/components/theme/BrandingProvider';
  */
 
 const SUBSCRIPTIONS_UI_URL =
-  process.env.NEXT_PUBLIC_SUBSCRIPTIONS_UI_URL || 'https://pricing.codevertexitsolutions.com';
+  process.env.NEXT_PUBLIC_SUBSCRIPTIONS_UI_URL || 'https://pricing.codevertexafrica.com';
 
 const UPGRADE_URL = `${SUBSCRIPTIONS_UI_URL}/plans?service=isp`;
 const BILLING_URL = `${SUBSCRIPTIONS_UI_URL}/billing`;

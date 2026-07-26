@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const SUPPORT_EMAIL = 'support@codevertexitsolutions.com';
+const SUPPORT_EMAIL = 'support@codevertexafrica.com';
 const SUPPORT_PHONE = '+254743793901';
 
 interface PaymentVerificationResult {
