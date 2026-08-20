@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
+import '@bengo-hub/shared-ui-lib/contact/style.css'
 import './globals.css'
 import { QueryClientProvider } from './providers/query-client-provider'
 

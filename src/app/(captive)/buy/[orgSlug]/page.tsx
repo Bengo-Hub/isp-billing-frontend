@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { PhoneInputField } from '@bengo-hub/shared-ui-lib/contact';
 import { Label } from '@/components/ui/label';
 import { useAvailablePaymentGateways } from '@/features/payments/api';
 import { formatDuration } from '@/features/packages/api';
@@ -976,13 +977,14 @@ export default function CaptiveBuyPackagesPage() {
                 {(selectedPaymentMethod === 'mpesa_paybill' || selectedPaymentMethod === 'mpesa_till') && (
                   <div>
                     <Label className="text-sm font-semibold mb-2 block">M-PESA Phone Number</Label>
-                    <Input
+                    {/* This value is a reference/prefill on the treasury payment intent, not what
+                        directly triggers the Safaricom STK push — customer hotspot purchases are
+                        fully centralized on treasury-api (see hotspot.py's own module comment),
+                        which redirects to its own hosted /pay page for the actual payment step. */}
+                    <PhoneInputField
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="07XX XXX XXX"
-                      type="tel"
-                      className="h-11 sm:h-12 text-base"
-                      autoComplete="tel"
+                      onChange={setPhoneNumber}
+                      className="!h-11 sm:!h-12"
                     />
                     <p className="text-xs text-gray-500 mt-2">You will receive an STK push on this number</p>
                   </div>

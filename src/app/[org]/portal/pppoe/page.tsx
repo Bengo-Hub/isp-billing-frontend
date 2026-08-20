@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { ServiceUnavailableCard } from '@/components/portal/ServiceUnavailableCard';
 import { TermsConditionsModal } from '@/components/portal/TermsConditionsModal';
 import { useAuthStore } from '@/lib/store/auth';
 import type { ProviderContact } from '@/features/portal/api';
+import { PhoneInputField } from '@bengo-hub/shared-ui-lib/contact';
 import {
     usePaymentStatus,
     usePortalConfig,
@@ -333,12 +333,10 @@ export default function PPPoEPortalPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">M-PESA Number</label>
-                    <Input
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="07XX XXX XXX"
-                      type="tel"
-                    />
+                    {/* This value is a reference/prefill on the treasury payment intent, not what
+                        directly triggers the Safaricom STK push — that happens on treasury's own
+                        hosted /pay page after redirect, so E.164 here is safe. */}
+                    <PhoneInputField value={phoneNumber} onChange={setPhoneNumber} />
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 mt-4">
