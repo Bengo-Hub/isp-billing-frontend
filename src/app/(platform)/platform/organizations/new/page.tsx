@@ -9,6 +9,7 @@ import { useCreateOrganization, OrganizationType } from '@/features/platform/api
 import { config } from '@/lib/config';
 import { ArrowLeft, Building, MapPin, Settings, Bell, Palette, Award, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { CountrySelect, countryName } from '@bengo-hub/shared-ui-lib/contact';
 
 export default function NewOrganizationPage() {
   const router = useRouter();
@@ -159,10 +160,12 @@ export default function NewOrganizationPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Country
               </label>
-              <Input
+              {/* Stored as a free-text name (default 'Kenya') — onChange converts CountrySelect's
+                  ISO output back via countryName() to keep that shape unchanged for
+                  billing/regulatory document rendering. */}
+              <CountrySelect
                 value={formData.country}
-                onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                placeholder="Kenya"
+                onChange={(iso) => setFormData(prev => ({ ...prev, country: countryName(iso) }))}
               />
             </div>
             <div>
